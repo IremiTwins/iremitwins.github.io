@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="How we set up our GitHub Pages site — Iremi Twins blog." />
+  <title>How we set up our GitHub Pages site · Iremi Twins</title>
+  <link rel="stylesheet" href="../styles/main.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <header class="site-header scrolled" id="site-header">
+    <nav class="nav container">
+      <a href="../index.html#home" class="nav__logo">iremi<span>twins</span></a>
+      <button class="nav__toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <ul class="nav__links" id="nav-links">
+        <li><a href="../index.html#about">About</a></li>
+        <li><a href="../index.html#portfolio">Portfolio</a></li>
+        <li><a href="../index.html#work">Work</a></li>
+        <li><a href="index.html" class="active">Blog</a></li>
+        <li><a href="../index.html#contact">Contact</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="blog-page">
+    <div class="container">
+
+      <article class="post-content">
+        <div class="blog-page__header">
+          <div class="post-meta">
+            <span class="blog-card__date">Jan 2026</span>
+            <span class="blog-card__tag">Web Dev</span>
+          </div>
+          <h1 class="section__title">How we set up our GitHub Pages site</h1>
+          <p style="color: var(--clr-muted);">From empty repo to live site — what we did and what we learned.</p>
+        </div>
+
+        <h2>Why GitHub Pages?</h2>
+        <p>
+          GitHub Pages is a natural fit for a portfolio site: it's free, tied directly to
+          your source code, and deploying is as simple as pushing a commit. For a
+          front-end-only site there's no better option to start with.
+        </p>
+
+        <h2>Step 1 — Create the repository</h2>
+        <p>
+          The key is naming the repository <code>&lt;username&gt;.github.io</code>. GitHub
+          automatically serves the <code>main</code> branch of that repo at
+          <code>https://&lt;username&gt;.github.io</code>.
+        </p>
+        <p>
+          We created <strong>IremiTwins/iremitwins.github.io</strong> and ticked
+          "Initialize with a README" to get started immediately.
+        </p>
+
+        <h2>Step 2 — Add a <code>CNAME</code> file for the custom domain</h2>
+        <p>
+          To use <strong>iremitwins.com</strong> instead of the default
+          <code>iremitwins.github.io</code> URL, we added a file called <code>CNAME</code>
+          to the root of the repository containing just one line:
+        </p>
+        <pre><code>iremitwins.com</code></pre>
+        <p>
+          Then we updated our DNS registrar to point the domain at GitHub's servers using
+          the recommended <code>A</code> records (or a <code>CNAME</code> record for
+          <code>www</code>).
+        </p>
+
+        <h2>Step 3 — Build the site with vanilla HTML/CSS/JS</h2>
+        <p>
+          We deliberately kept things dependency-free. No build step means:
+        </p>
+        <ul>
+          <li>Zero configuration overhead</li>
+          <li>Instant deploys on every push</li>
+          <li>Fast page loads — no framework JavaScript to ship</li>
+          <li>Easy to understand and maintain</li>
+        </ul>
+
+        <h2>Step 4 — Enable HTTPS</h2>
+        <p>
+          Once DNS propagated, we ticked "Enforce HTTPS" in the repository's Pages settings.
+          GitHub provisions a Let's Encrypt certificate automatically — nothing else to do.
+        </p>
+
+        <h2>That's it!</h2>
+        <p>
+          The whole setup took less than an hour. If you want to do the same, the
+          <a href="https://docs.github.com/en/pages" target="_blank" rel="noopener noreferrer" style="color: var(--clr-accent-lt);">GitHub Pages documentation</a>
+          is comprehensive and easy to follow.
+        </p>
+
+        <div class="post-nav">
+          <a href="index.html" class="btn btn--ghost">← All posts</a>
+          <a href="css-tips.html" class="btn btn--ghost">Next post →</a>
+        </div>
+      </article>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container site-footer__inner">
+      <p>© <span id="year"></span> Iremi Twins · Built with ❤️ and vanilla HTML/CSS/JS</p>
+      <a href="../index.html" class="back-to-top">← Home</a>
+    </div>
+  </footer>
+
+  <script src="../scripts/main.js"></script>
+</body>
+</html>

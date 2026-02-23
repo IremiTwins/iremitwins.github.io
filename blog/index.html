@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Blog — Iremi Twins. Thoughts, write-ups, and tutorials on front-end development." />
+  <title>Blog · Iremi Twins</title>
+  <link rel="stylesheet" href="../styles/main.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <header class="site-header scrolled" id="site-header">
+    <nav class="nav container">
+      <a href="../index.html#home" class="nav__logo">iremi<span>twins</span></a>
+      <button class="nav__toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <ul class="nav__links" id="nav-links">
+        <li><a href="../index.html#about">About</a></li>
+        <li><a href="../index.html#portfolio">Portfolio</a></li>
+        <li><a href="../index.html#work">Work</a></li>
+        <li><a href="index.html" class="active">Blog</a></li>
+        <li><a href="../index.html#contact">Contact</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="blog-page">
+    <div class="container">
+      <div class="blog-page__header">
+        <p class="section__label">Blog</p>
+        <h1 class="section__title">All posts</h1>
+        <p style="color: var(--clr-muted);">Thoughts, write-ups, and tutorials from the Iremi Twins.</p>
+      </div>
+
+      <ul class="blog-page__list">
+        <li>
+          <div class="post-meta">
+            <span class="blog-card__date">Feb 2026</span>
+            <span class="blog-card__tag">CSS</span>
+          </div>
+          <h3><a href="css-tips.html">5 CSS tricks we use every day</a></h3>
+          <p>A quick tour of the CSS patterns that show up in nearly every project we build — from custom properties to container queries.</p>
+        </li>
+        <li>
+          <div class="post-meta">
+            <span class="blog-card__date">Jan 2026</span>
+            <span class="blog-card__tag">Web Dev</span>
+          </div>
+          <h3><a href="getting-started.html">How we set up our GitHub Pages site</a></h3>
+          <p>From empty repo to live site — the steps we took to get iremitwins.com live and the things we learned along the way.</p>
+        </li>
+        <li>
+          <div class="post-meta">
+            <span class="blog-card__date">Coming soon</span>
+            <span class="blog-card__tag">JavaScript</span>
+          </div>
+          <h3>Writing cleaner JavaScript with small patterns</h3>
+          <p>The small habits and patterns that make JavaScript code easier to read, maintain, and debug over time.</p>
+        </li>
+      </ul>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container site-footer__inner">
+      <p>© <span id="year"></span> Iremi Twins · Built with ❤️ and vanilla HTML/CSS/JS</p>
+      <a href="../index.html" class="back-to-top">← Home</a>
+    </div>
+  </footer>
+
+  <script src="../scripts/main.js"></script>
+</body>
+</html>
