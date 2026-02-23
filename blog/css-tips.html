@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="5 CSS tricks we use every day — Iremi Twins blog." />
+  <title>5 CSS tricks we use every day · Iremi Twins</title>
+  <link rel="stylesheet" href="../styles/main.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <header class="site-header scrolled" id="site-header">
+    <nav class="nav container">
+      <a href="../index.html#home" class="nav__logo">iremi<span>twins</span></a>
+      <button class="nav__toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <ul class="nav__links" id="nav-links">
+        <li><a href="../index.html#about">About</a></li>
+        <li><a href="../index.html#portfolio">Portfolio</a></li>
+        <li><a href="../index.html#work">Work</a></li>
+        <li><a href="index.html" class="active">Blog</a></li>
+        <li><a href="../index.html#contact">Contact</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="blog-page">
+    <div class="container">
+
+      <article class="post-content">
+        <div class="blog-page__header">
+          <div class="post-meta">
+            <span class="blog-card__date">Feb 2026</span>
+            <span class="blog-card__tag">CSS</span>
+          </div>
+          <h1 class="section__title">5 CSS tricks we use every day</h1>
+          <p style="color: var(--clr-muted);">A quick tour of the CSS patterns that show up in nearly every project we build.</p>
+        </div>
+
+        <h2>1. CSS Custom Properties (variables)</h2>
+        <p>
+          Custom properties are the backbone of every design system we build.
+          Defining tokens like colours, spacing, and type scales once in <code>:root</code>
+          means changing the whole theme is a single-line edit.
+        </p>
+        <pre><code>:root {
+  --clr-accent: #6c63ff;
+  --space-md: 1.5rem;
+}
+
+.button {
+  background: var(--clr-accent);
+  padding: var(--space-md);
+}</code></pre>
+
+        <h2>2. <code>clamp()</code> for fluid typography</h2>
+        <p>
+          Instead of writing multiple media queries for font sizes, <code>clamp()</code>
+          lets you set a fluid range that scales smoothly between a minimum and maximum.
+        </p>
+        <pre><code>h1 {
+  font-size: clamp(2rem, 5vw, 4rem);
+}</code></pre>
+
+        <h2>3. <code>aspect-ratio</code> for consistent proportions</h2>
+        <p>
+          Maintaining image or card aspect ratios used to require the padding-top hack.
+          The <code>aspect-ratio</code> property makes it a one-liner.
+        </p>
+        <pre><code>.thumbnail {
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}</code></pre>
+
+        <h2>4. <code>gap</code> on flex and grid</h2>
+        <p>
+          <code>gap</code> works on both Flexbox and Grid and removes the need for margin
+          hacks. It only applies space <em>between</em> items, never on the outer edges.
+        </p>
+        <pre><code>.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.5rem;
+}</code></pre>
+
+        <h2>5. <code>:is()</code> and <code>:where()</code> for tidy selectors</h2>
+        <p>
+          These pseudo-classes let you group selectors without repeating the full rule.
+          <code>:where()</code> has zero specificity, which is great for resets.
+        </p>
+        <pre><code>:is(h1, h2, h3) {
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+:where(ul, ol) {
+  padding-left: 1.5rem;
+}</code></pre>
+
+        <div class="post-nav">
+          <a href="index.html" class="btn btn--ghost">← All posts</a>
+          <a href="getting-started.html" class="btn btn--ghost">Next post →</a>
+        </div>
+      </article>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container site-footer__inner">
+      <p>© <span id="year"></span> Iremi Twins · Built with ❤️ and vanilla HTML/CSS/JS</p>
+      <a href="../index.html" class="back-to-top">← Home</a>
+    </div>
+  </footer>
+
+  <script src="../scripts/main.js"></script>
+</body>
+</html>
