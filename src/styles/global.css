@@ -1,0 +1,801 @@
+/* ============================================================
+   src/styles/global.css — Global Stylesheet
+   ============================================================
+
+   This single file styles the entire site. It is imported
+   once in BaseLayout.astro and applies to every page.
+
+   HOW TO CUSTOMISE THE LOOK OF THE SITE:
+   The fastest way to change colours, fonts, or spacing is to
+   edit the CSS Custom Properties (variables) in the :root
+   block below. Everything on the site reads from those
+   variables, so one edit changes the whole site at once.
+   ============================================================ */
+
+
+/* ── Reset ────────────────────────────────────────────────────
+   Resets the browser's default margin/padding and makes all
+   elements use border-box sizing (padding doesn't inflate
+   the element's width—far easier to work with).
+   ──────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+
+/* ── Design Tokens (CSS Custom Properties) ────────────────────
+   Think of these as named constants, like variables in code.
+   Change any value here to update every place it is used.
+
+   COLOURS — try these colour tools to pick new values:
+     • https://coolors.co
+     • https://palettte.app
+   ──────────────────────────────────────────────────────────── */
+:root {
+
+  /* ── Colour Palette ─────────────────────────────────────── */
+
+  /* Page background — very dark navy */
+  --clr-bg:        #0d0f14;
+
+  /* Card / surface background — slightly lighter than the page */
+  --clr-surface:   #141720;
+
+  /* Borders and dividers */
+  --clr-border:    #1e2230;
+
+  /* Accent — the main purple used on buttons, links, dots, etc.
+     TO CHANGE THE SITE'S ACCENT COLOUR: edit just this value. */
+  --clr-accent:    #6c63ff;
+
+  /* Lighter accent — used for hovers over the accent colour */
+  --clr-accent-lt: #8b85ff;
+
+  /* Primary body text colour (near-white) */
+  --clr-text:      #e2e4ec;
+
+  /* Secondary / dimmed text (used for descriptions, labels) */
+  --clr-muted:     #7a7f95;
+
+  /* Pure white — used on filled buttons */
+  --clr-white:     #ffffff;
+
+
+  /* ── Typography ─────────────────────────────────────────── */
+
+  /* Main font — loaded from Google Fonts in BaseLayout.astro.
+     To change font: update this variable AND the Google Fonts
+     <link> tag in src/layouts/BaseLayout.astro.              */
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  /* Monospace font — used for code, labels, dates.
+     Same as above: also update the Google Fonts link.        */
+  --font-mono: 'Fira Code', 'Courier New', monospace;
+
+
+  /* ── Spacing Scale ──────────────────────────────────────── */
+  /* Consistent spacing makes layouts feel harmonious.
+     xs → sm → md → lg → xl → 2xl (small to large)            */
+  --space-xs:  0.5rem;   /*  8px */
+  --space-sm:  1rem;     /* 16px */
+  --space-md:  1.5rem;   /* 24px */
+  --space-lg:  2.5rem;   /* 40px */
+  --space-xl:  4rem;     /* 64px */
+  --space-2xl: 7rem;     /* 112px — section padding */
+
+
+  /* ── Misc ───────────────────────────────────────────────── */
+
+  /* Border-radius — rounds the corners of cards and buttons */
+  --radius:    0.75rem;
+  --radius-sm: 0.375rem;
+
+  /* Transition speed — used for hover animations.
+     Increase for slower, more dramatic transitions.          */
+  --transition: 0.2s ease;
+
+  /* Max content width — content won't stretch wider than this */
+  --max-w: 1100px;
+}
+
+
+/* ── Base HTML & Body ─────────────────────────────────────────
+   Sets the default look for the whole page.
+   ──────────────────────────────────────────────────────────── */
+
+/* Makes anchor links scroll smoothly to their destination
+   instead of jumping instantly.                               */
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--clr-bg);
+  color: var(--clr-text);
+  line-height: 1.7;                /* comfortable reading spacing */
+  -webkit-font-smoothing: antialiased; /* makes fonts crisper on macOS/iOS */
+}
+
+/* Removes the default inline gap below images and SVGs */
+img, svg { display: block; }
+
+/* Removes the default underline on all links and inherits
+   the text colour from their parent element.                  */
+a { color: inherit; text-decoration: none; }
+
+
+/* ── Utilities ────────────────────────────────────────────────
+   Reusable helper classes you can apply to any element.
+   ──────────────────────────────────────────────────────────── */
+
+/* Centers content horizontally with a max width and
+   consistent side padding.  Used on every section.           */
+.container {
+  width: 100%;
+  max-width: var(--max-w);
+  margin-inline: auto;
+  padding-inline: var(--space-md);
+}
+
+/* Large top and bottom padding for each page section */
+.section { padding-block: var(--space-2xl); }
+
+/* The small uppercase mono label above section titles
+   e.g. "// about", "// portfolio"                            */
+.section__label {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--clr-accent);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-xs);
+}
+
+/* Section titles — fluid size using clamp():
+   clamp(MIN, FLUID, MAX) scales between MIN and MAX
+   based on viewport width.                                    */
+.section__title {
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: var(--space-lg);
+}
+
+/* Makes any text the accent colour: <span class="highlight"> */
+.highlight { color: var(--clr-accent); }
+
+/* Card component — used for about, portfolio, and blog cards */
+.card {
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  padding: var(--space-lg);
+  transition: border-color var(--transition), transform var(--transition);
+}
+/* Cards float upward and show accent border on hover */
+.card:hover { border-color: var(--clr-accent); transform: translateY(-3px); }
+
+
+/* ── Buttons ──────────────────────────────────────────────────
+   Base .btn class + modifier classes for different styles.
+   TO ADD A NEW BUTTON STYLE: add a new .btn--myname class here.
+   ──────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.4rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: background var(--transition), color var(--transition),
+              border-color var(--transition), transform var(--transition);
+}
+/* All buttons float up slightly on hover */
+.btn:hover { transform: translateY(-2px); }
+
+/* Filled accent button — primary call to action */
+.btn--primary {
+  background: var(--clr-accent);
+  color: var(--clr-white);
+}
+.btn--primary:hover { background: var(--clr-accent-lt); }
+
+/* Transparent button with a border — secondary action */
+.btn--ghost {
+  background: transparent;
+  color: var(--clr-text);
+  border-color: var(--clr-border);
+}
+.btn--ghost:hover { border-color: var(--clr-accent); color: var(--clr-accent); }
+
+/* Larger button variant — used in the Contact section */
+.btn--large { padding: 0.85rem 2rem; font-size: 1rem; }
+
+
+/* ── Scroll Animations ────────────────────────────────────────
+   Elements with data-animate start hidden and slide up.
+   JavaScript (in BaseLayout.astro) watches them with an
+   IntersectionObserver and adds .visible when they scroll
+   into view, triggering the CSS transition.
+   ──────────────────────────────────────────────────────────── */
+[data-animate] {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+[data-animate].visible {
+  opacity: 1;
+  transform: none;
+}
+
+
+/* ── Header / Nav ─────────────────────────────────────────────
+   The header is fixed to the top of the viewport and starts
+   transparent. JavaScript adds .scrolled when the user
+   scrolls down more than 20px.
+   ──────────────────────────────────────────────────────────── */
+.site-header {
+  position: fixed;
+  inset-inline: 0;  /* shorthand for left: 0; right: 0; */
+  top: 0;
+  z-index: 100;     /* sits above all other content */
+  background: transparent;
+  transition: background var(--transition), box-shadow var(--transition);
+}
+/* Frosted-glass effect after scrolling */
+.site-header.scrolled {
+  background: rgba(13, 15, 20, 0.9);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 1px 0 var(--clr-border);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 4rem;     /* controls the header height */
+}
+
+/* Logo — "iremi" + <span>twins</span> so "twins" is accent colour */
+.nav__logo {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.nav__logo span { color: var(--clr-accent); }
+
+/* Desktop nav links — horizontal row */
+.nav__links {
+  display: flex;
+  list-style: none;
+  gap: var(--space-lg);
+}
+.nav__links a {
+  font-size: 0.9rem;
+  color: var(--clr-muted);
+  transition: color var(--transition);
+}
+/* Brightens nav links on hover or when .active class is set by JS */
+.nav__links a:hover,
+.nav__links a.active { color: var(--clr-text); }
+
+/* Hamburger button — hidden on desktop, shown on mobile */
+.nav__toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+/* The three horizontal bars of the hamburger icon */
+.nav__toggle span {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: var(--clr-text);
+  border-radius: 2px;
+  transition: transform var(--transition), opacity var(--transition);
+}
+/* Animates hamburger bars into an × (close icon) when menu is open */
+.nav__toggle[aria-expanded="true"] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav__toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+.nav__toggle[aria-expanded="true"] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+
+/* ── Hero Section ─────────────────────────────────────────────
+   The full-screen opening section.
+   ──────────────────────────────────────────────────────────── */
+.hero {
+  position: relative;
+  min-height: 100svh;   /* 100svh = 100% of the small viewport height (mobile-safe) */
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  padding-top: 4rem;    /* clears the fixed header */
+}
+
+.hero__inner {
+  position: relative;
+  z-index: 1;           /* sits above the decorative grid background */
+  padding-block: var(--space-2xl);
+}
+
+/* The "Open to opportunities" pill at the top of the hero */
+.hero__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--clr-muted);
+  border: 1px solid var(--clr-border);
+  border-radius: 999px;  /* fully rounded pill shape */
+  padding: 0.3rem 0.9rem;
+  margin-bottom: var(--space-md);
+}
+
+/* The green pulsing dot inside the hero tag */
+.dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background: #4ade80;   /* green — change this to update the dot colour */
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* Large hero headline — fluid size from 2.5rem → 5rem */
+.hero__title {
+  font-size: clamp(2.5rem, 7vw, 5rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin-bottom: var(--space-md);
+}
+
+/* Subtitle / tagline paragraph below the headline */
+.hero__subtitle {
+  max-width: 520px;
+  color: var(--clr-muted);
+  font-size: 1.1rem;
+  margin-bottom: var(--space-lg);
+}
+
+/* Container for the CTA buttons — wraps to a new line on small screens */
+.hero__cta { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+
+/* Decorative grid pattern in the hero background.
+   Uses CSS gradients to draw lines, and a radial mask to fade them out.
+   aria-hidden="true" on the element means screen readers ignore it. */
+.hero__bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--clr-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--clr-border) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 60% at 60% 40%, black 30%, transparent 100%);
+  opacity: 0.35;
+}
+
+
+/* ── About Section ────────────────────────────────────────────
+   Two cards side by side, wrapping to one column on mobile.
+   TO ADD A THIRD CARD: add it in AboutSection.astro — the
+   grid handles it automatically.
+   ──────────────────────────────────────────────────────────── */
+.about__cards {
+  display: grid;
+  /* auto-fit: fills as many columns as fit, min 280px each */
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-md);
+}
+
+/* Circular avatar with initials inside each about card */
+.card__avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--clr-accent);
+  color: var(--clr-white);
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-sm);
+}
+
+.about__card h3 {
+  font-size: 1.2rem;
+  margin-bottom: 0.2rem;
+}
+
+/* The role label below each person's name (monospace, accent colour) */
+.card__role {
+  font-size: 0.85rem;
+  color: var(--clr-accent);
+  font-family: var(--font-mono);
+  margin-bottom: var(--space-sm);
+}
+
+/* Row of skill pill badges at the bottom of each about card.
+   TO ADD A SKILL: add a new <span> in AboutSection.astro.   */
+.card__skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: var(--space-sm);
+}
+.card__skills span {
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  background: var(--clr-bg);
+  border: 1px solid var(--clr-border);
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-sm);
+  color: var(--clr-muted);
+}
+
+
+/* ── Portfolio Section ────────────────────────────────────────
+   Grid of project cards.
+   TO ADD A PROJECT: copy a card block in PortfolioSection.astro.
+   ──────────────────────────────────────────────────────────── */
+.portfolio__grid {
+  display: grid;
+  /* slightly wider min to give project cards more breathing room */
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-md);
+}
+
+/* Top row of each project card: type label + link icons */
+.project-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-sm);
+}
+
+/* Small uppercase type label e.g. "Web App", "Portfolio Site" */
+.project-card__type {
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--clr-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Container for the GitHub / Live links in the top-right */
+.project-card__links {
+  display: flex;
+  gap: 0.6rem;
+}
+.project-card__links a {
+  color: var(--clr-muted);
+  transition: color var(--transition);
+}
+.project-card__links a:hover { color: var(--clr-accent); }
+
+.project-card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Row of tech stack badges at the bottom of each project card */
+.project-card__tech {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: var(--space-sm);
+}
+.project-card__tech span {
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  background: var(--clr-bg);
+  border: 1px solid var(--clr-border);
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-sm);
+  color: var(--clr-muted);
+}
+
+
+/* ── Work / Timeline ──────────────────────────────────────────
+   A vertical timeline with a left border line and accent dots.
+   TO ADD A JOB: add a new .timeline__item in WorkSection.astro.
+   ──────────────────────────────────────────────────────────── */
+.timeline {
+  position: relative;
+  padding-left: 2rem;
+}
+/* The vertical line — a ::before pseudo-element on .timeline */
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--clr-border);
+}
+
+.timeline__item {
+  position: relative;
+  padding-bottom: var(--space-md);
+}
+.timeline__item:last-child { padding-bottom: 0; }
+
+/* The accent circle dot on the timeline line */
+.timeline__dot {
+  position: absolute;
+  left: -2.45rem;   /* pulls it left onto the timeline line */
+  top: 1.4rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--clr-accent);
+  border: 2px solid var(--clr-bg);  /* gap between dot and outer ring */
+  box-shadow: 0 0 0 3px var(--clr-border);  /* outer ring */
+}
+
+/* Date badge e.g. "2025–Present" */
+.timeline__date {
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  color: var(--clr-accent);
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+.timeline__content h3 { font-size: 1.05rem; margin-bottom: 0.25rem; }
+
+.timeline__company {
+  font-size: 0.85rem;
+  color: var(--clr-muted);
+  margin-bottom: 0.5rem;
+}
+
+
+/* ── Blog Section ─────────────────────────────────────────────
+   Preview cards for the three most recent posts.
+   The cards are built dynamically from the blog content
+   collection in BlogPreviewSection.astro.
+   ──────────────────────────────────────────────────────────── */
+.blog__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.blog-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: var(--space-sm);
+}
+
+/* Date stamp in monospace above each blog card */
+.blog-card__date {
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  color: var(--clr-muted);
+}
+
+/* Tag pill — e.g. "CSS", "JavaScript", "Web Dev"
+   TO ADD A NEW TAG: just set frontmatter `tag` in the .md file */
+.blog-card__tag {
+  font-size: 0.72rem;
+  background: rgba(108, 99, 255, 0.15);  /* translucent purple */
+  color: var(--clr-accent-lt);
+  border: 1px solid rgba(108, 99, 255, 0.3);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.blog-card h3 {
+  font-size: 1.05rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+.blog-card h3 a:hover { color: var(--clr-accent-lt); }
+
+.blog-card p { color: var(--clr-muted); font-size: 0.9rem; margin-bottom: var(--space-sm); }
+
+/* "Read more →" link at the bottom of each blog card */
+.blog-card__read-more {
+  font-size: 0.85rem;
+  color: var(--clr-accent);
+  transition: color var(--transition);
+}
+.blog-card__read-more:hover { color: var(--clr-accent-lt); }
+/* Greyed-out version for posts not yet published */
+.blog-card__read-more--disabled { color: var(--clr-muted); cursor: default; }
+
+/* "All posts" button row below the blog grid */
+.blog__more { text-align: center; }
+
+
+/* ── Contact Section ──────────────────────────────────────────
+   Centered contact block with email button + social links.
+   TO UPDATE YOUR EMAIL: edit ContactSection.astro.
+   ──────────────────────────────────────────────────────────── */
+.contact__inner { text-align: center; max-width: 600px; margin-inline: auto; }
+.contact__lead {
+  color: var(--clr-muted);
+  margin-bottom: var(--space-lg);
+  font-size: 1.05rem;
+}
+
+.contact__socials {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+}
+.contact__socials a {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--clr-muted);
+  font-size: 0.9rem;
+  transition: color var(--transition);
+}
+.contact__socials a:hover { color: var(--clr-accent); }
+
+
+/* ── Footer ───────────────────────────────────────────────────
+   Sits at the bottom of every page. The copyright year is
+   updated dynamically by JavaScript.
+   ──────────────────────────────────────────────────────────── */
+.site-footer {
+  border-top: 1px solid var(--clr-border);
+  padding-block: var(--space-md);
+}
+.site-footer__inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  font-size: 0.85rem;
+  color: var(--clr-muted);
+}
+
+/* "↑ Top" / "← Home" back-link in the footer */
+.back-to-top {
+  transition: color var(--transition);
+}
+.back-to-top:hover { color: var(--clr-accent); }
+
+
+/* ── Blog Pages ───────────────────────────────────────────────
+   Styles shared between the blog listing page and blog posts.
+   ──────────────────────────────────────────────────────────── */
+
+/* Extra top padding to clear the fixed header on inner pages */
+.blog-page { padding-top: 6rem; }
+
+/* Header area at the top of each blog page */
+.blog-page__header {
+  border-bottom: 1px solid var(--clr-border);
+  padding-bottom: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+/* Meta row (date + tag) above the post title */
+.blog-page .post-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+/* Blog listing — the list of all posts on /blog */
+.blog-page__list { list-style: none; }
+.blog-page__list li { border-bottom: 1px solid var(--clr-border); padding-block: var(--space-md); }
+.blog-page__list li:last-child { border-bottom: none; }
+.blog-page__list h3 { font-size: 1.1rem; margin-bottom: 0.3rem; }
+.blog-page__list h3 a:hover { color: var(--clr-accent-lt); }
+.blog-page__list p { color: var(--clr-muted); font-size: 0.9rem; }
+
+/* The article body area on individual blog post pages */
+.post-content {
+  max-width: 680px;
+  margin-inline: auto;  /* centered horizontally */
+}
+.post-content h2 { font-size: 1.4rem; margin-block: var(--space-lg) var(--space-sm); }
+.post-content p { color: var(--clr-muted); margin-bottom: var(--space-sm); }
+.post-content ul, .post-content ol {
+  padding-left: 1.5rem;
+  color: var(--clr-muted);
+  margin-bottom: var(--space-sm);
+}
+.post-content li { margin-bottom: 0.3rem; }
+
+/* Inline code — e.g. `clamp()` in the middle of a sentence */
+.post-content code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  padding: 0.15em 0.4em;
+  border-radius: var(--radius-sm);
+  color: var(--clr-accent-lt);
+}
+
+/* Code block — multi-line code examples */
+.post-content pre {
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  padding: var(--space-md);
+  overflow-x: auto;  /* horizontal scroll if code is wider than the page */
+  margin-bottom: var(--space-md);
+}
+/* Reset the inline code styles when inside a pre block */
+.post-content pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+/* "← All posts" / "Next post →" navigation at the bottom of posts */
+.post-nav {
+  margin-top: var(--space-2xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--clr-border);
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+
+/* ── Responsive Breakpoints ───────────────────────────────────
+   Adjustments for smaller screens.
+   @media (max-width: Xpx) — rules inside only apply when the
+   viewport is narrower than X pixels.
+   ──────────────────────────────────────────────────────────── */
+
+/* Tablet and mobile — show the hamburger, switch to overlay nav */
+@media (max-width: 768px) {
+  /* Show the hamburger button */
+  .nav__toggle { display: flex; }
+
+  /* Hide desktop nav links; convert to full-screen overlay */
+  .nav__links {
+    display: none;
+    position: fixed;
+    inset: 4rem 0 0;        /* below the header, full height/width */
+    background: var(--clr-bg);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-lg);
+    z-index: 99;
+  }
+  /* JavaScript adds .open when the hamburger is clicked */
+  .nav__links.open { display: flex; }
+  .nav__links a { font-size: 1.2rem; }
+
+  /* Reduce timeline indent on narrow screens */
+  .timeline { padding-left: 1.2rem; }
+  .timeline__dot { left: -1.65rem; }
+}
+
+/* Small mobile — reduce type sizes and collapse grids to one column */
+@media (max-width: 480px) {
+  .hero__title { font-size: 2.2rem; }
+  .section__title { font-size: 1.7rem; }
+  /* Force all grids to a single column */
+  .about__cards, .portfolio__grid, .blog__grid { grid-template-columns: 1fr; }
+}

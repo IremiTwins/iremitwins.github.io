@@ -1,0 +1,80 @@
+---
+// ============================================================
+// src/components/HeroSection.astro — Homepage Hero
+// ============================================================
+//
+// The full-screen opening section of the homepage.
+//
+// CONTENTS:
+//   • "Open to opportunities" status pill with pulsing green dot
+//   • Large headline with highlighted word
+//   • Subtitle tagline
+//   • Two CTA (call-to-action) buttons
+//   • Decorative background grid (CSS-only)
+//
+// TO CUSTOMISE:
+//   • Change the headline → edit .hero__title
+//   • Change the tagline  → edit .hero__subtitle
+//   • Change the status pill text → edit .hero__tag
+//   • Change button labels/links → edit .hero__cta
+//   • Change the highlighted word → move the <span class="highlight">
+// ============================================================
+
+// No props or data fetching needed — purely static content.
+---
+
+<!--
+  section id="home" — the target for the "home" nav link.
+  The hero class applies the full-viewport height and flex centering.
+-->
+<section class="hero" id="home">
+
+  <!-- Decorative CSS grid lines in the background.
+       aria-hidden="true" means screen readers skip this element —
+       it's purely decorative and has no informational value.   -->
+  <div class="hero__bg-grid" aria-hidden="true"></div>
+
+  <div class="container">
+    <div class="hero__inner">
+
+      <!-- ── Status pill ──────────────────────────────────────
+           The pill at the top with the pulsing green dot.
+           TO UPDATE STATUS: change the text next to the dot.   -->
+      <div class="hero__tag">
+        <span class="dot"></span>
+        Open to opportunities
+      </div>
+
+      <!-- ── Main headline ────────────────────────────────────
+           The largest text on the page.
+           <span class="highlight"> wraps the word in accent colour.
+           TO CHANGE: edit the text and move the <span> to
+           whichever word you want highlighted.                 -->
+      <h1 class="hero__title">
+        We build things for the <span class="highlight">web.</span>
+      </h1>
+
+      <!-- ── Subtitle ─────────────────────────────────────────
+           A single sentence below the headline.
+           TO CHANGE: edit the text inside the <p>.             -->
+      <p class="hero__subtitle">
+        Twin developers crafting fast, accessible, and beautiful
+        web experiences — from landing pages to full-stack apps.
+      </p>
+
+      <!-- ── CTA Buttons ──────────────────────────────────────
+           Two action buttons. The primary one links to the
+           portfolio; the ghost one links to the about section.
+           TO CHANGE LABELS/LINKS: edit the text and href below.
+           TO ADD A BUTTON: copy a line and add a new class.   -->
+      <div class="hero__cta">
+        <!-- Primary button — filled accent colour -->
+        <a href="#portfolio" class="btn btn--primary">See our work</a>
+        <!-- Ghost button — transparent with border -->
+        <a href="#about" class="btn btn--ghost">Meet us</a>
+      </div>
+
+    </div>
+  </div>
+
+</section>

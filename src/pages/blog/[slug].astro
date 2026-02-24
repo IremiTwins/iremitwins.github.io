@@ -1,0 +1,78 @@
+---
+// ============================================================
+// src/pages/blog/[slug].astro — Individual Blog Post Page
+// ============================================================
+//
+// WHAT IS [slug].astro?
+// The square brackets make this a "dynamic route". Instead of
+// creating a separate file for every blog post, this one file
+// handles ALL of them. The [slug] part becomes a variable
+// that matches any URL segment, e.g.:
+//
+//   /blog/css-tips         → slug = "css-tips"
+//   /blog/getting-started  → slug = "getting-started"
+//   /blog/my-new-post      → slug = "my-new-post"
+//
+// The slug comes from the filename of the .md file:
+//   src/content/blog/css-tips.md  →  slug "css-tips"
+//
+// WHAT DOES getStaticPaths() DO?
+// Because Astro is a STATIC site generator (builds plain HTML),
+// it needs to know in advance what URLs exist. getStaticPaths()
+// tells Astro "here are all the possible [slug] values" so it
+// can pre-render a separate HTML file for each one at build time.
+//
+// HOW A NEW POST GETS ITS PAGE:
+//   1. You create src/content/blog/my-new-post.md
+//   2. getStaticPaths() finds it in the collection
+//   3. Astro builds /blog/my-new-post.html at build time
+//   4. Done — no other code changes needed!
+// ============================================================
+
+// Import our blog post layout (handles the page header, nav, etc.)
+import BlogPostLayout from '../../layouts/BlogPostLayout.astro';
+
+// Astro functions for content collections
+import { getCollection, getEntry } from 'astro:content';
+
+// ── getStaticPaths() ──────────────────────────────────────────
+// REQUIRED for dynamic routes in static output mode.
+// Must return an array of { params } objects — one per URL.
+// Astro calls this at build time to discover all valid slugs.
+export async function getStaticPaths() {
+  // Fetch all non-draft posts from the blog collection
+  const posts = await getCollection('blog', ({ data }) => !data.draft);
+
+  // Map each post to a { params: { slug } } object.
+  // Astro uses these to know what pages to build.
+  return posts.map(post => ({
+    params: { slug: post.slug },
+  }));
+}
+
+// ── Per-page data fetching ────────────────────────────────────
+// After getStaticPaths() runs, Astro calls this file once per
+// slug. Astro.params contains the current slug so we can fetch
+// the right post.
+
+// Get the current slug from the URL  (e.g. "css-tips")
+const { slug } = Astro.params;
+
+// Fetch the specific post entry matching this slug.
+// getEntry(collectionName, slug) returns one collection item.
+const post = await getEntry('blog', slug as string);
+
+// Render the Markdown content to HTML.
+// Content is a component; we render it into BlogPostLayout's <slot />.
+const { Content } = await post!.render();
+---
+
+<!--
+  Pass the full post entry to BlogPostLayout, which uses
+  post.data (frontmatter) to build the page header.
+
+  <Content /> renders the Markdown body as HTML inside the layout's <slot />.
+-->
+<BlogPostLayout post={post!}>
+  <Content />
+</BlogPostLayout>

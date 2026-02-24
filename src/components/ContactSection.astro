@@ -1,0 +1,65 @@
+---
+// ============================================================
+// src/components/ContactSection.astro — Contact Section
+// ============================================================
+//
+// Centered contact block with email CTA and GitHub link.
+//
+// TO UPDATE:
+//   • Change the email address → update the mailto: href
+//   • Change the GitHub URL    → update the socials link
+//   • Add more social links    → copy the <a> in .contact__socials
+//   • Change the heading/lead text → edit the h2 and p below
+// ============================================================
+
+// No props or data fetching — static content.
+---
+
+<!--
+  id="contact" — target for the "Contact" nav link.
+-->
+<section class="contact section" id="contact">
+  <div class="container">
+    <div class="contact__inner">
+
+      <!-- ── Section label + title ──────────────────────────── -->
+      <p class="section__label">// contact</p>
+      <h2 class="section__title">Let's work <span class="highlight">together</span></h2>
+
+      <!-- ── Lead paragraph ────────────────────────────────────
+           Change this text to describe what kinds of work
+           you're open to, or what you're looking for.         -->
+      <p class="contact__lead">
+        Have a project in mind, or just want to talk web dev?
+        We'd love to hear from you — drop us an email and we'll
+        get back to you within a day or two.
+      </p>
+
+      <!-- ── Email CTA button ──────────────────────────────────
+           mailto: links open the visitor's email client with
+           your address pre-filled in the To: field.
+           TO UPDATE: replace the email address in href and
+           the button label text.                              -->
+      <a href="mailto:hello@iremitwins.com" class="btn btn--primary btn--large">
+        Say hello →
+      </a>
+
+      <!-- ── Social links ──────────────────────────────────────
+           TO ADD A LINK: copy the <a> below and update the
+           href and label text.
+           target="_blank" opens the link in a new tab.
+           rel="noopener noreferrer" is a security best practice
+           when using target="_blank".                         -->
+      <div class="contact__socials">
+        <a
+          href="https://github.com/IremiTwins"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          &#123;&#125; GitHub
+        </a>
+      </div>
+
+    </div>
+  </div>
+</section>

@@ -1,0 +1,114 @@
+---
+// ============================================================
+// src/components/PortfolioSection.astro — Project Cards
+// ============================================================
+//
+// A grid of project showcase cards.
+//
+// TO ADD A NEW PROJECT:
+//   1. Copy one of the <article class="project-card card"> blocks.
+//   2. Update the type (e.g. "Web App"), title, description,
+//      GitHub link, live site link, and tech stack badges.
+//   3. If there's no live link or GitHub link, remove that <a>.
+//
+// TO MARK A PROJECT AS "COMING SOON":
+//   Set the type to "Coming Soon" and remove the links block.
+// ============================================================
+
+// No props or data fetching — static content.
+---
+
+<!--
+  id="portfolio" — target for the "Portfolio" nav link.
+-->
+<section class="portfolio section" id="portfolio">
+  <div class="container">
+
+    <!-- ── Section label + title ────────────────────────────── -->
+    <p class="section__label">// portfolio</p>
+    <h2 class="section__title">Things we've <span class="highlight">built</span></h2>
+
+    <!-- ── Projects grid ───────────────────────────────────────
+         CSS auto-fill grid — each card is at least 300px wide.
+         Adds a third column on wide screens automatically.     -->
+    <div class="portfolio__grid">
+
+      <!-- ── Project: Alpha ────────────────────────────────────
+           data-animate: triggers the scroll-in animation.     -->
+      <article class="project-card card" data-animate>
+
+        <!-- Top row: project type + links -->
+        <div class="project-card__header">
+          <!-- Type label — describes what kind of project this is -->
+          <span class="project-card__type">Web App</span>
+
+          <!-- Icon links — replace # with real URLs when ready.
+               ↗ is a simple unicode arrow icon substitute.
+               You could also use an SVG or emoji here.         -->
+          <div class="project-card__links">
+            <a href="#" aria-label="View source on GitHub">&#123;&#125;</a>
+            <a href="#" aria-label="Open live site">↗</a>
+          </div>
+        </div>
+
+        <!-- Project name -->
+        <h3>Project Alpha</h3>
+
+        <!-- Short description -->
+        <p>A full-featured web application built for real-world use. Details coming soon.</p>
+
+        <!-- Tech stack badges — add/remove <span> as needed -->
+        <div class="project-card__tech">
+          <span>HTML</span>
+          <span>CSS</span>
+          <span>JavaScript</span>
+        </div>
+
+      </article>
+
+      <!-- ── Project: This Website ─────────────────────────── -->
+      <article class="project-card card" data-animate>
+
+        <div class="project-card__header">
+          <span class="project-card__type">Portfolio Site</span>
+          <div class="project-card__links">
+            <!-- Real links for this project -->
+            <a href="https://github.com/IremiTwins/iremitwins.github.io" aria-label="View source on GitHub" target="_blank" rel="noopener">&#123;&#125;</a>
+            <a href="https://iremitwins.com" aria-label="Open live site" target="_blank" rel="noopener">↗</a>
+          </div>
+        </div>
+
+        <h3>This Website</h3>
+        <p>Our own portfolio site — built with Astro, vanilla CSS, and a sprinkle of JS.</p>
+
+        <div class="project-card__tech">
+          <span>Astro</span>
+          <span>HTML</span>
+          <span>CSS</span>
+          <span>JavaScript</span>
+        </div>
+
+      </article>
+
+      <!-- ── Project: Beta (coming soon) ─────────────────────── -->
+      <article class="project-card card" data-animate>
+
+        <div class="project-card__header">
+          <!-- "Coming Soon" type communicates the project isn't live yet -->
+          <span class="project-card__type">Coming Soon</span>
+          <!-- No links for unreleased projects — just leave the div empty -->
+          <div class="project-card__links"></div>
+        </div>
+
+        <h3>Project Beta</h3>
+        <p>Something new is in the works. Watch this space.</p>
+
+        <div class="project-card__tech">
+          <span>TBD</span>
+        </div>
+
+      </article>
+
+    </div>
+  </div>
+</section>

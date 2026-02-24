@@ -1,0 +1,66 @@
+---
+// ============================================================
+// src/pages/index.astro — Homepage (/)
+// ============================================================
+//
+// WHAT IS src/pages/?
+// Every .astro file inside src/pages/ automatically becomes a
+// URL on your site. Astro's file-based routing means:
+//
+//   src/pages/index.astro       →  https://iremitwins.com/
+//   src/pages/blog/index.astro  →  https://iremitwins.com/blog
+//   src/pages/blog/[slug].astro →  https://iremitwins.com/blog/css-tips
+//
+// This file (index.astro) is the homepage.
+//
+// HOW THIS PAGE IS BUILT:
+//   It imports BaseLayout (the shared HTML shell) and all
+//   section components. Adding a component here adds that
+//   section to the page.
+//
+// TO REORDER SECTIONS: move the component tags below.
+// TO REMOVE A SECTION: delete or comment out its tag.
+// TO ADD A NEW SECTION: create the component in src/components/
+//   and import + use it here.
+// ============================================================
+
+// Import the shared HTML shell (head, header, footer, JS)
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+// Import each homepage section as a component.
+// The order here determines the order they appear on the page.
+import HeroSection     from '../components/HeroSection.astro';
+import AboutSection    from '../components/AboutSection.astro';
+import PortfolioSection from '../components/PortfolioSection.astro';
+import WorkSection     from '../components/WorkSection.astro';
+import BlogPreviewSection from '../components/BlogPreviewSection.astro';
+import ContactSection  from '../components/ContactSection.astro';
+---
+
+<!--
+  BaseLayout wraps everything in the shared HTML shell.
+  title → goes in the browser tab
+  description → goes in the <meta name="description"> tag (SEO)
+-->
+<BaseLayout
+  title="Iremi Twins"
+  description="Iremi Twins — portfolio, work showcase, and blog by two twin web developers."
+>
+  <!--
+    <main> wraps all page content between the header and footer.
+    The JS in BaseLayout observes section[id] elements inside
+    <main> for the active nav link highlighting feature.
+
+    Each component below renders one section of the page.
+    They are imported at the top of this file.
+  -->
+  <main>
+    <HeroSection />
+    <AboutSection />
+    <PortfolioSection />
+    <WorkSection />
+    <BlogPreviewSection />
+    <ContactSection />
+  </main>
+
+</BaseLayout>

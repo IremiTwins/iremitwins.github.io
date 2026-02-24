@@ -1,0 +1,236 @@
+---
+// ============================================================
+// src/layouts/BaseLayout.astro — The Main Page Shell
+// ============================================================
+//
+// WHAT IS A LAYOUT?
+// A layout is a wrapper component that provides shared structure
+// (like <html>, <head>, <header>, <footer>) to multiple pages.
+// Every page on this site uses BaseLayout so they all share the
+// same head tags, navigation, and footer automatically.
+//
+// WHAT IS THE FRONTMATTER FENCE (---)?
+// The code between the two --- lines runs on the SERVER at build
+// time (never in the browser). This is where you import
+// components, fetch data, and define props.
+//
+// PROPS:
+// Props are values passed IN to a component from the outside.
+// A page uses this layout by writing:
+//
+//   <BaseLayout title="My Page" description="About us">
+//     <!-- page content here -->
+//   </BaseLayout>
+//
+// This layout accepts two props:
+//   title       — goes into the browser tab / search results
+//   description — goes into the SEO meta description tag
+// ============================================================
+
+// Import shared components (Header and Footer are defined
+// in src/components/) — see those files for their own comments.
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+// Import the global CSS file so it applies to every page
+// that uses this layout.
+import '../styles/global.css';
+
+// Define the props this layout accepts.
+// TypeScript interface — just describes the shape of the data.
+interface Props {
+  title: string;        // e.g. "Iremi Twins" or "Blog · Iremi Twins"
+  description: string;  // 1-2 sentence summary for search engines
+}
+
+// Destructure the props so we can use them in the HTML below.
+// Astro.props is where Astro makes the passed-in values available.
+const { title, description } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- ── Character encoding ─────────────────────────────────
+       UTF-8 supports all characters including emoji, accents,
+       and non-Latin scripts. Always include this first.     -->
+  <meta charset="UTF-8" />
+
+  <!-- ── Responsive viewport ────────────────────────────────
+       Tells mobile browsers to use the device's actual width
+       instead of zooming out to a desktop view.            -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ── SEO description ────────────────────────────────────
+       Shown in Google/Bing search results snippets.
+       Keep it under ~160 characters.                        -->
+  <meta name="description" content={description} />
+
+  <!-- ── Page title ─────────────────────────────────────────
+       Shown in the browser tab and search results.
+       The {title} uses the prop we received above.         -->
+  <title>{title}</title>
+
+  <!-- ── Google Fonts preconnect ────────────────────────────
+       These two tags tell the browser to open a connection
+       to Google Fonts servers early so the fonts load faster.
+       The second one needs crossorigin for the font files.  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- ── Google Fonts load ──────────────────────────────────
+       Loads Inter (body text) and Fira Code (monospace).
+       TO CHANGE FONTS: update this URL and also change the
+       --font-sans and --font-mono variables in global.css.  -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap"
+    rel="stylesheet"
+  />
+</head>
+
+<body>
+  <!-- The site navigation — defined in src/components/Header.astro -->
+  <Header />
+
+  <!-- ── Slot ───────────────────────────────────────────────
+       <slot /> is where the page's own content gets inserted.
+       Think of it as a placeholder: whatever is written
+       between <BaseLayout>...</BaseLayout> in a page file
+       appears here at build time.                           -->
+  <slot />
+
+  <!-- The site footer — defined in src/components/Footer.astro -->
+  <Footer />
+</body>
+</html>
+
+<!-- ── Client-side JavaScript ─────────────────────────────────
+     Everything below runs in the visitor's browser (not
+     at build time). The is:inline directive tells Astro to
+     embed this script directly into the page HTML.
+
+     FIVE FEATURES:
+       1. Dynamic copyright year in the footer
+       2. Sticky frosted-glass header on scroll
+       3. Mobile hamburger nav toggle
+       4. Scroll-in animations (fade + slide up)
+       5. Active nav link highlighting
+     ──────────────────────────────────────────────────────── -->
+<script is:inline>
+
+  // ── 1. Dynamic copyright year ─────────────────────────────
+  // Finds the <span id="year"> in the footer and writes
+  // the current year so it never needs manual updating.
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+
+  // ── 2. Sticky header on scroll ────────────────────────────
+  // Grabs the header element, then listens for scroll events.
+  // When scrolled more than 20px, adds .scrolled (which CSS
+  // uses to apply the frosted-glass background).
+  const header = document.getElementById('site-header');
+
+  const onScroll = () => {
+    // classList.toggle(name, bool) — adds the class if bool is
+    // true, removes it if false. Very clean pattern.
+    header.classList.toggle('scrolled', window.scrollY > 20);
+  };
+
+  // { passive: true } tells the browser this listener won't call
+  // preventDefault(), allowing smoother scroll performance.
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+
+  // ── 3. Mobile nav toggle ──────────────────────────────────
+  // The hamburger button (#nav-toggle) shows/hides the nav
+  // links on mobile. It also manages aria-expanded so screen
+  // readers announce the open/closed state correctly.
+  const navToggle = document.getElementById('nav-toggle');
+  const navLinks  = document.getElementById('nav-links');
+
+  navToggle.addEventListener('click', () => {
+    // Read the current state (stored as a string attribute)
+    const expanded = navToggle.getAttribute('aria-expanded') === 'true';
+    // Flip it
+    navToggle.setAttribute('aria-expanded', String(!expanded));
+    // Toggle the .open class — CSS uses this to show/hide the menu
+    navLinks.classList.toggle('open');
+  });
+
+  // Auto-close the mobile menu when any nav link is clicked.
+  // This is important because anchor links (#about, #portfolio)
+  // don't cause a page navigation, so the menu stays open otherwise.
+  navLinks.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      navToggle.setAttribute('aria-expanded', 'false');
+      navLinks.classList.remove('open');
+    });
+  });
+
+
+  // ── 4. Scroll-in animations ───────────────────────────────
+  // IntersectionObserver watches elements as they scroll into
+  // the viewport. When one becomes visible it adds .visible,
+  // which CSS uses to fade + slide it up (see global.css
+  // [data-animate] rules).
+  //
+  // Elements in the HTML get data-animate attribute to opt in.
+  // Example: <article class="card" data-animate>
+  const animateObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          // Stagger: sibling elements animate in one after another.
+          // Find this element's position among animated siblings.
+          const siblings = Array.from(
+            entry.target.parentElement.querySelectorAll('[data-animate]')
+          );
+          // Each sibling animates 80ms later than the previous one
+          const delay = siblings.indexOf(entry.target) * 80;
+          setTimeout(() => entry.target.classList.add('visible'), delay);
+
+          // Stop observing after the animation fires — it only
+          // needs to happen once per element.
+          animateObserver.unobserve(entry.target);
+        }
+      });
+    },
+    // threshold: 0.12 — fires when 12% of the element is visible
+    { threshold: 0.12 }
+  );
+
+  // Attach the observer to every element with data-animate
+  document.querySelectorAll('[data-animate]').forEach(el => animateObserver.observe(el));
+
+
+  // ── 5. Active nav link highlighting ──────────────────────
+  // Watches which section is currently in the middle of the
+  // viewport and adds .active to the matching nav link.
+  //
+  // rootMargin: '-40% 0px -55% 0px' means the observer fires
+  // when a section is between 40% and 55% from the top —
+  // roughly the center of the screen.
+  const sections   = document.querySelectorAll('main section[id]');
+  const navAnchors = document.querySelectorAll('.nav__links a[href^="#"]');
+
+  // Only run on the homepage (where anchor nav links exist)
+  if (navAnchors.length > 0) {
+    const sectionObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const id = entry.target.id;
+            navAnchors.forEach(a => {
+              // Toggle .active on the link that matches this section's ID
+              a.classList.toggle('active', a.getAttribute('href') === `#${id}`);
+            });
+          }
+        });
+      },
+      { rootMargin: '-40% 0px -55% 0px' }
+    );
+
+    sections.forEach(sec => sectionObserver.observe(sec));
+  }
+
+</script>

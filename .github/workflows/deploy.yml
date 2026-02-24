@@ -1,0 +1,140 @@
+# ============================================================
+# .github/workflows/deploy.yml — GitHub Actions Deploy Workflow
+# ============================================================
+#
+# WHAT IS GITHUB ACTIONS?
+# GitHub Actions is an automation system built into GitHub.
+# You define "workflows" in YAML files like this one. Each
+# workflow runs automatically when a trigger event happens
+# (e.g. a push to main).
+#
+# WHAT DOES THIS WORKFLOW DO?
+# Every time you push code to the main branch, this workflow:
+#   1. Checks out your code onto a temporary GitHub server
+#   2. Installs Node.js and your npm dependencies
+#   3. Runs `npm run build` to generate the static site files
+#   4. Deploys the built files to GitHub Pages
+#
+# IMPORTANT: Because Astro needs a build step, you can no
+# longer just push HTML files and have them go live directly.
+# All deploys now happen through this workflow.
+#
+# FIRST-TIME SETUP (do this once in the GitHub repo settings):
+#   1. Go to your repo → Settings → Pages
+#   2. Under "Build and deployment", set Source to
+#      "GitHub Actions"
+#   3. Save. The workflow will handle the rest automatically.
+#
+# YAML INDENTATION NOTE:
+# YAML is indent-sensitive. Each level of indentation must be
+# consistent (here we use 2 spaces). Don't use tabs.
+# ============================================================
+
+# The name of this workflow — shown in the GitHub Actions tab
+name: Deploy to GitHub Pages
+
+# ── Triggers ──────────────────────────────────────────────────
+# 'on' defines when this workflow runs.
+on:
+  push:
+    # Only trigger on pushes to the main branch.
+    # If your default branch is called "master", change this.
+    branches:
+      - main
+
+  # 'workflow_dispatch' adds a manual "Run workflow" button in
+  # the GitHub Actions UI — useful for re-deploying without a push.
+  workflow_dispatch:
+
+# ── Permissions ───────────────────────────────────────────────
+# GitHub Actions needs these permissions to write to GitHub Pages.
+# Don't change these unless you know what you're doing.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# ── Concurrency ───────────────────────────────────────────────
+# Prevents two deployments from running at the same time.
+# If a new deploy starts while one is in progress, the old one
+# is cancelled. 'cancel-in-progress: false' lets the in-progress
+# deploy finish first.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+# ── Jobs ──────────────────────────────────────────────────────
+# A workflow contains one or more jobs. Each job runs on a
+# separate virtual machine. We have two jobs here:
+#   1. build  — install deps, build the site
+#   2. deploy — push the built files to GitHub Pages
+jobs:
+
+  # ── Job 1: Build ────────────────────────────────────────────
+  build:
+    # 'runs-on' specifies the virtual machine OS.
+    # ubuntu-latest is the standard choice — fast and free.
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Step 1: Checkout ──────────────────────────────────
+      # Downloads your repository's code onto the virtual machine.
+      # Without this step, the machine has no files to work with.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Step 2: Configure GitHub Pages ──────────────────
+      # Sets up the environment so GitHub knows we're building
+      # for Pages. This sets a base path and other settings.
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v4
+
+      # ── Step 3: Install Node.js ────────────────────────────
+      # Astro requires Node.js. This action installs the version
+      # specified and caches it for faster subsequent runs.
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20    # Astro 4 requires Node 18+
+          cache: 'npm'        # caches node_modules between runs
+
+      # ── Step 4: Install npm dependencies ──────────────────
+      # Same as running `npm install` locally.
+      # --frozen-lockfile ensures exact versions from package-lock.json
+      - name: Install dependencies
+        run: npm ci
+
+      # ── Step 5: Build the site ────────────────────────────
+      # Runs the build script from package.json: `astro build`
+      # Output goes to the dist/ folder.
+      - name: Build the site
+        run: npm run build
+
+      # ── Step 6: Upload the build artifact ─────────────────
+      # Packages the dist/ folder and uploads it so the deploy
+      # job (below) can download and publish it.
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/   # Astro's default output folder
+
+  # ── Job 2: Deploy ────────────────────────────────────────────
+  deploy:
+    # This job only runs after the build job succeeds.
+    needs: build
+
+    # 'environment' links this job to the GitHub Pages environment,
+    # which shows the live URL in the GitHub Actions summary.
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Step 1: Deploy to GitHub Pages ────────────────────
+      # Downloads the artifact from the build job and publishes
+      # it to GitHub Pages. This is what makes the site go live.
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

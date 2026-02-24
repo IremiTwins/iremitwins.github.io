@@ -1,0 +1,37 @@
+---
+// ============================================================
+// src/components/Footer.astro — Site Footer
+// ============================================================
+//
+// Appears at the bottom of every page via BaseLayout.astro.
+//
+// CONTENTS:
+//   • Copyright notice with dynamic year (set by JS)
+//   • Back-to-top / home link (changes per page type)
+//
+// TO CUSTOMISE:
+//   • Update the name in the copyright text
+//   • Change the tagline ("Built with ...")
+//   • Add more footer links/columns if needed
+// ============================================================
+
+// No props or imports needed — this is a pure HTML component.
+---
+
+<footer class="site-footer">
+  <div class="container site-footer__inner">
+
+    <!-- ── Copyright ──────────────────────────────────────────
+         The <span id="year"> is empty here — JavaScript in
+         BaseLayout.astro writes the current year into it at
+         runtime (so it never needs manual updating).           -->
+    <p>© <span id="year"></span> Iremi Twins · Built with ❤️ and Astro</p>
+
+    <!-- ── Back to top link ───────────────────────────────────
+         Scrolls the user back to the top of the page.
+         href="#home" works on the homepage; on other pages
+         it links back to the homepage root.                    -->
+    <a href="#home" class="back-to-top">↑ Top</a>
+
+  </div>
+</footer>

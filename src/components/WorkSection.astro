@@ -1,0 +1,91 @@
+---
+// ============================================================
+// src/components/WorkSection.astro — Work History Timeline
+// ============================================================
+//
+// A vertical timeline of work/experience entries.
+//
+// TO ADD A NEW ENTRY:
+//   1. Copy one of the <div class="timeline__item"> blocks.
+//   2. Update the date, title, company, and description.
+//   3. Add it above or below the existing items — most recent
+//      at the top is conventional.
+//
+// The vertical left-border line and accent dots are drawn
+// by CSS — you never need to add them manually.
+// ============================================================
+
+// No props or data fetching — static content.
+---
+
+<!--
+  id="work" — target for the "Work" nav link.
+-->
+<section class="work section" id="work">
+  <div class="container">
+
+    <!-- ── Section label + title ────────────────────────────── -->
+    <p class="section__label">// work</p>
+    <h2 class="section__title">Experience</h2>
+
+    <!-- ── Timeline ─────────────────────────────────────────────
+         The .timeline::before pseudo-element in CSS draws the
+         vertical left border line automatically.              -->
+    <div class="timeline">
+
+      <!-- ── Entry 1: Most recent ──────────────────────────────
+           data-animate: scroll-in animation.
+           .timeline__dot is the accent circle on the line.   -->
+      <div class="timeline__item" data-animate>
+        <div class="timeline__dot"></div>
+        <div class="timeline__content">
+          <!-- Date range — shown in accent monospace above the title -->
+          <span class="timeline__date">2025 – Present</span>
+
+          <!-- Job title -->
+          <h3>Freelance Front-End Development</h3>
+
+          <!-- Company / organisation -->
+          <p class="timeline__company">Self-employed</p>
+
+          <!-- Description of responsibilities/achievements -->
+          <p>
+            Building custom websites and web apps for clients.
+            Focusing on performance, accessibility, and clean code.
+          </p>
+        </div>
+      </div>
+
+      <!-- ── Entry 2 ───────────────────────────────────────── -->
+      <div class="timeline__item" data-animate>
+        <div class="timeline__dot"></div>
+        <div class="timeline__content">
+          <span class="timeline__date">2024</span>
+          <h3>Open-Source Contributions</h3>
+          <p class="timeline__company">GitHub</p>
+          <p>
+            Contributed bug fixes and documentation improvements
+            to several open-source projects. Learned collaborative
+            Git workflows and code review practices.
+          </p>
+        </div>
+      </div>
+
+      <!-- ── Entry 3 ───────────────────────────────────────── -->
+      <div class="timeline__item" data-animate>
+        <div class="timeline__dot"></div>
+        <div class="timeline__content">
+          <span class="timeline__date">2023</span>
+          <h3>Personal Projects &amp; Learning</h3>
+          <p class="timeline__company">Self-directed</p>
+          <p>
+            Intensive self-study of HTML, CSS, JavaScript, and
+            Python. Built a series of progressively complex
+            projects to consolidate skills.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>

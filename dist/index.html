@@ -1,0 +1,266 @@
+<!DOCTYPE html><!--
+  BaseLayout wraps everything in the shared HTML shell.
+  title → goes in the browser tab
+  description → goes in the <meta name="description"> tag (SEO)
+--><html lang="en"> <head><!-- ── Character encoding ─────────────────────────────────
+       UTF-8 supports all characters including emoji, accents,
+       and non-Latin scripts. Always include this first.     --><meta charset="UTF-8"><!-- ── Responsive viewport ────────────────────────────────
+       Tells mobile browsers to use the device's actual width
+       instead of zooming out to a desktop view.            --><meta name="viewport" content="width=device-width, initial-scale=1.0"><!-- ── SEO description ────────────────────────────────────
+       Shown in Google/Bing search results snippets.
+       Keep it under ~160 characters.                        --><meta name="description" content="Iremi Twins — portfolio, work showcase, and blog by two twin web developers."><!-- ── Page title ─────────────────────────────────────────
+       Shown in the browser tab and search results.
+       The {title} uses the prop we received above.         --><title>Iremi Twins</title><!-- ── Google Fonts preconnect ────────────────────────────
+       These two tags tell the browser to open a connection
+       to Google Fonts servers early so the fonts load faster.
+       The second one needs crossorigin for the font files.  --><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- ── Google Fonts load ──────────────────────────────────
+       Loads Inter (body text) and Fira Code (monospace).
+       TO CHANGE FONTS: update this URL and also change the
+       --font-sans and --font-mono variables in global.css.  --><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet"><link rel="stylesheet" href="/_astro/_slug_.CjbJhDK0.css"></head> <body> <!-- The site navigation — defined in src/components/Header.astro --> <!--
+  site-header: fixed to the top of the viewport; starts transparent.
+  JavaScript in BaseLayout adds .scrolled when the user scrolls down.
+  id="site-header": required by the JS scroll listener.
+--><header class="site-header" id="site-header"> <nav class="nav container"> <!-- ── Logo ────────────────────────────────────────────────
+         The site name / home link. "twins" is wrapped in <span>
+         so CSS can colour it in the accent purple.
+         TO CHANGE THE LOGO TEXT: edit "iremi" and "twins" below. --> <a href="/#home" class="nav__logo">iremi<span>twins</span></a> <!-- ── Mobile hamburger button ─────────────────────────────
+         Hidden on desktop (CSS hides it), shown on mobile.
+         The three <span> elements are the three bars of the ☰ icon.
+         aria-label and aria-expanded make it accessible to
+         screen readers — don't remove them.                     --> <button class="nav__toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false"> <span></span> <span></span> <span></span> </button> <!-- ── Nav links ────────────────────────────────────────────
+         id="nav-links": required by the JS toggle listener.
+         On desktop: horizontal row; on mobile: full-screen overlay.
+         Hash links (#about, #portfolio ...) scroll to those
+         sections on the homepage. Blog links to /blog page.
+         TO ADD A LINK: copy any <li> and update href and text.   --> <ul class="nav__links" id="nav-links"> <li><a href="/#about">About</a></li> <li><a href="/#portfolio">Portfolio</a></li> <li><a href="/#work">Work</a></li> <li><a href="/blog">Blog</a></li> <li><a href="/#contact">Contact</a></li> </ul> </nav> </header> <!-- ── Slot ───────────────────────────────────────────────
+       <slot /> is where the page's own content gets inserted.
+       Think of it as a placeholder: whatever is written
+       between <BaseLayout>...</BaseLayout> in a page file
+       appears here at build time.                           -->   <main> <!--
+  section id="home" — the target for the "home" nav link.
+  The hero class applies the full-viewport height and flex centering.
+--><section class="hero" id="home"> <!-- Decorative CSS grid lines in the background.
+       aria-hidden="true" means screen readers skip this element —
+       it's purely decorative and has no informational value.   --> <div class="hero__bg-grid" aria-hidden="true"></div> <div class="container"> <div class="hero__inner"> <!-- ── Status pill ──────────────────────────────────────
+           The pill at the top with the pulsing green dot.
+           TO UPDATE STATUS: change the text next to the dot.   --> <div class="hero__tag"> <span class="dot"></span>
+Open to opportunities
+</div> <!-- ── Main headline ────────────────────────────────────
+           The largest text on the page.
+           <span class="highlight"> wraps the word in accent colour.
+           TO CHANGE: edit the text and move the <span> to
+           whichever word you want highlighted.                 --> <h1 class="hero__title">
+We build things for the <span class="highlight">web.</span> </h1> <!-- ── Subtitle ─────────────────────────────────────────
+           A single sentence below the headline.
+           TO CHANGE: edit the text inside the <p>.             --> <p class="hero__subtitle">
+Twin developers crafting fast, accessible, and beautiful
+        web experiences — from landing pages to full-stack apps.
+</p> <!-- ── CTA Buttons ──────────────────────────────────────
+           Two action buttons. The primary one links to the
+           portfolio; the ghost one links to the about section.
+           TO CHANGE LABELS/LINKS: edit the text and href below.
+           TO ADD A BUTTON: copy a line and add a new class.   --> <div class="hero__cta"> <!-- Primary button — filled accent colour --> <a href="#portfolio" class="btn btn--primary">See our work</a> <!-- Ghost button — transparent with border --> <a href="#about" class="btn btn--ghost">Meet us</a> </div> </div> </div> </section> <!--
+  id="about" — target for the "About" nav link (#about).
+  The .section class adds consistent top/bottom padding.
+--><section class="about section" id="about"> <div class="container"> <!-- ── Section label + title ────────────────────────────── --> <p class="section__label">// about</p> <h2 class="section__title">Who we are</h2> <!-- ── Cards grid ──────────────────────────────────────────
+         .about__cards uses CSS Grid (auto-fit) so cards wrap
+         to one column on small screens automatically.         --> <div class="about__cards"> <!-- ── Card: Twin One ────────────────────────────────────
+           data-animate: JS watches this attribute and adds
+           .visible when it scrolls into view, triggering the
+           CSS fade+slide animation defined in global.css.     --> <article class="about__card card" data-animate> <!-- Circular avatar with initials --> <div class="card__avatar">IT</div> <!-- Person's name --> <h3>Twin One</h3> <!-- Role — shown in accent monospace font --> <p class="card__role">Front-End Developer</p> <!-- Short bio paragraph --> <p>
+Obsessed with clean UI and pixel-perfect layouts.
+          Passionate about CSS architecture, animations, and making
+          things look great on every device.
+</p> <!-- Skill badges — add/remove <span> elements here --> <div class="card__skills"> <span>HTML</span> <span>CSS</span> <span>React</span> <span>Figma</span> </div> </article> <!-- ── Card: Twin Two ──────────────────────────────────── --> <article class="about__card card" data-animate> <div class="card__avatar">IT</div> <h3>Twin Two</h3> <p class="card__role">Full-Stack Developer</p> <p>
+Loves building systems end-to-end, from database schemas
+          to REST APIs to the components that consume them. Strong
+          believer in readable code and good documentation.
+</p> <div class="card__skills"> <span>JavaScript</span> <span>Node.js</span> <span>Python</span> <span>SQL</span> </div> </article> </div> </div> </section> <!--
+  id="portfolio" — target for the "Portfolio" nav link.
+--><section class="portfolio section" id="portfolio"> <div class="container"> <!-- ── Section label + title ────────────────────────────── --> <p class="section__label">// portfolio</p> <h2 class="section__title">Things we've <span class="highlight">built</span></h2> <!-- ── Projects grid ───────────────────────────────────────
+         CSS auto-fill grid — each card is at least 300px wide.
+         Adds a third column on wide screens automatically.     --> <div class="portfolio__grid"> <!-- ── Project: Alpha ────────────────────────────────────
+           data-animate: triggers the scroll-in animation.     --> <article class="project-card card" data-animate> <!-- Top row: project type + links --> <div class="project-card__header"> <!-- Type label — describes what kind of project this is --> <span class="project-card__type">Web App</span> <!-- Icon links — replace # with real URLs when ready.
+               ↗ is a simple unicode arrow icon substitute.
+               You could also use an SVG or emoji here.         --> <div class="project-card__links"> <a href="#" aria-label="View source on GitHub">&#123;&#125;</a> <a href="#" aria-label="Open live site">↗</a> </div> </div> <!-- Project name --> <h3>Project Alpha</h3> <!-- Short description --> <p>A full-featured web application built for real-world use. Details coming soon.</p> <!-- Tech stack badges — add/remove <span> as needed --> <div class="project-card__tech"> <span>HTML</span> <span>CSS</span> <span>JavaScript</span> </div> </article> <!-- ── Project: This Website ─────────────────────────── --> <article class="project-card card" data-animate> <div class="project-card__header"> <span class="project-card__type">Portfolio Site</span> <div class="project-card__links"> <!-- Real links for this project --> <a href="https://github.com/IremiTwins/iremitwins.github.io" aria-label="View source on GitHub" target="_blank" rel="noopener">&#123;&#125;</a> <a href="https://iremitwins.com" aria-label="Open live site" target="_blank" rel="noopener">↗</a> </div> </div> <h3>This Website</h3> <p>Our own portfolio site — built with Astro, vanilla CSS, and a sprinkle of JS.</p> <div class="project-card__tech"> <span>Astro</span> <span>HTML</span> <span>CSS</span> <span>JavaScript</span> </div> </article> <!-- ── Project: Beta (coming soon) ─────────────────────── --> <article class="project-card card" data-animate> <div class="project-card__header"> <!-- "Coming Soon" type communicates the project isn't live yet --> <span class="project-card__type">Coming Soon</span> <!-- No links for unreleased projects — just leave the div empty --> <div class="project-card__links"></div> </div> <h3>Project Beta</h3> <p>Something new is in the works. Watch this space.</p> <div class="project-card__tech"> <span>TBD</span> </div> </article> </div> </div> </section> <!--
+  id="work" — target for the "Work" nav link.
+--><section class="work section" id="work"> <div class="container"> <!-- ── Section label + title ────────────────────────────── --> <p class="section__label">// work</p> <h2 class="section__title">Experience</h2> <!-- ── Timeline ─────────────────────────────────────────────
+         The .timeline::before pseudo-element in CSS draws the
+         vertical left border line automatically.              --> <div class="timeline"> <!-- ── Entry 1: Most recent ──────────────────────────────
+           data-animate: scroll-in animation.
+           .timeline__dot is the accent circle on the line.   --> <div class="timeline__item" data-animate> <div class="timeline__dot"></div> <div class="timeline__content"> <!-- Date range — shown in accent monospace above the title --> <span class="timeline__date">2025 – Present</span> <!-- Job title --> <h3>Freelance Front-End Development</h3> <!-- Company / organisation --> <p class="timeline__company">Self-employed</p> <!-- Description of responsibilities/achievements --> <p>
+Building custom websites and web apps for clients.
+            Focusing on performance, accessibility, and clean code.
+</p> </div> </div> <!-- ── Entry 2 ───────────────────────────────────────── --> <div class="timeline__item" data-animate> <div class="timeline__dot"></div> <div class="timeline__content"> <span class="timeline__date">2024</span> <h3>Open-Source Contributions</h3> <p class="timeline__company">GitHub</p> <p>
+Contributed bug fixes and documentation improvements
+            to several open-source projects. Learned collaborative
+            Git workflows and code review practices.
+</p> </div> </div> <!-- ── Entry 3 ───────────────────────────────────────── --> <div class="timeline__item" data-animate> <div class="timeline__dot"></div> <div class="timeline__content"> <span class="timeline__date">2023</span> <h3>Personal Projects &amp; Learning</h3> <p class="timeline__company">Self-directed</p> <p>
+Intensive self-study of HTML, CSS, JavaScript, and
+            Python. Built a series of progressively complex
+            projects to consolidate skills.
+</p> </div> </div> </div> </div> </section> <!--
+  id="blog" — target for the "Blog" nav link.
+--><section class="blog section" id="blog"> <div class="container"> <!-- ── Section label + title ────────────────────────────── --> <p class="section__label">// blog</p> <h2 class="section__title">Latest <span class="highlight">writing</span></h2> <!-- ── Blog cards grid ──────────────────────────────────────
+         Astro's {posts.map(...)} syntax works like Array.map()
+         in JavaScript — it loops over the array and returns
+         HTML for each item.                                    --> <div class="blog__grid"> <article class="blog-card card" data-animate> <!-- Meta row: date + tag pill --> <div class="blog-card__meta"> <span class="blog-card__date">Feb 2026</span> <span class="blog-card__tag">CSS</span> </div> <!-- Post title, linked to the post page --> <h3> <a href="/blog/css-tips">5 CSS tricks we use every day</a> </h3> <!-- Description / summary text --> <p>A quick tour of the CSS patterns that show up in nearly every project we build.</p> <!-- "Read more →" link --> <a href="/blog/css-tips" class="blog-card__read-more">
+Read more →
+</a> </article><article class="blog-card card" data-animate> <!-- Meta row: date + tag pill --> <div class="blog-card__meta"> <span class="blog-card__date">Jan 2026</span> <span class="blog-card__tag">Web Dev</span> </div> <!-- Post title, linked to the post page --> <h3> <a href="/blog/getting-started">How we set up our GitHub Pages site</a> </h3> <!-- Description / summary text --> <p>From empty repo to live site — what we did and what we learned.</p> <!-- "Read more →" link --> <a href="/blog/getting-started" class="blog-card__read-more">
+Read more →
+</a> </article> </div> <!-- ── "All posts" button ───────────────────────────────── --> <div class="blog__more"> <a href="/blog" class="btn btn--ghost">All posts →</a> </div> </div> </section> <!--
+  id="contact" — target for the "Contact" nav link.
+--><section class="contact section" id="contact"> <div class="container"> <div class="contact__inner"> <!-- ── Section label + title ──────────────────────────── --> <p class="section__label">// contact</p> <h2 class="section__title">Let's work <span class="highlight">together</span></h2> <!-- ── Lead paragraph ────────────────────────────────────
+           Change this text to describe what kinds of work
+           you're open to, or what you're looking for.         --> <p class="contact__lead">
+Have a project in mind, or just want to talk web dev?
+        We'd love to hear from you — drop us an email and we'll
+        get back to you within a day or two.
+</p> <!-- ── Email CTA button ──────────────────────────────────
+           mailto: links open the visitor's email client with
+           your address pre-filled in the To: field.
+           TO UPDATE: replace the email address in href and
+           the button label text.                              --> <a href="mailto:hello@iremitwins.com" class="btn btn--primary btn--large">
+Say hello →
+</a> <!-- ── Social links ──────────────────────────────────────
+           TO ADD A LINK: copy the <a> below and update the
+           href and label text.
+           target="_blank" opens the link in a new tab.
+           rel="noopener noreferrer" is a security best practice
+           when using target="_blank".                         --> <div class="contact__socials"> <a href="https://github.com/IremiTwins" target="_blank" rel="noopener noreferrer">
+&#123;&#125; GitHub
+</a> </div> </div> </div> </section> </main>  <!-- The site footer — defined in src/components/Footer.astro --> <footer class="site-footer"> <div class="container site-footer__inner"> <!-- ── Copyright ──────────────────────────────────────────
+         The <span id="year"> is empty here — JavaScript in
+         BaseLayout.astro writes the current year into it at
+         runtime (so it never needs manual updating).           --> <p>© <span id="year"></span> Iremi Twins · Built with ❤️ and Astro</p> <!-- ── Back to top link ───────────────────────────────────
+         Scrolls the user back to the top of the page.
+         href="#home" works on the homepage; on other pages
+         it links back to the homepage root.                    --> <a href="#home" class="back-to-top">↑ Top</a> </div> </footer> <script>
+
+  // ── 1. Dynamic copyright year ─────────────────────────────
+  // Finds the <span id="year"> in the footer and writes
+  // the current year so it never needs manual updating.
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+
+  // ── 2. Sticky header on scroll ────────────────────────────
+  // Grabs the header element, then listens for scroll events.
+  // When scrolled more than 20px, adds .scrolled (which CSS
+  // uses to apply the frosted-glass background).
+  const header = document.getElementById('site-header');
+
+  const onScroll = () => {
+    // classList.toggle(name, bool) — adds the class if bool is
+    // true, removes it if false. Very clean pattern.
+    header.classList.toggle('scrolled', window.scrollY > 20);
+  };
+
+  // { passive: true } tells the browser this listener won't call
+  // preventDefault(), allowing smoother scroll performance.
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+
+  // ── 3. Mobile nav toggle ──────────────────────────────────
+  // The hamburger button (#nav-toggle) shows/hides the nav
+  // links on mobile. It also manages aria-expanded so screen
+  // readers announce the open/closed state correctly.
+  const navToggle = document.getElementById('nav-toggle');
+  const navLinks  = document.getElementById('nav-links');
+
+  navToggle.addEventListener('click', () => {
+    // Read the current state (stored as a string attribute)
+    const expanded = navToggle.getAttribute('aria-expanded') === 'true';
+    // Flip it
+    navToggle.setAttribute('aria-expanded', String(!expanded));
+    // Toggle the .open class — CSS uses this to show/hide the menu
+    navLinks.classList.toggle('open');
+  });
+
+  // Auto-close the mobile menu when any nav link is clicked.
+  // This is important because anchor links (#about, #portfolio)
+  // don't cause a page navigation, so the menu stays open otherwise.
+  navLinks.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      navToggle.setAttribute('aria-expanded', 'false');
+      navLinks.classList.remove('open');
+    });
+  });
+
+
+  // ── 4. Scroll-in animations ───────────────────────────────
+  // IntersectionObserver watches elements as they scroll into
+  // the viewport. When one becomes visible it adds .visible,
+  // which CSS uses to fade + slide it up (see global.css
+  // [data-animate] rules).
+  //
+  // Elements in the HTML get data-animate attribute to opt in.
+  // Example: <article class="card" data-animate>
+  const animateObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          // Stagger: sibling elements animate in one after another.
+          // Find this element's position among animated siblings.
+          const siblings = Array.from(
+            entry.target.parentElement.querySelectorAll('[data-animate]')
+          );
+          // Each sibling animates 80ms later than the previous one
+          const delay = siblings.indexOf(entry.target) * 80;
+          setTimeout(() => entry.target.classList.add('visible'), delay);
+
+          // Stop observing after the animation fires — it only
+          // needs to happen once per element.
+          animateObserver.unobserve(entry.target);
+        }
+      });
+    },
+    // threshold: 0.12 — fires when 12% of the element is visible
+    { threshold: 0.12 }
+  );
+
+  // Attach the observer to every element with data-animate
+  document.querySelectorAll('[data-animate]').forEach(el => animateObserver.observe(el));
+
+
+  // ── 5. Active nav link highlighting ──────────────────────
+  // Watches which section is currently in the middle of the
+  // viewport and adds .active to the matching nav link.
+  //
+  // rootMargin: '-40% 0px -55% 0px' means the observer fires
+  // when a section is between 40% and 55% from the top —
+  // roughly the center of the screen.
+  const sections   = document.querySelectorAll('main section[id]');
+  const navAnchors = document.querySelectorAll('.nav__links a[href^="#"]');
+
+  // Only run on the homepage (where anchor nav links exist)
+  if (navAnchors.length > 0) {
+    const sectionObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const id = entry.target.id;
+            navAnchors.forEach(a => {
+              // Toggle .active on the link that matches this section's ID
+              a.classList.toggle('active', a.getAttribute('href') === `#${id}`);
+            });
+          }
+        });
+      },
+      { rootMargin: '-40% 0px -55% 0px' }
+    );
+
+    sections.forEach(sec => sectionObserver.observe(sec));
+  }
+
+</script></body></html><!-- ── Client-side JavaScript ─────────────────────────────────
+     Everything below runs in the visitor's browser (not
+     at build time). The is:inline directive tells Astro to
+     embed this script directly into the page HTML.
+
+     FIVE FEATURES:
+       1. Dynamic copyright year in the footer
+       2. Sticky frosted-glass header on scroll
+       3. Mobile hamburger nav toggle
+       4. Scroll-in animations (fade + slide up)
+       5. Active nav link highlighting
+     ──────────────────────────────────────────────────────── -->

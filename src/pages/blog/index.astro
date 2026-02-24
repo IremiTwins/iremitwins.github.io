@@ -1,0 +1,93 @@
+---
+// ============================================================
+// src/pages/blog/index.astro — Blog Listing Page (/blog)
+// ============================================================
+//
+// Lists all published blog posts.
+//
+// HOW IT WORKS:
+//   1. getCollection('blog') fetches all .md files from
+//      src/content/blog/ at build time.
+//   2. We filter out drafts and sort by date (newest first).
+//   3. We loop over the posts and render a <li> for each.
+//
+// TO ADD A POST TO THIS LIST:
+//   Just create a new .md file in src/content/blog/ — this page
+//   updates automatically at the next build. No code changes needed!
+// ============================================================
+
+// Import the shared HTML shell
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+// getCollection fetches all items from the named content collection
+import { getCollection } from 'astro:content';
+
+// Fetch all blog posts, filter drafts, and sort newest first
+const posts = (await getCollection('blog'))
+  .filter(post => !post.data.draft)
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+---
+
+<BaseLayout
+  title="Blog · Iremi Twins"
+  description="Articles on web development, CSS, JavaScript, and building things for the web."
+>
+
+  <!--
+    blog-page class adds padding-top to clear the fixed header.
+    This class is defined in global.css under "Blog pages".
+  -->
+  <main class="blog-page">
+    <div class="container">
+
+      <!-- ── Page header ──────────────────────────────────────
+           blog-page__header adds a bottom border separator.  -->
+      <div class="blog-page__header">
+        <p class="section__label">// blog</p>
+        <h1 class="section__title">All posts</h1>
+      </div>
+
+      <!-- ── Post list ────────────────────────────────────────
+           .blog-page__list is a borderless list where each
+           <li> has a bottom border divider (styled in CSS).
+
+           posts.map() loops over the array and returns HTML
+           for each post. Works just like Array.map() in JS.  -->
+      <ul class="blog-page__list">
+        {posts.map(post => {
+          // Format date as "Feb 2026"
+          const displayDate = post.data.date.toLocaleDateString('en-GB', {
+            month: 'short',
+            year: 'numeric',
+          });
+
+          return (
+            <li>
+              <!-- Date + tag row -->
+              <div class="blog-card__meta">
+                <span class="blog-card__date">{displayDate}</span>
+                <span class="blog-card__tag">{post.data.tag}</span>
+              </div>
+
+              <!-- Post title linked to the post page -->
+              <h3>
+                {/* post.slug is the filename without .md — used as the URL path */}
+                <a href={`/blog/${post.slug}`}>{post.data.title}</a>
+              </h3>
+
+              <!-- Description / summary -->
+              <p>{post.data.description}</p>
+            </li>
+          );
+        })}
+      </ul>
+
+      <!-- ── Back to home link ────────────────────────────── -->
+      <div style="margin-top: 3rem;">
+        <a href="/" class="btn btn--ghost">← Home</a>
+      </div>
+
+    </div>
+  </main>
+
+</BaseLayout>

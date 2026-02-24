@@ -1,0 +1,96 @@
+---
+// ============================================================
+// src/components/AboutSection.astro — About Cards
+// ============================================================
+//
+// Two side-by-side card profiles, one per twin.
+//
+// TO ADD A THIRD PERSON: copy one of the <article> blocks below
+// and update the name, role, bio, and skills. The CSS grid
+// will automatically accommodate a third card.
+//
+// TO UPDATE SKILLS: find the .card__skills <div> inside the
+// relevant card and add or remove <span> elements.
+//
+// TO CHANGE THE AVATAR INITIALS: edit the text inside
+// .card__avatar (currently "IT" for Iremi Twins).
+// ============================================================
+
+// No props or data fetching — this is static content.
+---
+
+<!--
+  id="about" — target for the "About" nav link (#about).
+  The .section class adds consistent top/bottom padding.
+-->
+<section class="about section" id="about">
+  <div class="container">
+
+    <!-- ── Section label + title ────────────────────────────── -->
+    <p class="section__label">// about</p>
+    <h2 class="section__title">Who we are</h2>
+
+    <!-- ── Cards grid ──────────────────────────────────────────
+         .about__cards uses CSS Grid (auto-fit) so cards wrap
+         to one column on small screens automatically.         -->
+    <div class="about__cards">
+
+      <!-- ── Card: Twin One ────────────────────────────────────
+           data-animate: JS watches this attribute and adds
+           .visible when it scrolls into view, triggering the
+           CSS fade+slide animation defined in global.css.     -->
+      <article class="about__card card" data-animate>
+
+        <!-- Circular avatar with initials -->
+        <div class="card__avatar">IT</div>
+
+        <!-- Person's name -->
+        <h3>Twin One</h3>
+
+        <!-- Role — shown in accent monospace font -->
+        <p class="card__role">Front-End Developer</p>
+
+        <!-- Short bio paragraph -->
+        <p>
+          Obsessed with clean UI and pixel-perfect layouts.
+          Passionate about CSS architecture, animations, and making
+          things look great on every device.
+        </p>
+
+        <!-- Skill badges — add/remove <span> elements here -->
+        <div class="card__skills">
+          <span>HTML</span>
+          <span>CSS</span>
+          <span>React</span>
+          <span>Figma</span>
+        </div>
+
+      </article>
+
+      <!-- ── Card: Twin Two ──────────────────────────────────── -->
+      <article class="about__card card" data-animate>
+
+        <div class="card__avatar">IT</div>
+
+        <h3>Twin Two</h3>
+
+        <p class="card__role">Full-Stack Developer</p>
+
+        <p>
+          Loves building systems end-to-end, from database schemas
+          to REST APIs to the components that consume them. Strong
+          believer in readable code and good documentation.
+        </p>
+
+        <div class="card__skills">
+          <span>JavaScript</span>
+          <span>Node.js</span>
+          <span>Python</span>
+          <span>SQL</span>
+        </div>
+
+      </article>
+
+    </div>
+  </div>
+</section>

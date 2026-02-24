@@ -1,0 +1,71 @@
+---
+// ============================================================
+// src/components/Header.astro — Site Navigation Header
+// ============================================================
+//
+// WHAT IS A COMPONENT?
+// A component is a reusable piece of UI (HTML + optional CSS
+// + optional JS). This one renders the navigation bar.
+// It's included in BaseLayout.astro so it appears on every page.
+//
+// TO CUSTOMISE:
+//   • Change the logo text → edit the <a class="nav__logo"> below
+//   • Add/remove nav links → edit the <ul class="nav__links"> list
+//   • Change link destinations → update the href="" values
+//
+// NOTE: The hamburger menu open/close logic lives in the
+// <script> block of BaseLayout.astro (not here), because
+// that script must run after the full DOM is loaded.
+// ============================================================
+
+// This component has no props — it always renders the same nav.
+// If you wanted different nav items on different pages you could
+// add props here. For now it's simple and self-contained.
+---
+
+<!--
+  site-header: fixed to the top of the viewport; starts transparent.
+  JavaScript in BaseLayout adds .scrolled when the user scrolls down.
+  id="site-header": required by the JS scroll listener.
+-->
+<header class="site-header" id="site-header">
+  <nav class="nav container">
+
+    <!-- ── Logo ────────────────────────────────────────────────
+         The site name / home link. "twins" is wrapped in <span>
+         so CSS can colour it in the accent purple.
+         TO CHANGE THE LOGO TEXT: edit "iremi" and "twins" below. -->
+    <a href="/#home" class="nav__logo">iremi<span>twins</span></a>
+
+    <!-- ── Mobile hamburger button ─────────────────────────────
+         Hidden on desktop (CSS hides it), shown on mobile.
+         The three <span> elements are the three bars of the ☰ icon.
+         aria-label and aria-expanded make it accessible to
+         screen readers — don't remove them.                     -->
+    <button
+      class="nav__toggle"
+      id="nav-toggle"
+      aria-label="Toggle navigation"
+      aria-expanded="false"
+    >
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <!-- ── Nav links ────────────────────────────────────────────
+         id="nav-links": required by the JS toggle listener.
+         On desktop: horizontal row; on mobile: full-screen overlay.
+         Hash links (#about, #portfolio ...) scroll to those
+         sections on the homepage. Blog links to /blog page.
+         TO ADD A LINK: copy any <li> and update href and text.   -->
+    <ul class="nav__links" id="nav-links">
+      <li><a href="/#about">About</a></li>
+      <li><a href="/#portfolio">Portfolio</a></li>
+      <li><a href="/#work">Work</a></li>
+      <li><a href="/blog">Blog</a></li>
+      <li><a href="/#contact">Contact</a></li>
+    </ul>
+
+  </nav>
+</header>
