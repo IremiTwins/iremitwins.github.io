@@ -28,6 +28,7 @@ description: "A quick tour of the CSS patterns that show up in nearly every proj
 date: 2026-02-15
 tag: "CSS"
 nextPost: "getting-started"
+draft: true
 ---
 
 A quick tour of the CSS patterns that show up in nearly every project we build.
