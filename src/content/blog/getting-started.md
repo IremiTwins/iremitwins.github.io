@@ -10,6 +10,7 @@ title: "How we set up our GitHub Pages site"
 description: "From empty repo to live site — what we did and what we learned."
 date: 2026-01-20
 tag: "Web Dev"
+draft: true
 prevPost: "css-tips"
 ---
 
