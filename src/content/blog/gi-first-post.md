@@ -4,7 +4,7 @@ description: ""
 date: 2026-02-23
 tag: "Gio"
 draft: false
-prevPost: ""
+prevPost: "ni-first-post"
 nextPost: ""
 ---
 

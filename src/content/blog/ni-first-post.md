@@ -5,7 +5,7 @@ date: 2026-02-23
 tag: "Nika"
 draft: false
 prevPost: ""
-nextPost: ""
+nextPost: "gi-first-post"
 ---
 
 ## Hello World
