@@ -1,0 +1,59 @@
+---
+// ============================================================
+// pages/twin2/genome-toolkit.astro — Genome Toolkit App Page
+// ============================================================
+//
+// Hosts the Genome Toolkit React application as an Astro page.
+// Accessible at: /twin2/genome-toolkit
+//
+// The React app is loaded with `client:only="react"` which means:
+//   - No server-side rendering (the app is 100% client-side)
+//   - The component only loads and runs in the browser
+//   - This is the right choice for a data-heavy interactive app
+//
+// SDD Reference: Section 3 — System Overview
+// ============================================================
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import GenomeToolkit from '../../components/genome-toolkit/GenomeToolkit';
+---
+
+<BaseLayout
+  title="Genome Toolkit — Iremi Twins"
+  description="Browser-based genomic data analysis toolkit — parse FASTA/FASTQ files, search motifs, visualize GC content, and compare variant datasets."
+>
+  <main>
+    <!-- 
+      The app shell container. padding-top clears the fixed site header.
+      The React component fills the rest of the viewport.
+    -->
+    <section class="genome-toolkit-page">
+      <GenomeToolkit client:only="react" />
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  /* ── Page-level styles for the Genome Toolkit ─────────────── */
+  .genome-toolkit-page {
+    /* Clear the fixed header (4rem height) */
+    padding-top: 4rem;
+    /* Fill remaining viewport height */
+    min-height: 100vh;
+  }
+
+  /* Responsive: stack sidebar on top on mobile */
+  @media (max-width: 768px) {
+    .genome-toolkit-page :global(.genome-shell) {
+      flex-direction: column;
+    }
+    .genome-toolkit-page :global(nav) {
+      width: 100%;
+      min-height: auto;
+      flex-direction: row;
+      overflow-x: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--clr-border);
+    }
+  }
+</style>

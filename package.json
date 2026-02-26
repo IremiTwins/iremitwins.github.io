@@ -8,6 +8,14 @@
     "preview": "astro preview"
   },
   "dependencies": {
-    "astro": "^5.17.3"
+    "@astrojs/react": "^4.4.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "astro": "^5.17.3",
+    "chart.js": "^4.5.1",
+    "react": "^19.2.4",
+    "react-chartjs-2": "^5.3.1",
+    "react-dom": "^19.2.4",
+    "zustand": "^5.0.11"
   }
 }
