@@ -1,12 +1,12 @@
 ---
 # ============================================================
-# Sample Game Review — Twin 2
+# Sample Game Review — Twin 1
 # ============================================================
 # This is a sample review to show the structure. Replace it
 # with your own review or delete it and create new .md files.
 #
-# FILE LOCATION: src/content/twin2-game-reviews/
-# URL:           /twin2/twin2-game-reviews/sample-game
+# FILE LOCATION: src/content/twin1-game-reviews/
+# URL:           /twin1/twin1-game-reviews/sample-game
 #
 # FRONTMATTER FIELDS:
 #   title       — Name of the game (required)
@@ -19,10 +19,10 @@
 #   nextPost    — Slug of next review for nav (optional)
 # ============================================================
 
-title: "Elden Ring"
+title: "The Legend of Zelda: Tears of the Kingdom"
 coverImage: ""
 rating: 5
-description: "FromSoftware's magnum opus. A vast open world that rewards exploration at every turn, combined with the tight combat the studio is known for. The collaboration with George R.R. Martin brings incredible lore depth."
+description: "Nintendo somehow topped Breath of the Wild. The Ultrahand and Fuse systems turn the entire world into a sandbox of creative problem-solving. A masterclass in open-world design."
 date: 2026-02-28
 draft: false
 ---
@@ -33,15 +33,15 @@ Replace this with your full review! Write as much or as little as you want.
 
 ### What I Loved
 
-- Massive open world that never feels empty
-- Boss fights are peak FromSoftware
-- Build variety is insane — sorcery, faith, bleed, str, dex, you name it
+- The building mechanics are genuinely revolutionary
+- Shrines and puzzles feel fresh despite building on BotW
+- The depth system adds a whole underground world to explore
 
 ### What Could Be Better
 
-- Some late-game bosses feel overtuned
-- Co-op system could be more seamless
+- Performance dips in busy areas on Switch hardware
+- Story is still delivered in a fragmented way
 
 ### Final Thoughts
 
-A landmark title in gaming. If you enjoy action RPGs, this is essential.
+A once-in-a-generation game that empowers the player like nothing else. Essential.

@@ -107,25 +107,50 @@ const reviewSchema = z.object({
   nextPost: z.string().optional(),
 });
 
-// ── Anime Review Collection ──────────────────────────────────
+// ── Twin 2 — Anime Review Collection ─────────────────────────
 // Every .md file inside src/content/twin2-anime-reviews/ must match reviewSchema.
-const animeReviewCollection = defineCollection({
+// These reviews appear on the Twin 2 page under "Anime Reviews".
+// URL pattern: /twin2/twin2-anime-reviews/<slug>
+const twin2AnimeReviewCollection = defineCollection({
   type: 'content',
   schema: reviewSchema,
 });
 
-// ── Game Review Collection ───────────────────────────────────
+// ── Twin 2 — Game Review Collection ──────────────────────────
 // Every .md file inside src/content/twin2-game-reviews/ must match reviewSchema.
-const gameReviewCollection = defineCollection({
+// These reviews appear on the Twin 2 page under "Video Game Reviews".
+// URL pattern: /twin2/twin2-game-reviews/<slug>
+const twin2GameReviewCollection = defineCollection({
   type: 'content',
   schema: reviewSchema,
 });
 
-// Export all collections so Astro can discover them.
-// If you add a new collection folder (e.g. src/content/projects/)
-// define it above and add it here.
+// ── Twin 1 — Anime Review Collection ─────────────────────────
+// Every .md file inside src/content/twin1-anime-reviews/ must match reviewSchema.
+// These reviews appear on the Twin 1 page under "Anime Reviews".
+// URL pattern: /twin1/twin1-anime-reviews/<slug>
+const twin1AnimeReviewCollection = defineCollection({
+  type: 'content',
+  schema: reviewSchema,
+});
+
+// ── Twin 1 — Game Review Collection ──────────────────────────
+// Every .md file inside src/content/twin1-game-reviews/ must match reviewSchema.
+// These reviews appear on the Twin 1 page under "Video Game Reviews".
+// URL pattern: /twin1/twin1-game-reviews/<slug>
+const twin1GameReviewCollection = defineCollection({
+  type: 'content',
+  schema: reviewSchema,
+});
+
+// ── Export All Collections ───────────────────────────────────
+// Astro discovers collections by reading this export.
+// The KEY must match the folder name inside src/content/.
+// If you add a new collection folder, define it above and add it here.
 export const collections = {
   blog: blogCollection,
-  'twin2-anime-reviews': animeReviewCollection,
-  'twin2-game-reviews': gameReviewCollection,
+  'twin2-anime-reviews': twin2AnimeReviewCollection,
+  'twin2-game-reviews': twin2GameReviewCollection,
+  'twin1-anime-reviews': twin1AnimeReviewCollection,
+  'twin1-game-reviews': twin1GameReviewCollection,
 };

@@ -1,20 +1,20 @@
 ---
 // ============================================================
-// src/pages/twin2/twin2-game-reviews/[slug].astro
+// src/pages/twin1/twin1-anime-reviews/[slug].astro
 // ============================================================
 //
-// Dynamic route for individual Twin 2 game review pages.
-// URL pattern: /twin2/twin2-game-reviews/<slug>
+// Dynamic route for individual Twin 1 anime review pages.
+// URL pattern: /twin1/twin1-anime-reviews/<slug>
 //
 // HOW IT WORKS (same pattern as blog/[slug].astro):
-//   1. getStaticPaths() discovers all non-draft game reviews
-//      from the 'twin2-game-reviews' content collection.
+//   1. getStaticPaths() discovers all non-draft anime reviews
+//      from the 'twin1-anime-reviews' content collection.
 //   2. Each slug gets its own pre-rendered HTML page at build time.
-//   3. Adding a new .md file to src/content/twin2-game-reviews/
+//   3. Adding a new .md file to src/content/twin1-anime-reviews/
 //      auto-creates a new page at the next build — no code changes needed.
 //
-// COLLECTION: twin2-game-reviews  (src/content/twin2-game-reviews/)
-// LAYOUT:     ReviewLayout.astro  (shared between Twin 1 and Twin 2)
+// COLLECTION: twin1-anime-reviews  (src/content/twin1-anime-reviews/)
+// LAYOUT:     ReviewLayout.astro   (shared between Twin 1 and Twin 2)
 // ============================================================
 
 import ReviewLayout from '../../../layouts/ReviewLayout.astro';
@@ -22,7 +22,7 @@ import { getCollection, getEntry } from 'astro:content';
 
 // Tell Astro which slugs exist so it can pre-render pages
 export async function getStaticPaths() {
-  const reviews = await getCollection('twin2-game-reviews', ({ data }) => !data.draft);
+  const reviews = await getCollection('twin1-anime-reviews', ({ data }) => !data.draft);
   return reviews.map(review => ({
     params: { slug: review.slug },
   }));
@@ -30,11 +30,11 @@ export async function getStaticPaths() {
 
 // Fetch the review matching the current URL slug
 const { slug } = Astro.params;
-const post = await getEntry('twin2-game-reviews', slug as string);
+const post = await getEntry('twin1-anime-reviews', slug as string);
 const { Content } = await post!.render();
 ---
 
 <!-- Render the review inside the shared ReviewLayout -->
-<ReviewLayout post={post!} collectionName="twin2-game-reviews" backUrl="/twin2">
+<ReviewLayout post={post!} collectionName="twin1-anime-reviews" backUrl="/twin1">
   <Content />
 </ReviewLayout>

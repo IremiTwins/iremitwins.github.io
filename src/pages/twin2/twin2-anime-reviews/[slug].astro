@@ -1,21 +1,26 @@
 ---
 // ============================================================
-// src/pages/twin2/anime-reviews/[slug].astro
+// src/pages/twin2/twin2-anime-reviews/[slug].astro
 // ============================================================
 //
-// Dynamic route for individual anime review pages.
-// URL pattern: /twin2/anime-reviews/<slug>
+// Dynamic route for individual Twin 2 anime review pages.
+// URL pattern: /twin2/twin2-anime-reviews/<slug>
 //
-// Works the same way as blog/[slug].astro:
+// HOW IT WORKS (same pattern as blog/[slug].astro):
 //   1. getStaticPaths() discovers all non-draft anime reviews
-//   2. Each slug gets its own pre-rendered HTML page
-//   3. Adding a new .md to src/content/anime-reviews/ auto-
-//      creates a new page at the next build.
+//      from the 'twin2-anime-reviews' content collection.
+//   2. Each slug gets its own pre-rendered HTML page at build time.
+//   3. Adding a new .md file to src/content/twin2-anime-reviews/
+//      auto-creates a new page at the next build — no code changes needed.
+//
+// COLLECTION: twin2-anime-reviews  (src/content/twin2-anime-reviews/)
+// LAYOUT:     ReviewLayout.astro   (shared between Twin 1 and Twin 2)
 // ============================================================
 
 import ReviewLayout from '../../../layouts/ReviewLayout.astro';
 import { getCollection, getEntry } from 'astro:content';
 
+// Tell Astro which slugs exist so it can pre-render pages
 export async function getStaticPaths() {
   const reviews = await getCollection('twin2-anime-reviews', ({ data }) => !data.draft);
   return reviews.map(review => ({
@@ -23,11 +28,13 @@ export async function getStaticPaths() {
   }));
 }
 
+// Fetch the review matching the current URL slug
 const { slug } = Astro.params;
 const post = await getEntry('twin2-anime-reviews', slug as string);
 const { Content } = await post!.render();
 ---
 
+<!-- Render the review inside the shared ReviewLayout -->
 <ReviewLayout post={post!} collectionName="twin2-anime-reviews" backUrl="/twin2">
   <Content />
 </ReviewLayout>

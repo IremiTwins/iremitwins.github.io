@@ -1,13 +1,34 @@
 ---
+// ============================================================
+// src/pages/twin2.astro — Twin 2's Personal Page
+// ============================================================
+//
+// This page shows Twin 2's projects, anime reviews, and game reviews.
+//
+// SECTIONS:
+//   1. Projects       — Portfolio cards (Genome Toolkit + placeholders)
+//   2. Anime Reviews  — Cards pulled from twin2-anime-reviews collection
+//   3. Game Reviews   — Cards pulled from twin2-game-reviews collection
+//
+// HOW TO ADD A REVIEW:
+//   Create a new .md file in the matching content folder:
+//     Anime → src/content/twin2-anime-reviews/my-review.md
+//     Games → src/content/twin2-game-reviews/my-review.md
+//   The review will appear here automatically at the next build.
+//   See existing sample files for the required frontmatter format.
+// ============================================================
+
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
 
-// Fetch anime reviews — exclude drafts, sort newest first
+// ── Fetch reviews at build time ──────────────────────────────
+// getCollection() reads all .md files from the named folder.
+// We filter out drafts and sort by date (newest first).
+
 const animeReviews = (await getCollection('twin2-anime-reviews'))
   .filter(r => !r.data.draft)
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 
-// Fetch game reviews — exclude drafts, sort newest first
 const gameReviews = (await getCollection('twin2-game-reviews'))
   .filter(r => !r.data.draft)
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
@@ -18,6 +39,9 @@ const gameReviews = (await getCollection('twin2-game-reviews'))
   description="Projects and apps by Twin 2 of the Iremi Twins."
 >
   <main>
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 1: Projects
+         ══════════════════════════════════════════════════════ -->
     <section class="portfolio section" style="padding-top: 8rem;">
       <div class="container">
 
@@ -76,7 +100,15 @@ const gameReviews = (await getCollection('twin2-game-reviews'))
       </div>
     </section>
 
-    <!-- ── Anime Reviews Section ────────────────────────────── -->
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 2: Anime Reviews
+         ─────────────────────────────────────────────────────
+         Cards are auto-generated from .md files in:
+           src/content/twin2-anime-reviews/
+
+         Each card links to its full review page at:
+           /twin2/twin2-anime-reviews/<slug>
+         ══════════════════════════════════════════════════════ -->
     <section class="section" id="anime-reviews">
       <div class="container">
         <p class="section__label">// anime reviews</p>
@@ -123,7 +155,15 @@ const gameReviews = (await getCollection('twin2-game-reviews'))
       </div>
     </section>
 
-    <!-- ── Game Reviews Section ─────────────────────────────── -->
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 3: Video Game Reviews
+         ─────────────────────────────────────────────────────
+         Cards are auto-generated from .md files in:
+           src/content/twin2-game-reviews/
+
+         Each card links to its full review page at:
+           /twin2/twin2-game-reviews/<slug>
+         ══════════════════════════════════════════════════════ -->
     <section class="section" id="game-reviews">
       <div class="container">
         <p class="section__label">// game reviews</p>

@@ -14,12 +14,13 @@ know to run, edit, and extend the site is here.
 2. [Project Structure](#project-structure)
 3. [Getting Started (running locally)](#getting-started)
 4. [How to Add a Blog Post](#how-to-add-a-blog-post)
-5. [How to Add a Project Card](#how-to-add-a-project-card)
-6. [How to Update Personal Info](#how-to-update-personal-info)
-7. [How to Change Colours and Fonts](#how-to-change-colours-and-fonts)
-8. [How to Deploy](#how-to-deploy)
-9. [The public/ Folder](#the-public-folder)
-10. [Glossary](#glossary)
+5. [How to Add a Review (Anime or Game)](#how-to-add-a-review-anime-or-game)
+6. [How to Add a Project Card](#how-to-add-a-project-card)
+7. [How to Update Personal Info](#how-to-update-personal-info)
+8. [How to Change Colours and Fonts](#how-to-change-colours-and-fonts)
+9. [How to Deploy](#how-to-deploy)
+10. [The public/ Folder](#the-public-folder)
+11. [Glossary](#glossary)
 
 ---
 
@@ -58,14 +59,25 @@ Website-Astro/
 ├── src/
 │   │
 │   ├── content/
-│   │   ├── config.ts          ← Blog collection schema (field definitions)
-│   │   └── blog/
-│   │       ├── css-tips.md            ← Blog post
-│   │       └── getting-started.md     ← Blog post
+│   │   ├── config.ts          ← Collection schemas (blog + reviews)
+│   │   │
+│   │   ├── blog/              ← Shared blog posts (.md files)
+│   │   │   ├── css-tips.md
+│   │   │   └── getting-started.md
+│   │   │
+│   │   ├── twin1-anime-reviews/   ← Twin 1's anime reviews (.md files)
+│   │   │   └── sample-anime.md
+│   │   ├── twin1-game-reviews/    ← Twin 1's game reviews (.md files)
+│   │   │   └── sample-game.md
+│   │   ├── twin2-anime-reviews/   ← Twin 2's anime reviews (.md files)
+│   │   │   └── sample-anime.md
+│   │   └── twin2-game-reviews/    ← Twin 2's game reviews (.md files)
+│   │       └── sample-game.md
 │   │
 │   ├── layouts/
-│   │   ├── BaseLayout.astro   ← Shared HTML shell (head, header, footer, JS)
-│   │   └── BlogPostLayout.astro ← Wrapper for individual blog post pages
+│   │   ├── BaseLayout.astro       ← Shared HTML shell (head, header, footer, JS)
+│   │   ├── BlogPostLayout.astro   ← Wrapper for individual blog post pages
+│   │   └── ReviewLayout.astro     ← Wrapper for individual review pages (shared)
 │   │
 │   ├── components/
 │   │   ├── Header.astro           ← Navigation bar
@@ -78,20 +90,36 @@ Website-Astro/
 │   │   └── ContactSection.astro   ← Email + social links
 │   │
 │   ├── pages/
-│   │   ├── index.astro        ← Homepage  →  iremitwins.com/
-│   │   └── blog/
-│   │       ├── index.astro    ← Blog listing  →  iremitwins.com/blog
-│   │       └── [slug].astro   ← Individual posts  →  iremitwins.com/blog/css-tips
+│   │   ├── index.astro            ← Homepage  →  iremitwins.com/
+│   │   ├── twin1.astro            ← Twin 1's page (projects + reviews)
+│   │   ├── twin2.astro            ← Twin 2's page (projects + reviews)
+│   │   │
+│   │   ├── blog/
+│   │   │   ├── index.astro        ← Blog listing  →  /blog
+│   │   │   └── [slug].astro       ← Individual posts  →  /blog/css-tips
+│   │   │
+│   │   ├── twin1/
+│   │   │   ├── twin1-anime-reviews/
+│   │   │   │   └── [slug].astro   ← Individual anime review  →  /twin1/twin1-anime-reviews/<slug>
+│   │   │   └── twin1-game-reviews/
+│   │   │       └── [slug].astro   ← Individual game review  →  /twin1/twin1-game-reviews/<slug>
+│   │   │
+│   │   └── twin2/
+│   │       ├── genome-toolkit.astro ← Genome Toolkit app page
+│   │       ├── twin2-anime-reviews/
+│   │       │   └── [slug].astro   ← Individual anime review  →  /twin2/twin2-anime-reviews/<slug>
+│   │       └── twin2-game-reviews/
+│   │           └── [slug].astro   ← Individual game review  →  /twin2/twin2-game-reviews/<slug>
 │   │
 │   ├── styles/
-│   │   └── global.css         ← All styles for the entire site
+│   │   └── global.css             ← All styles for the entire site
 │   │
-│   └── env.d.ts               ← TypeScript type declarations (don't edit)
+│   └── env.d.ts                   ← TypeScript type declarations (don't edit)
 │
-├── astro.config.mjs           ← Astro configuration
-├── package.json               ← Project metadata and scripts
-├── tsconfig.json              ← TypeScript configuration (don't edit)
-└── README.md                  ← This file
+├── astro.config.mjs               ← Astro configuration
+├── package.json                   ← Project metadata and scripts
+├── tsconfig.json                  ← TypeScript configuration (don't edit)
+└── README.md                      ← This file
 ```
 
 ---
@@ -219,6 +247,98 @@ That's it! Run `npm run dev` and visit
 
 The blog listing page (`/blog`) and the homepage preview section
 update automatically — no other changes needed.
+
+---
+
+## How to Add a Review (Anime or Game)
+
+Each twin has their own separate review collections. Reviews work just like
+blog posts — create a `.md` file and the site updates automatically.
+
+### Review Folder Map
+
+| Twin | Type | Content folder | URL pattern |
+|------|------|----------------|-------------|
+| Twin 1 | Anime | `src/content/twin1-anime-reviews/` | `/twin1/twin1-anime-reviews/<slug>` |
+| Twin 1 | Game  | `src/content/twin1-game-reviews/`  | `/twin1/twin1-game-reviews/<slug>`  |
+| Twin 2 | Anime | `src/content/twin2-anime-reviews/` | `/twin2/twin2-anime-reviews/<slug>` |
+| Twin 2 | Game  | `src/content/twin2-game-reviews/`  | `/twin2/twin2-game-reviews/<slug>`  |
+
+### Step 1 — Create the file
+
+Create a new `.md` file in the correct folder for your twin and review type.
+The filename becomes the URL slug.
+
+**Example:** `src/content/twin1-anime-reviews/one-piece.md`
+→ URL: `iremitwins.com/twin1/twin1-anime-reviews/one-piece`
+
+Use lowercase letters and hyphens only in the filename (no spaces, no capitals).
+
+### Step 2 — Add frontmatter
+
+At the very top of the file, add the frontmatter block between `---` lines:
+
+```markdown
+---
+title: "One Piece"
+coverImage: ""
+rating: 5
+description: "A short one-sentence summary shown on the review card."
+date: 2026-03-01
+---
+```
+
+**Required fields:**
+
+| Field | Type | Description |
+|---|---|---|
+| `title` | text | Name of the anime or game |
+| `rating` | number 1-5 | Star rating (rendered as ★★★★☆) |
+| `description` | text | Short blurb shown on the card |
+| `date` | YYYY-MM-DD | Date the review was written |
+
+**Optional fields:**
+
+| Field | Purpose | Example |
+|---|---|---|
+| `coverImage` | Path to cover art in `public/` | `coverImage: "/reviews/one-piece.jpg"` |
+| `draft: true` | Hides the review from the live site | `draft: true` |
+| `prevPost` | Slug of previous review (for nav) | `prevPost: "naruto"` |
+| `nextPost` | Slug of next review (for nav) | `nextPost: "demon-slayer"` |
+
+### Step 3 — Write your review
+
+Below the closing `---`, write your review in **Markdown**:
+
+```markdown
+## Review
+
+What did I think of this anime/game?
+
+### What I Loved
+
+- Bullet points here
+
+### What Could Be Better
+
+- Bullet points here
+
+### Final Thoughts
+
+Closing paragraph.
+```
+
+### Step 4 — (Optional) Add a cover image
+
+1. Save the cover image to `public/reviews/` (create the folder if needed).
+   Example: `public/reviews/one-piece.jpg`
+2. Set `coverImage: "/reviews/one-piece.jpg"` in the frontmatter.
+3. If you leave `coverImage` empty (`""`), a placeholder emoji will show instead.
+
+### Step 5 — Save and check
+
+Run `npm run dev` and visit your twin's page (`/twin1` or `/twin2`).
+The new review card will appear automatically. Click it to see the full review page.
 
 ---
 
@@ -364,13 +484,15 @@ You'll see these terms throughout the code comments:
 |---|---|
 | **Component** | A reusable piece of UI defined in a `.astro` file. Like a LEGO brick — define it once, use it anywhere. |
 | **Layout** | A special component that wraps a whole page (provides `<html>`, `<head>`, etc.). |
-| **Content Collection** | A typed folder of Markdown files that Astro can query like a database. Our blog posts live here. |
-| **Frontmatter** | The metadata block between `---` at the top of a Markdown file (title, date, tag, etc.). |
+| **Content Collection** | A typed folder of Markdown files that Astro can query like a database. Our blog posts and reviews live here. |
+| **Frontmatter** | The metadata block between `---` at the top of a Markdown file (title, date, tag, rating, etc.). |
 | **Slug** | The URL-friendly version of a post's filename. `my-post.md` → slug is `my-post`. |
 | **Static Site** | A website made of pre-built HTML files. Fast, secure, and hostable anywhere for free. |
 | **Build** | The process of compiling source files into the final HTML/CSS/JS output in the `dist/` folder. |
 | **`getCollection()`** | Astro function that reads all entries from a content collection at build time. |
 | **`getStaticPaths()`** | Required function in dynamic route pages. Tells Astro which URL slugs exist so it can pre-render them. |
+| **Review Collection** | A content collection for anime or game reviews. Each twin has their own separate collections (e.g. `twin1-anime-reviews`). |
+| **ReviewLayout** | Shared layout component used by all review pages (both twins, both types). Renders cover image, stars, title, body, and nav. |
 | **Prop** | A value passed into a component from outside. Like a function parameter for UI components. |
 | **`<slot />`** | Placeholder in a layout/component where child content gets inserted. |
 | **`data-animate`** | HTML attribute on elements that should fade+slide in when they scroll into view. |

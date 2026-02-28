@@ -3,13 +3,28 @@
 // src/layouts/ReviewLayout.astro — Review Post Page Shell
 // ============================================================
 //
-// Wraps individual anime/game review pages. Extends BaseLayout
-// and adds the review-specific header (cover image, title, star
-// rating, date, description) and prev/next navigation.
+// SHARED layout for individual anime and game review pages.
+// Both Twin 1 and Twin 2 review routes use this same layout.
 //
-// Used by:
-//   src/pages/twin2/anime-reviews/[slug].astro
-//   src/pages/twin2/game-reviews/[slug].astro
+// WHAT IT RENDERS:
+//   - Cover image (if provided in frontmatter)
+//   - Star rating (1-5 filled/empty stars)
+//   - Title, date, and section label
+//   - Description (lead paragraph)
+//   - Full Markdown body via <slot />
+//   - Previous / Next review navigation
+//   - "Back to Twin X" link
+//
+// USED BY:
+//   src/pages/twin1/twin1-anime-reviews/[slug].astro
+//   src/pages/twin1/twin1-game-reviews/[slug].astro
+//   src/pages/twin2/twin2-anime-reviews/[slug].astro
+//   src/pages/twin2/twin2-game-reviews/[slug].astro
+//
+// PROPS:
+//   post           — The full collection entry (data + slug)
+//   collectionName — e.g. 'twin1-anime-reviews' or 'twin2-game-reviews'
+//   backUrl        — URL for the back button, e.g. '/twin1' or '/twin2'
 // ============================================================
 
 import BaseLayout from './BaseLayout.astro';
@@ -29,9 +44,9 @@ interface Props {
     };
     slug: string;
   };
-  /** 'anime-reviews' or 'game-reviews' */
+  /** Collection name — e.g. 'twin1-anime-reviews' or 'twin2-game-reviews' */
   collectionName: string;
-  /** URL path prefix for back link, e.g. '/twin2' */
+  /** URL path prefix for back link, e.g. '/twin1' or '/twin2' */
   backUrl: string;
 }
 
@@ -57,7 +72,13 @@ const prevEntry = findEntry(prevPost);
 const nextEntry = findEntry(nextPost);
 
 // Human-readable label for the section
-const sectionLabel = collectionName === 'twin2-anime-reviews' ? 'Anime Reviews' : 'Game Reviews';
+// Determine whether this is an anime or game review based on the collection name
+const isAnime = collectionName.includes('anime');
+const sectionLabel = isAnime ? 'Anime Reviews' : 'Game Reviews';
+
+// Determine which twin this belongs to for the back button text
+const twinLabel = collectionName.startsWith('twin1') ? 'Twin 1' : 'Twin 2';
+
 const reviewBasePath = `${backUrl}/${collectionName}`;
 ---
 
@@ -108,7 +129,7 @@ const reviewBasePath = `${backUrl}/${collectionName}`;
 
         <!-- ── Navigation ─────────────────────────────────── -->
         <nav class="post-nav">
-          <a href={backUrl} class="btn btn--ghost">← Back to Twin 2</a>
+          <a href={backUrl} class="btn btn--ghost">← Back to {twinLabel}</a>
 
           {prevEntry && (
             <a href={`${reviewBasePath}/${(prevEntry as any).slug}`} class="btn btn--ghost">

@@ -1,5 +1,37 @@
 ---
+// ============================================================
+// src/pages/twin1.astro — Twin 1's Personal Page
+// ============================================================
+//
+// This page shows Twin 1's projects, anime reviews, and game reviews.
+//
+// SECTIONS:
+//   1. Projects       — Portfolio cards (same pattern as Twin 2)
+//   2. Anime Reviews  — Cards pulled from twin1-anime-reviews collection
+//   3. Game Reviews   — Cards pulled from twin1-game-reviews collection
+//
+// HOW TO ADD A REVIEW:
+//   Create a new .md file in the matching content folder:
+//     Anime → src/content/twin1-anime-reviews/my-review.md
+//     Games → src/content/twin1-game-reviews/my-review.md
+//   The review will appear here automatically at the next build.
+//   See existing sample files for the required frontmatter format.
+// ============================================================
+
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+// ── Fetch reviews at build time ──────────────────────────────
+// getCollection() reads all .md files from the named folder.
+// We filter out drafts and sort by date (newest first).
+
+const animeReviews = (await getCollection('twin1-anime-reviews'))
+  .filter(r => !r.data.draft)
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+
+const gameReviews = (await getCollection('twin1-game-reviews'))
+  .filter(r => !r.data.draft)
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 ---
 
 <BaseLayout
@@ -7,6 +39,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   description="Projects and apps by Twin 1 of the Iremi Twins."
 >
   <main>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 1: Projects
+         ══════════════════════════════════════════════════════ -->
     <section class="portfolio section" style="padding-top: 8rem;">
       <div class="container">
 
@@ -15,7 +51,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
         <div class="portfolio__grid">
 
-          <!-- ── Placeholder card 1 ── -->
+          <!-- ── Placeholder card 1 ──
+               Replace with a real project when ready. Copy this
+               block and update the type, title, description,
+               links, and tech stack spans. -->
           <article class="project-card card" data-animate>
             <div class="project-card__header">
               <span class="project-card__type">Coming Soon</span>
@@ -57,5 +96,118 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
       </div>
     </section>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 2: Anime Reviews
+         ─────────────────────────────────────────────────────
+         Cards are auto-generated from .md files in:
+           src/content/twin1-anime-reviews/
+
+         Each card links to its full review page at:
+           /twin1/twin1-anime-reviews/<slug>
+         ══════════════════════════════════════════════════════ -->
+    <section class="section" id="anime-reviews">
+      <div class="container">
+        <p class="section__label">// anime reviews</p>
+        <h2 class="section__title">Anime <span class="highlight">Reviews</span></h2>
+
+        {animeReviews.length > 0 ? (
+          <div class="review__grid">
+            {animeReviews.map(review => {
+              // Build arrays for rendering filled/empty stars
+              const filled = Array.from({ length: review.data.rating }, (_, i) => i);
+              const empty  = Array.from({ length: 5 - review.data.rating }, (_, i) => i);
+              // Format date as "Feb 2026"
+              const displayDate = review.data.date.toLocaleDateString('en-GB', {
+                month: 'short', year: 'numeric',
+              });
+              return (
+                <article class="review-card card" data-animate>
+                  {/* Cover image — falls back to emoji placeholder if coverImage is empty */}
+                  {review.data.coverImage ? (
+                    <img src={review.data.coverImage} alt={review.data.title} class="review-card__cover" />
+                  ) : (
+                    <div class="review-card__cover--placeholder">🎬</div>
+                  )}
+
+                  {/* Star rating — filled stars in accent colour, empty ones muted */}
+                  <div class="review-card__stars">
+                    {filled.map(() => <span class="review-card__star--filled">★</span>)}
+                    {empty.map(() => <span class="review-card__star--empty">★</span>)}
+                  </div>
+
+                  {/* Title — links to the full review page */}
+                  <h3><a href={`/twin1/twin1-anime-reviews/${review.slug}`}>{review.data.title}</a></h3>
+
+                  {/* Short description — clamped to 3 lines via CSS */}
+                  <p class="review-card__desc">{review.data.description}</p>
+
+                  {/* Review date */}
+                  <span class="review-card__date">{displayDate}</span>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <p style="color: var(--clr-muted);">No anime reviews yet — check back soon!</p>
+        )}
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 3: Video Game Reviews
+         ─────────────────────────────────────────────────────
+         Cards are auto-generated from .md files in:
+           src/content/twin1-game-reviews/
+
+         Each card links to its full review page at:
+           /twin1/twin1-game-reviews/<slug>
+         ══════════════════════════════════════════════════════ -->
+    <section class="section" id="game-reviews">
+      <div class="container">
+        <p class="section__label">// game reviews</p>
+        <h2 class="section__title">Video Game <span class="highlight">Reviews</span></h2>
+
+        {gameReviews.length > 0 ? (
+          <div class="review__grid">
+            {gameReviews.map(review => {
+              const filled = Array.from({ length: review.data.rating }, (_, i) => i);
+              const empty  = Array.from({ length: 5 - review.data.rating }, (_, i) => i);
+              const displayDate = review.data.date.toLocaleDateString('en-GB', {
+                month: 'short', year: 'numeric',
+              });
+              return (
+                <article class="review-card card" data-animate>
+                  {/* Cover image — falls back to emoji placeholder if coverImage is empty */}
+                  {review.data.coverImage ? (
+                    <img src={review.data.coverImage} alt={review.data.title} class="review-card__cover" />
+                  ) : (
+                    <div class="review-card__cover--placeholder">🎮</div>
+                  )}
+
+                  {/* Star rating */}
+                  <div class="review-card__stars">
+                    {filled.map(() => <span class="review-card__star--filled">★</span>)}
+                    {empty.map(() => <span class="review-card__star--empty">★</span>)}
+                  </div>
+
+                  {/* Title — links to the full review page */}
+                  <h3><a href={`/twin1/twin1-game-reviews/${review.slug}`}>{review.data.title}</a></h3>
+
+                  {/* Short description — clamped to 3 lines via CSS */}
+                  <p class="review-card__desc">{review.data.description}</p>
+
+                  {/* Review date */}
+                  <span class="review-card__date">{displayDate}</span>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <p style="color: var(--clr-muted);">No game reviews yet — check back soon!</p>
+        )}
+      </div>
+    </section>
+
   </main>
 </BaseLayout>

@@ -1,4 +1,24 @@
 ---
+# ============================================================
+# Sample Anime Review — Twin 2
+# ============================================================
+# This is a sample review to show the structure. Replace it
+# with your own review or delete it and create new .md files.
+#
+# FILE LOCATION: src/content/twin2-anime-reviews/
+# URL:           /twin2/twin2-anime-reviews/sample-anime
+#
+# FRONTMATTER FIELDS:
+#   title       — Name of the anime (required)
+#   coverImage  — Path to cover art in public/ (optional, leave "" for placeholder)
+#   rating      — Star rating 1-5 (required)
+#   description — Short blurb shown on the card (required)
+#   date        — Date reviewed, YYYY-MM-DD (required)
+#   draft       — Set true to hide from the site (optional, default false)
+#   prevPost    — Slug of previous review for nav (optional)
+#   nextPost    — Slug of next review for nav (optional)
+# ============================================================
+
 title: "Attack on Titan"
 coverImage: ""
 rating: 5
