@@ -760,6 +760,107 @@ a { color: inherit; text-decoration: none; }
 }
 
 
+/* ── Review Sections (Anime & Game Reviews) ───────────────────
+   Card grid for reviews on the Twin 2 page and individual
+   review post pages.
+   ──────────────────────────────────────────────────────────── */
+
+/* Grid layout — same pattern as portfolio__grid */
+.review__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-lg);
+}
+
+/* Individual review card */
+.review-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.review-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Cover image at the top of each card */
+.review-card__cover {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: var(--clr-surface);
+}
+
+/* Placeholder when no cover image is provided */
+.review-card__cover--placeholder {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius-sm);
+  background: var(--clr-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  color: var(--clr-muted);
+  border: 1px solid var(--clr-border);
+}
+
+/* Star rating row */
+.review-card__stars {
+  display: flex;
+  gap: 0.15rem;
+  font-size: 1.1rem;
+}
+.review-card__star--filled { color: var(--clr-accent); }
+.review-card__star--empty  { color: var(--clr-muted); opacity: 0.35; }
+
+/* Card title */
+.review-card h3 {
+  font-size: 1.05rem;
+  margin: 0;
+  line-height: 1.3;
+}
+.review-card h3 a {
+  text-decoration: none;
+  color: inherit;
+}
+.review-card h3 a:hover { color: var(--clr-accent-lt); }
+
+/* Description text */
+.review-card__desc {
+  color: var(--clr-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  /* Clamp to 3 lines */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Date at the bottom of the card */
+.review-card__date {
+  color: var(--clr-muted);
+  font-size: 0.8rem;
+  margin-top: auto;
+}
+
+/* ── Review post page (individual review) ──────────────────── */
+.review-hero__cover {
+  max-width: 300px;
+  border-radius: var(--radius);
+  margin-bottom: var(--space-md);
+}
+.review-hero__stars {
+  display: flex;
+  gap: 0.2rem;
+  font-size: 1.4rem;
+  margin-bottom: var(--space-sm);
+}
+
+
 /* ── Responsive Breakpoints ───────────────────────────────────
    Adjustments for smaller screens.
    @media (max-width: Xpx) — rules inside only apply when the
@@ -779,9 +880,11 @@ a { color: inherit; text-decoration: none; }
     background: var(--clr-bg);
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start; /* keep items visible on short viewports */
+    padding-top: var(--space-2xl);
     gap: var(--space-lg);
     z-index: 99;
+    overflow-y: auto;        /* scroll if links overflow on short screens */
   }
   /* JavaScript adds .open when the hamburger is clicked */
   .nav__links.open { display: flex; }
@@ -797,5 +900,5 @@ a { color: inherit; text-decoration: none; }
   .hero__title { font-size: 2.2rem; }
   .section__title { font-size: 1.7rem; }
   /* Force all grids to a single column */
-  .about__cards, .portfolio__grid, .blog__grid { grid-template-columns: 1fr; }
+  .about__cards, .portfolio__grid, .blog__grid, .review__grid { grid-template-columns: 1fr; }
 }

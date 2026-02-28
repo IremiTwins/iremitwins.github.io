@@ -1,0 +1,33 @@
+---
+// ============================================================
+// src/pages/twin2/anime-reviews/[slug].astro
+// ============================================================
+//
+// Dynamic route for individual anime review pages.
+// URL pattern: /twin2/anime-reviews/<slug>
+//
+// Works the same way as blog/[slug].astro:
+//   1. getStaticPaths() discovers all non-draft anime reviews
+//   2. Each slug gets its own pre-rendered HTML page
+//   3. Adding a new .md to src/content/anime-reviews/ auto-
+//      creates a new page at the next build.
+// ============================================================
+
+import ReviewLayout from '../../../layouts/ReviewLayout.astro';
+import { getCollection, getEntry } from 'astro:content';
+
+export async function getStaticPaths() {
+  const reviews = await getCollection('anime-reviews', ({ data }) => !data.draft);
+  return reviews.map(review => ({
+    params: { slug: review.slug },
+  }));
+}
+
+const { slug } = Astro.params;
+const post = await getEntry('anime-reviews', slug as string);
+const { Content } = await post!.render();
+---
+
+<ReviewLayout post={post!} collectionName="anime-reviews" backUrl="/twin2">
+  <Content />
+</ReviewLayout>

@@ -74,9 +74,58 @@ const blogCollection = defineCollection({
   }),
 });
 
+// ── Review Schema (shared by anime and game reviews) ─────────
+// Reusable schema for review collections. Both anime and game
+// reviews share the same shape: title, cover image, star rating,
+// short description, date, draft flag, and prev/next navigation.
+const reviewSchema = z.object({
+  // ── title (required) ───────────────────────────────────────
+  // The name of the anime or game being reviewed.
+  title: z.string(),
+
+  // ── coverImage (optional) ──────────────────────────────────
+  // Path to the cover image in public/, e.g. "/reviews/anime/my-anime.jpg"
+  coverImage: z.string().optional(),
+
+  // ── rating (required, 1-5) ─────────────────────────────────
+  // Star rating from 1 to 5. Rendered as filled/empty stars.
+  rating: z.number().min(1).max(5),
+
+  // ── description (required) ─────────────────────────────────
+  // Short review summary shown on the card and as the page lead.
+  description: z.string(),
+
+  // ── date (required) ────────────────────────────────────────
+  // Date the review was written. Format: YYYY-MM-DD
+  date: z.date(),
+
+  // ── draft (optional, defaults to false) ────────────────────
+  draft: z.boolean().optional().default(false),
+
+  // ── prevPost / nextPost (optional) ─────────────────────────
+  prevPost: z.string().optional(),
+  nextPost: z.string().optional(),
+});
+
+// ── Anime Review Collection ──────────────────────────────────
+// Every .md file inside src/content/anime-reviews/ must match reviewSchema.
+const animeReviewCollection = defineCollection({
+  type: 'content',
+  schema: reviewSchema,
+});
+
+// ── Game Review Collection ───────────────────────────────────
+// Every .md file inside src/content/game-reviews/ must match reviewSchema.
+const gameReviewCollection = defineCollection({
+  type: 'content',
+  schema: reviewSchema,
+});
+
 // Export all collections so Astro can discover them.
 // If you add a new collection folder (e.g. src/content/projects/)
 // define it above and add it here.
 export const collections = {
   blog: blogCollection,
+  'anime-reviews': animeReviewCollection,
+  'game-reviews': gameReviewCollection,
 };

@@ -1,5 +1,16 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+// Fetch anime reviews — exclude drafts, sort newest first
+const animeReviews = (await getCollection('anime-reviews'))
+  .filter(r => !r.data.draft)
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+
+// Fetch game reviews — exclude drafts, sort newest first
+const gameReviews = (await getCollection('game-reviews'))
+  .filter(r => !r.data.draft)
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 ---
 
 <BaseLayout
@@ -64,5 +75,100 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
       </div>
     </section>
+
+    <!-- ── Anime Reviews Section ────────────────────────────── -->
+    <section class="section" id="anime-reviews">
+      <div class="container">
+        <p class="section__label">// anime reviews</p>
+        <h2 class="section__title">Anime <span class="highlight">Reviews</span></h2>
+
+        {animeReviews.length > 0 ? (
+          <div class="review__grid">
+            {animeReviews.map(review => {
+              const filled = Array.from({ length: review.data.rating }, (_, i) => i);
+              const empty  = Array.from({ length: 5 - review.data.rating }, (_, i) => i);
+              const displayDate = review.data.date.toLocaleDateString('en-GB', {
+                month: 'short', year: 'numeric',
+              });
+              return (
+                <article class="review-card card" data-animate>
+                  {/* Cover image or placeholder */}
+                  {review.data.coverImage ? (
+                    <img src={review.data.coverImage} alt={review.data.title} class="review-card__cover" />
+                  ) : (
+                    <div class="review-card__cover--placeholder">🎬</div>
+                  )}
+
+                  {/* Star rating */}
+                  <div class="review-card__stars">
+                    {filled.map(() => <span class="review-card__star--filled">★</span>)}
+                    {empty.map(() => <span class="review-card__star--empty">★</span>)}
+                  </div>
+
+                  {/* Title linked to the full review */}
+                  <h3><a href={`/twin2/anime-reviews/${review.slug}`}>{review.data.title}</a></h3>
+
+                  {/* Short description */}
+                  <p class="review-card__desc">{review.data.description}</p>
+
+                  {/* Date */}
+                  <span class="review-card__date">{displayDate}</span>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <p style="color: var(--clr-muted);">No anime reviews yet — check back soon!</p>
+        )}
+      </div>
+    </section>
+
+    <!-- ── Game Reviews Section ─────────────────────────────── -->
+    <section class="section" id="game-reviews">
+      <div class="container">
+        <p class="section__label">// game reviews</p>
+        <h2 class="section__title">Video Game <span class="highlight">Reviews</span></h2>
+
+        {gameReviews.length > 0 ? (
+          <div class="review__grid">
+            {gameReviews.map(review => {
+              const filled = Array.from({ length: review.data.rating }, (_, i) => i);
+              const empty  = Array.from({ length: 5 - review.data.rating }, (_, i) => i);
+              const displayDate = review.data.date.toLocaleDateString('en-GB', {
+                month: 'short', year: 'numeric',
+              });
+              return (
+                <article class="review-card card" data-animate>
+                  {/* Cover image or placeholder */}
+                  {review.data.coverImage ? (
+                    <img src={review.data.coverImage} alt={review.data.title} class="review-card__cover" />
+                  ) : (
+                    <div class="review-card__cover--placeholder">🎮</div>
+                  )}
+
+                  {/* Star rating */}
+                  <div class="review-card__stars">
+                    {filled.map(() => <span class="review-card__star--filled">★</span>)}
+                    {empty.map(() => <span class="review-card__star--empty">★</span>)}
+                  </div>
+
+                  {/* Title linked to the full review */}
+                  <h3><a href={`/twin2/game-reviews/${review.slug}`}>{review.data.title}</a></h3>
+
+                  {/* Short description */}
+                  <p class="review-card__desc">{review.data.description}</p>
+
+                  {/* Date */}
+                  <span class="review-card__date">{displayDate}</span>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <p style="color: var(--clr-muted);">No game reviews yet — check back soon!</p>
+        )}
+      </div>
+    </section>
+
   </main>
 </BaseLayout>

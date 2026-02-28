@@ -1,0 +1,129 @@
+---
+// ============================================================
+// src/layouts/ReviewLayout.astro — Review Post Page Shell
+// ============================================================
+//
+// Wraps individual anime/game review pages. Extends BaseLayout
+// and adds the review-specific header (cover image, title, star
+// rating, date, description) and prev/next navigation.
+//
+// Used by:
+//   src/pages/twin2/anime-reviews/[slug].astro
+//   src/pages/twin2/game-reviews/[slug].astro
+// ============================================================
+
+import BaseLayout from './BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+// ── Props ─────────────────────────────────────────────────────
+interface Props {
+  post: {
+    data: {
+      title: string;
+      coverImage?: string;
+      rating: number;
+      description: string;
+      date: Date;
+      prevPost?: string;
+      nextPost?: string;
+    };
+    slug: string;
+  };
+  /** 'anime-reviews' or 'game-reviews' */
+  collectionName: string;
+  /** URL path prefix for back link, e.g. '/twin2' */
+  backUrl: string;
+}
+
+const { post, collectionName, backUrl } = Astro.props;
+const { title, coverImage, rating, description, date, prevPost, nextPost } = post.data;
+
+// Format date as "Feb 2026"
+const displayDate = date.toLocaleDateString('en-GB', {
+  month: 'short',
+  year: 'numeric',
+});
+
+// Build star arrays for rendering
+const filledStars = Array.from({ length: rating }, (_, i) => i);
+const emptyStars  = Array.from({ length: 5 - rating }, (_, i) => i);
+
+// Look up prev/next entries for navigation
+const allEntries = await getCollection(collectionName as any);
+const findEntry = (slug: string | undefined) =>
+  slug ? allEntries.find((e: any) => e.slug === slug) : undefined;
+
+const prevEntry = findEntry(prevPost);
+const nextEntry = findEntry(nextPost);
+
+// Human-readable label for the section
+const sectionLabel = collectionName === 'anime-reviews' ? 'Anime Reviews' : 'Game Reviews';
+const reviewBasePath = `${backUrl}/${collectionName}`;
+---
+
+<BaseLayout
+  title={`${title} — ${sectionLabel} · Iremi Twins`}
+  description={description}
+>
+  <main class="blog-page">
+    <div class="container">
+      <article class="post-content">
+
+        <!-- ── Review Header ──────────────────────────────── -->
+        <div class="blog-page__header" style="text-align: center;">
+
+          {/* Cover image if provided */}
+          {coverImage && (
+            <img
+              src={coverImage}
+              alt={`${title} cover`}
+              class="review-hero__cover"
+            />
+          )}
+
+          <!-- Star rating -->
+          <div class="review-hero__stars" style="justify-content: center;">
+            {filledStars.map(() => (
+              <span class="review-card__star--filled">★</span>
+            ))}
+            {emptyStars.map(() => (
+              <span class="review-card__star--empty">★</span>
+            ))}
+          </div>
+
+          <h1 class="section__title">{title}</h1>
+
+          <div class="post-meta" style="justify-content: center;">
+            <span class="blog-card__date">{displayDate}</span>
+            <span class="blog-card__tag">{sectionLabel}</span>
+          </div>
+
+          <p style="color: var(--clr-muted); margin-top: var(--space-sm);">
+            {description}
+          </p>
+        </div>
+
+        <!-- ── Review Body (Markdown) ─────────────────────── -->
+        <slot />
+
+        <!-- ── Navigation ─────────────────────────────────── -->
+        <nav class="post-nav">
+          <a href={backUrl} class="btn btn--ghost">← Back to Twin 2</a>
+
+          {prevEntry && (
+            <a href={`${reviewBasePath}/${(prevEntry as any).slug}`} class="btn btn--ghost">
+              ← {(prevEntry as any).data.title}
+            </a>
+          )}
+
+          {nextEntry && (
+            <a href={`${reviewBasePath}/${(nextEntry as any).slug}`} class="btn btn--ghost">
+              {(nextEntry as any).data.title} →
+            </a>
+          )}
+        </nav>
+
+      </article>
+    </div>
+  </main>
+</BaseLayout>
