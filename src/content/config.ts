@@ -108,14 +108,14 @@ const reviewSchema = z.object({
 });
 
 // ── Anime Review Collection ──────────────────────────────────
-// Every .md file inside src/content/anime-reviews/ must match reviewSchema.
+// Every .md file inside src/content/twin2-anime-reviews/ must match reviewSchema.
 const animeReviewCollection = defineCollection({
   type: 'content',
   schema: reviewSchema,
 });
 
 // ── Game Review Collection ───────────────────────────────────
-// Every .md file inside src/content/game-reviews/ must match reviewSchema.
+// Every .md file inside src/content/twin2-game-reviews/ must match reviewSchema.
 const gameReviewCollection = defineCollection({
   type: 'content',
   schema: reviewSchema,
@@ -126,6 +126,6 @@ const gameReviewCollection = defineCollection({
 // define it above and add it here.
 export const collections = {
   blog: blogCollection,
-  'anime-reviews': animeReviewCollection,
-  'game-reviews': gameReviewCollection,
+  'twin2-anime-reviews': animeReviewCollection,
+  'twin2-game-reviews': gameReviewCollection,
 };
