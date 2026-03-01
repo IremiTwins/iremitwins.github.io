@@ -851,7 +851,8 @@ a { color: inherit; text-decoration: none; }
 .review-hero__cover {
   max-width: 300px;
   border-radius: var(--radius);
-  margin-bottom: var(--space-md);
+  margin: 0 auto var(--space-md);
+  display: block;
 }
 .review-hero__stars {
   display: flex;

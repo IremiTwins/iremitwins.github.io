@@ -25,6 +25,8 @@ rating: 5
 description: "An absolute masterpiece. From start to finish this anime delivers incredible world-building, jaw-dropping plot twists, and some of the best action sequences in the medium. The final season is polarizing but the journey is unforgettable."
 date: 2026-02-28
 draft: false
+prevPost: ""
+nextPost: "frieren-beyond-journey-end"
 ---
 
 ## Review
