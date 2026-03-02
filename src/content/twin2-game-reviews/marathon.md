@@ -19,31 +19,32 @@
 #   nextPost    — Slug of next review for nav (optional)
 # ============================================================
 
-title: "Elden Ring"
-coverImage: ""
-rating: 5
-description: "FromSoftware's magnum opus. A vast open world that rewards exploration at every turn, combined with the tight combat the studio is known for. The collaboration with George R.R. Martin brings incredible lore depth."
-date: 2026-02-28
+title: "Marathon"
+coverImage: "/marathon_cover.png"
+rating: 3
+description: "Bungie's Next Live Service tries to take on the Extraction Shooter Genre"
+date: 2026-03-01
 draft: false
-prevPost: ""
-nextPost: "marathon"
+prevPost: "sample-game"
+nextPost: ""
 ---
 
 ## Review
 
-Replace this with your full review! Write as much or as little as you want.
+So many colors. That was the first thought that I had when the game started, it was almost too much and definitely felt overstimulating at times. 
 
 ### What I Loved
 
-- Massive open world that never feels empty
-- Boss fights are peak FromSoftware
-- Build variety is insane — sorcery, faith, bleed, str, dex, you name it
+- Gunplay is perfect
+- No issues server wise
+- Art direction is beautiful and unique
+
 
 ### What Could Be Better
 
-- Some late-game bosses feel overtuned
-- Co-op system could be more seamless
+- Need's an "X" factor
+- UI and Menu is confusing and overwhelming
 
 ### Final Thoughts
 
-A landmark title in gaming. If you enjoy action RPGs, this is essential.
+Coming after Arc Raider's success it's hard to imagine Bungie's Marathon will be able to find a foothold when it doesn't offer anything specific to bring players over. Perhaps more time is needed for me to be sold but after about 3 hours I don't see myself playing this long term.
