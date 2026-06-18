@@ -11,9 +11,6 @@
 //
 // TO UPDATE SKILLS: find the .card__skills <div> inside the
 // relevant card and add or remove <span> elements.
-//
-// TO CHANGE THE AVATAR INITIALS: edit the text inside
-// .card__avatar (currently "IT" for Iremi Twins).
 // ============================================================
 
 // No props or data fetching — this is static content.
@@ -30,15 +27,10 @@
     <p class="section__label">// about</p>
     <h2 class="section__title">Who we are</h2>
 
-    <!-- ── Cards grid ──────────────────────────────────────────
-         .about__cards uses CSS Grid (auto-fit) so cards wrap
-         to one column on small screens automatically.         -->
+    <!-- ── Cards grid ────────────────────────────────────────── -->
     <div class="about__cards">
 
-      <!-- ── Card: Twin One ────────────────────────────────────
-           data-animate: JS watches this attribute and adds
-           .visible when it scrolls into view, triggering the
-           CSS fade+slide animation defined in global.css.     -->
+      <!-- ── Card: Twin One ──────────────────────────────────── -->
       <article class="about__card card" data-animate>
 
         <!-- Circular avatar with image -->
@@ -87,31 +79,69 @@
       <!-- ── Card: Twin Two ──────────────────────────────────── -->
       <article class="about__card card" data-animate>
 
-        <img src="/PatrickUchiha.jpg" alt="Twin Two" class="card__avatar" />
+        <img src="/PatrickUchiha.jpg" alt="Nika Iremadze" class="card__avatar" />
 
-        <h3>Twin Two</h3>
+        <h3>Nika Iremadze</h3>
 
-        <p class="card__role">NGS Scientist</p>
+        <p class="card__role">NGS Scientist &amp; Builder</p>
 
         <p>
-          Background in biochemistry and molecular biology, with a concentration in Next-Gen Sequencing.
-          Have always had a passion for technology, coding and video games.
+          I'm a next-generation sequencing (NGS) scientist with ~8 years in the
+          field, leading sequencing operations at a genomics-technology company.
+          My background is in biochemistry and molecular biology (B.S., UC San
+          Diego), and I'm a co-author on several peer-reviewed papers in journals
+          including <em>Cell</em> and <em>Nature Biotechnology</em>.
         </p>
         <p> &nbsp;</p>
         <p>
-          Currently relearning programming languages (Python), creating basic
-           apps/projects and exploring the world of web development.
+          Outside the lab I build things. I picked up JavaScript in high school and
+          C++ in college, came back to code through Python at work, and now build
+          tools, apps, and games for fun — always learning, currently deep in web
+          and game development.
         </p>
 
         <div class="card__skills">
           <span>NGS</span>
-          <span>Gaming</span>
           <span>Python</span>
-          <span>Biochemistry</span>
+          <span>pandas</span>
+          <span>Molecular Biology</span>
+          <span>Data Analysis</span>
+          <span>Automation</span>
+          <span>Web Dev</span>
         </div>
+
+        <!-- Professional / research profiles -->
+        <p class="profile-links">
+          <a href="https://www.linkedin.com/in/nika-iremadze-753846128" target="_blank" rel="noopener">LinkedIn</a>
+          <a href="https://scholar.google.com/citations?user=ZhZt7vkAAAAJ&amp;hl=en" target="_blank" rel="noopener">Google Scholar</a>
+          <a href="https://orcid.org/0000-0002-4977-204X" target="_blank" rel="noopener">ORCID</a>
+        </p>
 
       </article>
 
     </div>
   </div>
 </section>
+
+<style>
+  /* Research / professional profile links under the Twin Two card */
+  .profile-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.1rem;
+    margin-top: 1.25rem;
+  }
+  .profile-links a {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+    color: var(--clr-accent, #6c63ff);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+  .profile-links a:hover {
+    color: var(--clr-accent-lt, #8b85ff);
+    border-bottom-color: currentColor;
+  }
+</style>

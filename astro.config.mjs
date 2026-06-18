@@ -16,6 +16,7 @@
 import { defineConfig } from 'astro/config';
 
 import react from '@astrojs/react';
+import sitemap from '@astrojs/sitemap';
 
 export default defineConfig({
 
@@ -45,5 +46,5 @@ export default defineConfig({
   //
   // Add them here as an array, e.g. integrations: [react()]
   // ----------------------------------------------------------
-  integrations: [react()],
+  integrations: [react(), sitemap()],
 });
