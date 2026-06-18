@@ -33,27 +33,35 @@
          Adds a third column on wide screens automatically.     -->
     <div class="portfolio__grid">
 
-      <!-- ── Project: Sample Sheet Generator ───────────────────
-           A real, domain-specific tool (Twin 2). No public repo
-           link by choice — described, not linked.              -->
+      <!-- ── Project: Alpha ────────────────────────────────────
+           data-animate: triggers the scroll-in animation.     -->
       <article class="project-card card" data-animate>
 
+        <!-- Top row: project type + links -->
         <div class="project-card__header">
-          <span class="project-card__type">Desktop App</span>
-          <div class="project-card__links"></div>
+          <!-- Type label — describes what kind of project this is -->
+          <span class="project-card__type">Web App</span>
+
+          <!-- Icon links — replace # with real URLs when ready.
+               ↗ is a simple unicode arrow icon substitute.
+               You could also use an SVG or emoji here.         -->
+          <div class="project-card__links">
+            <a href="#" aria-label="View source on GitHub">&#123;&#125;</a>
+            <a href="#" aria-label="Open live site">↗</a>
+          </div>
         </div>
 
-        <h3>Sample Sheet Generator</h3>
+        <!-- Project name -->
+        <h3>Project Alpha</h3>
 
-        <p>A desktop tool for generating and validating next-generation sequencing
-           sample sheets — barcode auto-fill, real-time duplicate detection,
-           spreadsheet import, live validation, and one-click export. Built in
-           Python with a clean, unit-tested core.</p>
+        <!-- Short description -->
+        <p>A full-featured web application built for real-world use. Details coming soon.</p>
 
+        <!-- Tech stack badges — add/remove <span> as needed -->
         <div class="project-card__tech">
-          <span>Python</span>
-          <span>CustomTkinter</span>
-          <span>CSV</span>
+          <span>HTML</span>
+          <span>CSS</span>
+          <span>JavaScript</span>
         </div>
 
       </article>
@@ -78,6 +86,25 @@
           <span>HTML</span>
           <span>CSS</span>
           <span>JavaScript</span>
+        </div>
+
+      </article>
+
+      <!-- ── Project: Beta (coming soon) ─────────────────────── -->
+      <article class="project-card card" data-animate>
+
+        <div class="project-card__header">
+          <!-- "Coming Soon" type communicates the project isn't live yet -->
+          <span class="project-card__type">Coming Soon</span>
+          <!-- No links for unreleased projects — just leave the div empty -->
+          <div class="project-card__links"></div>
+        </div>
+
+        <h3>Project Beta</h3>
+        <p>Something new is in the works. Watch this space.</p>
+
+        <div class="project-card__tech">
+          <span>TBD</span>
         </div>
 
       </article>

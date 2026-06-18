@@ -41,16 +41,11 @@ import '../styles/global.css';
 interface Props {
   title: string;        // e.g. "Iremi Twins" or "Blog · Iremi Twins"
   description: string;  // 1-2 sentence summary for search engines
-  image?: string;       // social share image path (defaults to /og-image.png)
 }
 
 // Destructure the props so we can use them in the HTML below.
 // Astro.props is where Astro makes the passed-in values available.
-const { title, description, image = '/og-image.png' } = Astro.props;
-
-// Absolute URLs for SEO / social tags (Astro.site is set in astro.config.mjs).
-const canonicalURL = new URL(Astro.url.pathname, Astro.site);
-const socialImage  = new URL(image, Astro.site);
+const { title, description } = Astro.props;
 ---
 
 <!DOCTYPE html>
@@ -75,28 +70,6 @@ const socialImage  = new URL(image, Astro.site);
        Shown in the browser tab and search results.
        The {title} uses the prop we received above.         -->
   <title>{title}</title>
-
-  <!-- ── Canonical URL ──────────────────────────────────────
-       The preferred URL for this page (avoids duplicate-content
-       confusion for search engines).                          -->
-  <link rel="canonical" href={canonicalURL} />
-
-  <!-- ── Open Graph (LinkedIn, Facebook, iMessage, Slack…) ──
-       Controls the preview card shown when the link is shared. -->
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="Iremi Twins" />
-  <meta property="og:url" content={canonicalURL} />
-  <meta property="og:title" content={title} />
-  <meta property="og:description" content={description} />
-  <meta property="og:image" content={socialImage} />
-
-  <!-- ── Twitter / X card ───────────────────────────────────
-       summary_large_image = big banner-style preview.        -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:url" content={canonicalURL} />
-  <meta name="twitter:title" content={title} />
-  <meta name="twitter:description" content={description} />
-  <meta name="twitter:image" content={socialImage} />
 
   <!-- ── Google Fonts preconnect ────────────────────────────
        These two tags tell the browser to open a connection

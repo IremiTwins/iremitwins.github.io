@@ -32,6 +32,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import HeroSection     from '../components/HeroSection.astro';
 import AboutSection    from '../components/AboutSection.astro';
 import PortfolioSection from '../components/PortfolioSection.astro';
+import WorkSection     from '../components/WorkSection.astro';
 import BlogPreviewSection from '../components/BlogPreviewSection.astro';
 import ContactSection  from '../components/ContactSection.astro';
 ---
@@ -42,8 +43,8 @@ import ContactSection  from '../components/ContactSection.astro';
   description → goes in the <meta name="description"> tag (SEO)
 -->
 <BaseLayout
-  title="Iremi Twins — Developer Portfolio & Blog"
-  description="Iremi Twins — portfolio, projects, and writing from a twin developer duo: a full-stack software engineer and an NGS scientist who builds."
+  title="Iremi Twins"
+  description="Iremi Twins — portfolio, work showcase, and blog by two twin web developers."
 >
   <!--
     <main> wraps all page content between the header and footer.
@@ -57,6 +58,7 @@ import ContactSection  from '../components/ContactSection.astro';
     <HeroSection />
     <AboutSection />
     <PortfolioSection />
+    <WorkSection />
     <BlogPreviewSection />
     <ContactSection />
   </main>
