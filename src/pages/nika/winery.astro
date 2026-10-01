@@ -1,0 +1,55 @@
+---
+// /nika/winery — the family winery.
+// TODO (Nika): add real photos to public/winery/ and the winery's own site link when it's live.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+const winerySite = ''; // e.g. 'https://akidowine.ge' — leave empty until the site is live
+---
+<BaseLayout title="Akido-Iremadze Winery" description="Our family's qvevri winery in Ikalto, Kakheti, Georgia." twin="nika">
+  <section class="container section hero">
+    <div>
+      <p class="eyebrow">Family</p>
+      <h1>Akido-Iremadze Winery</h1>
+      <p class="lede">
+        Our family's winery in the village of Ikalto, in Kakheti, Georgia's wine country. The wine is made in
+        <b>qvevri</b>: large clay vessels buried in the ground, the way Georgians have made wine for thousands of years.
+      </p>
+      <div class="btn-row">
+        {winerySite
+          ? <a class="btn btn--accent" href={winerySite}>Visit the winery's site ↗</a>
+          : <span class="btn btn--accent is-disabled" aria-disabled="true">Winery website coming soon</span>}
+      </div>
+    </div>
+    <div class="vessel" aria-hidden="true">
+      <svg viewBox="0 0 200 240" width="220" height="264">
+        <path d="M10 70 H190" stroke="currentColor" stroke-width="3" stroke-dasharray="8 6" />
+        <path d="M70 40 h60 v18 c38 12 56 48 50 92 c-6 46 -38 80 -80 86 c-42 -6 -74 -40 -80 -86 c-6 -44 12 -80 50 -92 z"
+          fill="var(--gio-soft)" stroke="currentColor" stroke-width="4" stroke-linejoin="round" />
+        <path d="M46 130 c30 14 78 14 108 0 c-2 40 -26 72 -54 78 c-28 -6 -52 -38 -54 -78 z" fill="#7a1f3d" opacity="0.85" />
+        <text x="104" y="64" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">ground</text>
+      </svg>
+    </div>
+  </section>
+
+  <section class="container section--tight grid grid--3">
+    <article class="card">
+      <h2 class="h3">What is qvevri?</h2>
+      <p class="muted">An egg-shaped clay vessel, lined with beeswax and buried up to its neck so the earth keeps the wine at a steady, cool temperature while it ferments and ages. Qvevri winemaking is on UNESCO's list of Intangible Cultural Heritage.</p>
+    </article>
+    <article class="card">
+      <h2 class="h3">Where is Ikalto?</h2>
+      <p class="muted">A village in Kakheti, in eastern Georgia, the country's main wine region, below the Greater Caucasus mountains.</p>
+    </article>
+    <article class="card">
+      <h2 class="h3">Visiting</h2>
+      <p class="muted">Tastings and visits for English-speaking travellers are being set up along with the winery's website. Email <a href="mailto:hello@iremitwins.com">hello@iremitwins.com</a> in the meantime.</p>
+    </article>
+  </section>
+</BaseLayout>
+<style>
+  .hero { display: grid; gap: 40px; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); align-items: center; }
+  .vessel { justify-self: center; color: var(--ink); }
+  .is-disabled { opacity: 0.7; cursor: default; box-shadow: none; }
+  .is-disabled:hover { transform: none; box-shadow: none; }
+  .h3 { font-size: 1.3rem; }
+  @media (max-width: 760px) { .hero { grid-template-columns: 1fr; } .vessel svg { width: 160px; height: auto; } }
+</style>

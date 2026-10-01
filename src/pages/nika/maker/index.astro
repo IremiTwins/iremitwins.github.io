@@ -1,0 +1,37 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { getMaker } from '../../../lib/content';
+const items = await getMaker('nika');
+const statusLabel = { active: 'active', exploring: 'exploring', done: 'done' } as const;
+---
+<BaseLayout title="Maker projects" description="Nika's 3D printing, robotics and home-automation projects." twin="nika">
+  <section class="container section">
+    <p class="eyebrow">Maker</p>
+    <h1>The workbench</h1>
+    <p class="lede">Things I print, wire up and automate when I'm not in the lab. Most are works in progress, and the write-ups grow as the projects do.</p>
+    <div class="bento">
+      {items.map((m) => (
+        <article class={`card proj size-${m.data.size}`}>
+          <div class="top">
+            <span class="emoji" aria-hidden="true">{m.data.emoji}</span>
+            <span class={`chip status-${m.data.status}`}>{statusLabel[m.data.status]}</span>
+          </div>
+          <h2 class="h3"><a href={`/nika/maker/${m.id}`}>{m.data.title}</a></h2>
+          <p class="muted">{m.data.summary}</p>
+          <ul class="chips">{m.data.tools.map((t) => <li class="chip">{t}</li>)}</ul>
+        </article>
+      ))}
+    </div>
+  </section>
+</BaseLayout>
+<style>
+  .bento { margin-top: 36px; }
+  .proj { display: flex; flex-direction: column; gap: 10px; }
+  .top { display: flex; justify-content: space-between; align-items: center; }
+  .emoji { font-size: 2.6rem; }
+  .size-tall .emoji, .size-wide .emoji { font-size: 3.4rem; }
+  .h3 { font-size: 1.45rem; margin: 0; }
+  .proj .chips { margin-top: auto; }
+  .status-active { background: var(--accent-soft); border-color: var(--accent); }
+  .status-exploring { background: var(--sun); color: #1d1a16; }
+</style>

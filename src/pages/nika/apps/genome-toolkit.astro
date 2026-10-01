@@ -1,0 +1,29 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import GenomeToolkit from '../../../components/genome-toolkit/GenomeToolkit';
+---
+<BaseLayout
+  title="Genome Toolkit"
+  description="Browser-based genomic data toolkit: parse FASTA/FASTQ files, search motifs, visualize GC content and compare variant datasets."
+  twin="nika"
+>
+  <section class="container section--tight">
+    <p class="eyebrow"><a href="/nika/apps">Apps</a> · Genome Toolkit</p>
+    <h1 class="title">Genome Toolkit</h1>
+    <p class="muted">Files stay on your computer; all analysis runs in the browser.</p>
+  </section>
+  <section class="genome-toolkit-page">
+    <GenomeToolkit client:only="react" />
+  </section>
+</BaseLayout>
+<style>
+  .title { font-size: clamp(2rem, 4vw, 2.8rem); }
+  .genome-toolkit-page { min-height: 80vh; border-top: 2px solid var(--line); background: var(--paper); }
+  @media (max-width: 768px) {
+    .genome-toolkit-page :global(.genome-shell) { flex-direction: column; }
+    .genome-toolkit-page :global(nav) {
+      width: 100%; min-height: auto; flex-direction: row; overflow-x: auto;
+      border-right: none; border-bottom: 1px solid var(--clr-border);
+    }
+  }
+</style>

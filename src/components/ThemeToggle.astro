@@ -1,0 +1,35 @@
+---
+// ThemeToggle.astro — light/dark switch. Remembers the choice in this browser.
+---
+<button class="theme-toggle" type="button" aria-label="Toggle dark mode" data-theme-toggle>
+  <svg class="sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></g></svg>
+  <svg class="moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" fill="currentColor"/></svg>
+</button>
+
+<script>
+  const btn = document.querySelector<HTMLButtonElement>('[data-theme-toggle]');
+  const isDark = () => {
+    const t = document.documentElement.dataset.theme;
+    return t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  };
+  const sync = () => btn?.setAttribute('aria-pressed', String(isDark()));
+  sync();
+  btn?.addEventListener('click', () => {
+    const next = isDark() ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('theme', next); } catch {}
+    sync();
+  });
+</script>
+
+<style>
+  .theme-toggle {
+    width: 44px; height: 44px; display: grid; place-items: center; flex: none;
+    border: 2px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink);
+    cursor: pointer; box-shadow: 2px 2px 0 var(--line);
+  }
+  .theme-toggle:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--line); }
+  .theme-toggle .sun { display: none; }
+  .theme-toggle[aria-pressed='true'] .sun { display: block; }
+  .theme-toggle[aria-pressed='true'] .moon { display: none; }
+</style>

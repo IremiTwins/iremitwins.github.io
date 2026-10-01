@@ -1,0 +1,31 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+---
+<BaseLayout title="Apps & games" description="Small apps and games Nika has built." twin="nika">
+  <section class="container section">
+    <p class="eyebrow">Apps</p>
+    <h1>Things I've coded</h1>
+    <p class="lede">Learning projects that run right in the browser.</p>
+    <div class="grid grid--2 apps">
+      <article class="card app">
+        <span class="emoji" aria-hidden="true">🧬</span>
+        <h2 class="h3"><a href="/nika/apps/genome-toolkit">Genome Toolkit</a></h2>
+        <p class="muted">Drop in a FASTA or FASTQ file and get sequence stats, GC-content plots, motif search and variant comparison, all in your browser. Nothing is uploaded anywhere.</p>
+        <ul class="chips"><li class="chip">React</li><li class="chip">TypeScript</li><li class="chip">Chart.js</li><li class="chip">Zustand</li></ul>
+      </article>
+      <article class="card app">
+        <span class="emoji" aria-hidden="true">🐤</span>
+        <h2 class="h3"><a href="/nika/apps/flappy-bird">Flappy Bird clone</a></h2>
+        <p class="muted">My first finished game, built in the Godot engine and exported to the web. Tap or press space to flap.</p>
+        <ul class="chips"><li class="chip">Godot</li><li class="chip">GDScript</li><li class="chip">WebAssembly</li></ul>
+      </article>
+    </div>
+  </section>
+</BaseLayout>
+<style>
+  .apps { margin-top: 32px; }
+  .app { display: flex; flex-direction: column; gap: 8px; }
+  .emoji { font-size: 2.6rem; }
+  .h3 { font-size: 1.45rem; margin: 0; }
+  .app .chips { margin-top: auto; }
+</style>

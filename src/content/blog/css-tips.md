@@ -1,27 +1,4 @@
 ---
-# ============================================================
-# src/content/blog/css-tips.md — Blog Post
-# ============================================================
-#
-# HOW TO CREATE A NEW BLOG POST:
-# 1. Duplicate this file and rename it (e.g. my-new-post.md)
-#    The filename becomes the URL slug:
-#      css-tips.md  →  /blog/css-tips
-# 2. Fill in the frontmatter fields between the --- lines.
-# 3. Write your content below the closing --- in Markdown.
-# 4. Save. The post automatically appears on /blog and the
-#    homepage preview section — no other code changes needed!
-#
-# FRONTMATTER FIELDS (defined in src/content/config.ts):
-#
-#   title       — the post headline
-#   description — one-sentence summary (shown on listing page)
-#   date        — publication date (YYYY-MM-DD)
-#   tag         — category pill text (e.g. "CSS", "JavaScript")
-#   draft       — set to true to hide from the live site
-#   prevPost    — slug of the previous post (for bottom nav)
-#   nextPost    — slug of the next post (for bottom nav)
-# ============================================================
 
 title: "5 CSS tricks we use every day"
 description: "A quick tour of the CSS patterns that show up in nearly every project we build."

@@ -1,0 +1,17 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { fmtDate, postTwin } from '../lib/content';
+interface Props { post: CollectionEntry<'blog'> }
+const { post } = Astro.props;
+const twin = postTwin(post.data.tag);
+---
+<article class="card post" data-twin={twin ?? undefined}>
+  <p class="meta mono"><span class="chip chip--accent">{post.data.tag}</span> <time datetime={post.data.date.toISOString()}>{fmtDate(post.data.date)}</time></p>
+  <h3><a href={`/blog/${post.id}`}>{post.data.title}</a></h3>
+  {post.data.description && <p class="muted">{post.data.description}</p>}
+</article>
+<style>
+  .post h3 { margin: 10px 0 6px; font-size: 1.25rem; }
+  .meta { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 0.8rem; color: var(--ink-2); }
+  .post p.muted { margin: 0; font-size: 0.95rem; }
+</style>

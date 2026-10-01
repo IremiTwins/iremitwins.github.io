@@ -1,0 +1,12 @@
+---
+interface Props { rating: number }
+const { rating } = Astro.props;
+---
+<span class="stars" role="img" aria-label={`${rating} out of 5`}>
+  {[1, 2, 3, 4, 5].map((n) => <span class={n <= rating ? 'on' : 'off'} aria-hidden="true">★</span>)}
+</span>
+<style>
+  .stars { letter-spacing: 2px; font-size: 1.05rem; }
+  .on { color: var(--sun); -webkit-text-stroke: 1px var(--line); }
+  .off { color: var(--rule); }
+</style>

@@ -1,0 +1,166 @@
+---
+// /nika/science — career + publications.
+// Publications come from src/data/publications.bib. Career lives in the array below.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { publications, shortName } from '../../lib/publications';
+import { NIKA_LINKS } from '../../data/site';
+
+const career = [
+  { years: '2026 –', role: 'Associate Director, Sequencing Operations', org: 'Ultima Genomics' },
+  { years: '2025 – 2026', role: 'Senior Manager, Sequencing Operations', org: 'Ultima Genomics' },
+  { years: '2023 – 2025', role: 'Manager, Sequencing Operations', org: 'Ultima Genomics' },
+  { years: '2021 – 2023', role: 'Supervisor, Sequencing Operations', org: 'Ultima Genomics' },
+  { years: '2020 – 2021', role: 'Senior Research Associate', org: 'Ultima Genomics' },
+  { years: '2018 – 2020', role: 'Research Associate', org: 'Ultima Genomics' },
+  { years: 'Earlier', role: 'Research Intern', org: 'Scripps Health' },
+  { years: 'Education', role: 'B.S., Biochemistry & Cell Biology', org: 'UC San Diego' },
+];
+
+const statusLabel = { published: 'Paper', preprint: 'Preprint', abstract: 'Abstract' } as const;
+const counts = {
+  published: publications.filter((p) => p.status === 'published').length,
+  preprint: publications.filter((p) => p.status === 'preprint').length,
+  abstract: publications.filter((p) => p.status === 'abstract').length,
+};
+const collabs = [...new Set(publications.map((p) => p.collab))];
+
+// show first 3 authors, …, me, …, last author
+function authorLine(p: (typeof publications)[number]) {
+  const a = p.authors;
+  const meIdx = a.findIndex((x) => x.isMe);
+  const keep = new Set([0, 1, 2, meIdx, a.length - 1]);
+  const out: { name: string; me: boolean }[] = [];
+  let gap = false;
+  a.forEach((x, i) => {
+    if (keep.has(i) && !x.isOthers) { if (gap) out.push({ name: '…', me: false }); out.push({ name: shortName(x), me: x.isMe }); gap = false; }
+    else gap = true;
+  });
+  return out;
+}
+const citation = (p: (typeof publications)[number]) =>
+  [p.journal, p.volume && `${p.volume}${p.number ? `(${p.number})` : ''}`, p.pages].filter(Boolean).join(', ');
+---
+<BaseLayout title="Science" description="Nika Iremadze's sequencing career and publications." twin="nika">
+  <section class="container section">
+    <p class="eyebrow">Science</p>
+    <h1>Sequencing, at scale</h1>
+    <p class="lede">
+      I've spent my career at Ultima Genomics, growing from research associate to running sequencing operations.
+      My papers come from collaborations: partner labs bring the biology, and I'm part of the Ultima team
+      that does the sequencing.
+    </p>
+    <p class="muted small">Everything here is from published papers and public sources. Views are my own, not my employer's.</p>
+  </section>
+
+  <section class="container section--tight two-col">
+    <div>
+      <h2>Career</h2>
+      <ol class="timeline">
+        {career.map((c) => (
+          <li>
+            <span class="years mono">{c.years}</span>
+            <span class="role">{c.role}</span>
+            <span class="org muted">{c.org}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+    <div>
+      <h2>Collaborators</h2>
+      <p class="muted">Labs and institutes I've sequenced for on published work:</p>
+      <ul class="chips collabs">{collabs.map((c) => <li class="chip chip--accent">{c}</li>)}</ul>
+      <div class="stats">
+        <div class="card stat"><b>{counts.published}</b><span>papers</span></div>
+        <div class="card stat"><b>{counts.preprint}</b><span>preprint</span></div>
+        <div class="card stat"><b>{counts.abstract}</b><span>abstract</span></div>
+      </div>
+      <p><a class="btn" href={NIKA_LINKS.orcid}>ORCID profile ↗</a></p>
+    </div>
+  </section>
+
+  <section class="container section--tight" id="publications">
+    <h2>Publications</h2>
+    <div class="filters" role="group" aria-label="Filter publications">
+      <button class="chip" aria-pressed="true" data-f="all">All ({publications.length})</button>
+      <button class="chip" aria-pressed="false" data-f="published">Papers</button>
+      <button class="chip" aria-pressed="false" data-f="preprint">Preprints</button>
+      <button class="chip" aria-pressed="false" data-f="abstract">Abstracts</button>
+    </div>
+    <ol class="pubs">
+      {publications.map((p) => (
+        <li class="card pub" data-status={p.status}>
+          <div class="pub__meta mono">
+            <span class="chip chip--accent">{statusLabel[p.status]}</span>
+            <span>{p.year}</span>
+            <span>· {p.collab}</span>
+          </div>
+          <h3 class="pub__title"><a href={`https://doi.org/${p.doi}`}>{p.title}</a></h3>
+          <p class="authors">
+            {authorLine(p).map((x, i) => <>{i > 0 && ', '}{x.me ? <strong>{x.name}</strong> : x.name}</>)}
+            {p.myPosition > 0 && <span class="muted"> · author {p.myPosition} of {p.authorCount}</span>}
+          </p>
+          <p class="venue"><em>{citation(p)}</em> ({p.year})</p>
+          <p class="summary">{p.summary}</p>
+          <p class="role"><b>My part:</b> {p.myrole}</p>
+          <div class="pub__actions">
+            <a class="btn small" href={`https://doi.org/${p.doi}`}>DOI ↗</a>
+            {p.pmcid && <a class="btn small" href={`https://pmc.ncbi.nlm.nih.gov/articles/${p.pmcid}/`}>Free full text ↗</a>}
+            <button class="btn small" type="button" data-copy={p.bibtex}>Copy BibTeX</button>
+            <span class="chip license" title="Licence of the published version">{p.license}</span>
+          </div>
+        </li>
+      ))}
+    </ol>
+  </section>
+</BaseLayout>
+
+<script>
+  const fs = document.querySelectorAll<HTMLButtonElement>('[data-f]');
+  fs.forEach((b) => b.addEventListener('click', () => {
+    fs.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    document.querySelectorAll<HTMLElement>('.pub').forEach((el) => {
+      el.hidden = b.dataset.f !== 'all' && el.dataset.status !== b.dataset.f;
+    });
+  }));
+  document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((b) => b.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(b.dataset.copy ?? ''); b.textContent = 'Copied ✓'; }
+    catch { b.textContent = 'Copy failed'; }
+    setTimeout(() => (b.textContent = 'Copy BibTeX'), 1800);
+  }));
+</script>
+
+<style>
+  .small { font-size: 0.9rem; }
+  .two-col { display: grid; gap: 48px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); }
+  .timeline { list-style: none; margin: 0; padding: 0 0 0 22px; border-left: 3px solid var(--accent); }
+  .timeline li { position: relative; display: grid; padding: 0 0 18px 6px; }
+  .timeline li::before {
+    content: ''; position: absolute; left: -32px; top: 6px; width: 15px; height: 15px; border-radius: 50%;
+    background: var(--card); border: 3px solid var(--accent);
+  }
+  .timeline li:first-child::before { background: var(--accent); }
+  .years { font-size: 0.8rem; color: var(--accent); font-weight: 500; }
+  .role { font-weight: 700; }
+  .collabs { margin: 12px 0 24px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+  .stat { text-align: center; padding: 14px 8px; }
+  .stat b { display: block; font-family: var(--font-display); font-size: 2.4rem; line-height: 1; }
+  .stat span { font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-2); }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 24px; }
+  .filters .chip { cursor: pointer; min-height: 36px; padding-inline: 14px; font-size: 0.85rem; color: var(--ink); }
+  .filters .chip[aria-pressed='true'] { background: var(--ink); color: var(--paper); }
+  .pubs { list-style: none; padding: 0; margin: 0; display: grid; gap: 22px; }
+  .pub__meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 0.8rem; color: var(--ink-2); }
+  .pub__title { font-size: 1.25rem; margin: 12px 0 8px; }
+  .pub__title a { text-decoration: none; }
+  .pub__title a::after { display: none; }
+  .pub__title a:hover { text-decoration: underline; }
+  .authors { font-size: 0.92rem; margin-bottom: 4px; }
+  .authors strong { background: var(--accent-soft); padding-inline: 3px; border-radius: 3px; }
+  .venue { font-size: 0.92rem; color: var(--ink-2); }
+  .summary { margin-bottom: 6px; }
+  .role { font-size: 0.95rem; }
+  .pub__actions { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+  .btn.small { min-height: 38px; padding: 6px 14px; font-size: 0.88rem; }
+  .license { font-size: 0.72rem; }
+</style>

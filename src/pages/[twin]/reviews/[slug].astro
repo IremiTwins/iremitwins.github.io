@@ -1,0 +1,39 @@
+---
+import { render } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import Stars from '../../../components/Stars.astro';
+import { getReviews, reviewSlug, fmtDate } from '../../../lib/content';
+
+export async function getStaticPaths() {
+  const reviews = await getReviews();
+  return reviews.map((review) => ({
+    params: { twin: review.data.twin, slug: reviewSlug(review.id) },
+    props: { review },
+  }));
+}
+const { review } = Astro.props;
+const d = review.data;
+const { Content } = await render(review);
+---
+<BaseLayout title={`${d.title} review`} description={d.description} twin={d.twin}>
+  <article class="container section">
+    <p class="eyebrow"><a href={`/${d.twin}/reviews`}>Reviews</a> · {d.kind}</p>
+    <div class="top">
+      {d.coverImage && <img class="cover" src={d.coverImage} alt={`${d.title} cover art`} width="640" height="360" />}
+      <div>
+        <h1>{d.title}</h1>
+        <Stars rating={d.rating} />
+        <p class="lede">{d.description}</p>
+        <p class="muted mono">{fmtDate(d.date)}</p>
+      </div>
+    </div>
+    <div class="prose"><Content /></div>
+    <p><a class="btn" href={`/${d.twin}/reviews`}>← All reviews</a></p>
+  </article>
+</BaseLayout>
+<style>
+  .top { display: grid; gap: 28px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); align-items: center; margin-bottom: 36px; }
+  .cover { width: 100%; height: auto; aspect-ratio: 16/9; object-fit: cover; border: var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+  h1 { font-size: clamp(2rem, 5vw, 3rem); }
+  .prose { margin-bottom: 40px; }
+</style>

@@ -1,10 +1,4 @@
 ---
-# ============================================================
-# src/content/blog/getting-started.md — Blog Post
-# ============================================================
-#
-# See css-tips.md for full instructions on creating new posts.
-# ============================================================
 
 title: "How we set up our GitHub Pages site"
 description: "From empty repo to live site — what we did and what we learned."
