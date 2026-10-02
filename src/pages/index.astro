@@ -8,7 +8,7 @@ import { getPosts, getReviews } from '../lib/content';
 
 const posts = (await getPosts()).slice(0, 3);
 const reviews = (await getReviews()).slice(0, 3);
-const twins = [TWINS.nika, TWINS.gio];
+const twins = [TWINS.gio, TWINS.nika];
 ---
 <BaseLayout title={SITE.name} description={SITE.description}>
   <section class="hero container section">
