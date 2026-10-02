@@ -61,4 +61,6 @@ export const MAIN_NAV = [
 // Nika's public profiles — shown on About and in structured data for search engines
 export const NIKA_LINKS = {
   orcid: 'https://orcid.org/0000-0002-4977-204X',
+  linkedin: 'https://www.linkedin.com/in/nika-iremadze-753846128',
+  scholar: 'https://scholar.google.com/citations?user=ZhZt7vkAAAAJ',
 };

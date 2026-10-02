@@ -74,7 +74,11 @@ const citation = (p: (typeof publications)[number]) =>
         <div class="card stat"><b>{counts.preprint}</b><span>preprint</span></div>
         <div class="card stat"><b>{counts.abstract}</b><span>abstract</span></div>
       </div>
-      <p><a class="btn" href={NIKA_LINKS.orcid}>ORCID profile ↗</a></p>
+      <p class="profile-links">
+        <a class="btn" href={NIKA_LINKS.orcid}>ORCID profile ↗</a>
+        <a class="btn" href={NIKA_LINKS.linkedin}>LinkedIn ↗</a>
+        <a class="btn" href={NIKA_LINKS.scholar}>Google Scholar ↗</a>
+      </p>
     </div>
   </section>
 
@@ -143,6 +147,7 @@ const citation = (p: (typeof publications)[number]) =>
   .role { font-weight: 700; }
   .collabs { margin: 12px 0 24px; }
   .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+  .profile-links { display: flex; flex-wrap: wrap; gap: 10px; }
   .stat { text-align: center; padding: 14px 8px; }
   .stat b { display: block; font-family: var(--font-display); font-size: 2.4rem; line-height: 1; }
   .stat span { font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-2); }
