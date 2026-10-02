@@ -27,6 +27,7 @@ export interface Publication {
 }
 
 const ME = 'iremadze';
+const rank = { published: 0, preprint: 1, abstract: 2 } as const;
 
 function readValue(src: string, i: number): [string, number] {
   // value is {…} (nested), "…", or a bare word/number
@@ -61,7 +62,8 @@ export function parseBibtex(src: string): Record<string, string>[] {
       if (!f) break;
       i += f[0].length;
       const [val, next] = readValue(src, i);
-      entry[f[1].toLowerCase()] = val.replace(/\s+/g, ' ').trim();
+      // drop BibTeX case-protection braces, e.g. {DNA} → DNA
+      entry[f[1].toLowerCase()] = val.replace(/[{}]/g, '').replace(/\s+/g, ' ').trim();
       i = next;
     }
     entry._raw = src.slice(start, i).replace(/\n\s*(summary|myrole|collab|license|status|authorcount|myposition)\s*=.*(?=\n)/g, '');
@@ -107,7 +109,9 @@ export const publications: Publication[] = parseBibtex(bibSource)
       bibtex: e._raw,
     };
   })
-  .sort((a, b) => b.year - a.year);
+  // newest first; within a year: papers, then preprints, then abstracts
+  .sort((a, b) => b.year - a.year || rank[a.status] - rank[b.status]);
+
 
 /** Initials + family name, e.g. "S. K. Simmons" */
 export const shortName = (a: Author) =>

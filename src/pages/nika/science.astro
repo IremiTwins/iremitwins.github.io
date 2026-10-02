@@ -22,7 +22,8 @@ const counts = {
   preprint: publications.filter((p) => p.status === 'preprint').length,
   abstract: publications.filter((p) => p.status === 'abstract').length,
 };
-const collabs = [...new Set(publications.map((p) => p.collab))];
+// partner labs only — work done inside Ultima is marked "(internal)" in the .bib and left out here
+const collabs = [...new Set(publications.map((p) => p.collab).filter((c) => !c.includes('internal')))];
 
 // show first 3 authors, …, me, …, last author
 function authorLine(p: (typeof publications)[number]) {

@@ -11,7 +11,7 @@ const t = TWINS.nika;
 const maker = (await getMaker('nika')).slice(0, 3);
 const reviews = (await getReviews('nika')).slice(0, 2);
 const posts = (await getPosts()).filter((p) => p.data.tag === 'Nika').slice(0, 2);
-const collaborators = [...new Set(publications.map((p) => p.collab.split(',')[0]))];
+const collaborators = [...new Set(publications.map((p) => p.collab).filter((c) => !c.includes('internal')))];
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -74,7 +74,7 @@ const jsonLd = {
       <a class="card feature science" href="/nika/science">
         <span class="chip chip--accent">Science</span>
         <h3>{publications.length} publications</h3>
-        <p class="muted">Sequencing for {collaborators.length} partner labs and institutes, including the Broad, NIST and Stanford.</p>
+        <p class="muted">Sequencing for {collaborators.length} partner labs and institutes, including the Broad, Whitehead/MIT, Stanford and the Francis Crick Institute.</p>
         <span class="go">Publications →</span>
       </a>
     </div>
