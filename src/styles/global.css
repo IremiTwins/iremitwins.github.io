@@ -47,16 +47,6 @@
   --max-w: 1120px;
   --gutter: clamp(16px, 4vw, 32px);
 
-  /* aliases so the Genome Toolkit (built for the old theme) keeps working */
-  --clr-bg: var(--paper);
-  --clr-surface: var(--card);
-  --clr-border: var(--rule);
-  --clr-accent: var(--accent);
-  --clr-accent-lt: var(--accent);
-  --clr-text: var(--ink);
-  --clr-muted: var(--ink-2);
-  --clr-white: var(--paper);   /* used as text on accent buttons */
-  --radius-old: var(--radius);
 
   color-scheme: light;
 }

@@ -1,7 +1,6 @@
 // astro.config.mjs — site configuration
 // Docs: https://docs.astro.build/en/reference/configuration-reference/
 import { defineConfig } from 'astro/config';
-import react from '@astrojs/react';
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import fs from 'node:fs';
@@ -26,7 +25,7 @@ export default defineConfig({
   site: 'https://iremitwins.com',
   output: 'static',
   trailingSlash: 'ignore',
-  integrations: [react(), mdx(), sitemap()],
+  integrations: [mdx(), sitemap()],
 
   // Old URLs from the first version of the site → new homes.
   // GitHub Pages has no server redirects, so Astro writes a small
@@ -34,7 +33,7 @@ export default defineConfig({
   redirects: {
     '/twin1': '/gio',
     '/twin2': '/nika',
-    '/twin2/genome-toolkit': '/nika/apps/genome-toolkit',
+    '/twin2/genome-toolkit': '/nika',   // toolkit retired; still in git history on main
     ...reviewRedirects,
   },
 });

@@ -34,7 +34,7 @@ export const TWINS: Record<TwinId, {
       { label: 'Maker', href: '/nika/maker' },
       { label: 'Reviews', href: '/nika/reviews' },
       { label: 'Winery', href: '/nika/winery' },
-      { label: 'Apps', href: '/nika/apps' },
+      { label: 'Games', href: '/nika/games' },
       { label: 'About', href: '/nika/about' },
     ],
   },
