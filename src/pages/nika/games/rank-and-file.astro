@@ -1,0 +1,40 @@
+---
+// Rank & File — the game itself is a single static page at public/rank-and-file/index.html.
+// This page introduces it; "Play" opens the game full-page (it needs the width).
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+---
+<BaseLayout title="Rank & File" description="Rank & File: a chess roguelite by Nika. Grid tactics with permadeath — every recruit is a pawn, capes raise them, the King must not fall." twin="nika">
+  <section class="container section--tight">
+    <p class="eyebrow">Games</p>
+    <h1 class="title">Rank &amp; File</h1>
+    <p class="lede">A chess roguelite. The realm has fallen and only the commoners stayed. You are the King; your army is a miller's son, a poacher, a deserter or two. Stand them in the line and raise them, rank by rank. If the King dies, the run ends.</p>
+    <div class="btn-row">
+      <a class="btn btn--accent play" href="/rank-and-file/">▶ Play in the browser</a>
+      <a class="btn" href="#how">How it plays</a>
+    </div>
+    <p class="muted small">Best on a laptop or desktop: you hover enemies to see what they intend. Runs save in your browser. One act takes about twenty minutes.</p>
+    <img class="shot card" src="/rank-and-file/battle.jpg" alt="A battle in Rank & File: white chess pieces with swords and a bow face dark shades across a mossy ruined board" width="1200" height="900" loading="lazy" />
+  </section>
+  <section class="container section--tight" id="how">
+    <h2>How it plays</h2>
+    <div class="grid grid--3">
+      <div class="card"><h3>Grid tactics</h3><p class="muted">Every unit, yours and theirs, acts in order of speed. Move, then attack, use your ability, or wait. Forests cost movement and give cover.</p></div>
+      <div class="card"><h3>Nothing hidden</h3><p class="muted">Hover an enemy to see exactly what it will do on its turn. Press T to shade every tile that can be struck before you act again. No dice, anywhere.</p></div>
+      <div class="card"><h3>Sword, shield, magic</h3><p class="muted">Steel is stopped by armour; spells go straight through it. A Rook laughs at swords and dies to a tome. Shields raise defence, wards raise resistance.</p></div>
+      <div class="card"><h3>Capes</h3><p class="muted">Recruits are Pawns. A cape promotes one into a Rook, Knight, Bishop or Queen, within chess limits. When a promoted unit dies, the cape falls where they stood. Go and get it.</p></div>
+      <div class="card"><h3>They grow</h3><p class="muted">Levels from hits and kills, a talent at levels three, six and nine, an origin each. At camp you can sit with one of them by the fire.</p></div>
+      <div class="card"><h3>Three acts</h3><p class="muted">The Overgrown Ruins, the Drowned Halls, the Obsidian Keep. Each with its own boss, and a Black King waiting at the end.</p></div>
+    </div>
+    <h2 class="mt">How it was made</h2>
+    <p>It started as a design document for a Godot project. I handed the document to Claude with full creative freedom and asked how far it could take it; the answer was a playable browser game in an afternoon, then a second pass with a story, a sword-shield-magic layer and the information tools you see in games like Into the Breach. It is one HTML file with no engine, and it is still being balanced, so expect to lose.</p>
+    <p class="muted small">Type a seed on the title screen to replay a map. Sound can be muted from the top bar.</p>
+  </section>
+</BaseLayout>
+<style>
+  .title { font-size: clamp(2.2rem, 5vw, 3.2rem); }
+  .play { font-size: 1.15rem; min-height: 52px; padding-inline: 24px; }
+  .small { font-size: 0.95rem; }
+  .shot { width: 100%; height: auto; margin-top: 20px; padding: 0; overflow: hidden; }
+  .mt { margin-top: 40px; }
+  .card h3 { margin-top: 0; font-size: 1.15rem; }
+</style>

@@ -1,12 +1,13 @@
 ---
 // The Godot export lives untouched at public/FlappyBird/ (old links keep working).
 // It only loads after "Play" is pressed, because the engine download is ~38 MB.
-import BaseLayout from '../../layouts/BaseLayout.astro';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
 ---
 <BaseLayout title="Flappy Bird clone" description="A Flappy Bird clone made in Godot by Nika." twin="nika">
   <section class="container section--tight">
     <p class="eyebrow">Games</p>
     <h1 class="title">Flappy Bird clone</h1>
+    <p><a href="/nika/games">← All games</a></p>
     <p class="muted">Made in Godot. Click, tap or press space to flap. The game is a ~38 MB download, so it only loads when you press Play.</p>
     <div class="stage card" data-stage>
       <button class="btn btn--accent play" type="button" data-play>▶ Play</button>

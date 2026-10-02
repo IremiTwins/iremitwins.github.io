@@ -1,0 +1,54 @@
+---
+// /nika/games — the games index. Each game has its own page under games/.
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+const games = [
+  {
+    slug: 'rank-and-file',
+    title: 'Rank & File',
+    summary: 'A chess roguelite. Lead a king and the commoners who stayed through three acts; raise pawns rank by rank. Permadeath, and no dice.',
+    tools: ['HTML5 canvas', 'JavaScript', 'built with Claude'],
+    cover: '/rank-and-file/cover.jpg',
+    chip: 'new',
+  },
+  {
+    slug: 'flappy-bird',
+    title: 'Flappy Bird clone',
+    summary: 'The classic, remade in Godot. Click, tap or press space to flap.',
+    tools: ['Godot', 'GDScript'],
+    emoji: '🐤',
+    chip: 'done',
+  },
+];
+---
+<BaseLayout title="Games" description="Browser games made by Nika: a chess roguelite and a Flappy Bird clone." twin="nika">
+  <section class="container section">
+    <p class="eyebrow">Games</p>
+    <h1>The arcade</h1>
+    <p class="lede">Small games I make for fun. They run in the browser, nothing to install.</p>
+    <div class="grid grid--2 games">
+      {games.map((g) => (
+        <article class="card game">
+          {g.cover
+            ? <img class="cover" src={g.cover} alt={`${g.title} title screen`} width="1200" height="675" loading="lazy" />
+            : <div class="cover cover--emoji" aria-hidden="true">{g.emoji}</div>}
+          <div class="top">
+            <h2 class="h3"><a href={`/nika/games/${g.slug}`}>{g.title}</a></h2>
+            <span class={`chip chip--${g.chip}`}>{g.chip}</span>
+          </div>
+          <p class="muted">{g.summary}</p>
+          <ul class="chips">{g.tools.map((t) => <li class="chip">{t}</li>)}</ul>
+        </article>
+      ))}
+    </div>
+  </section>
+</BaseLayout>
+<style>
+  .games { margin-top: 36px; }
+  .game { display: flex; flex-direction: column; gap: 10px; }
+  .cover { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: center top; border-radius: calc(var(--radius) - 4px); border: 2px solid var(--line); }
+  .cover--emoji { display: grid; place-items: center; font-size: 5rem; background: var(--accent-soft); }
+  .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .h3 { font-size: 1.45rem; margin: 0; }
+  .game .chips { margin-top: auto; }
+  .chip--new { background: var(--accent-soft); border-color: var(--accent); }
+</style>
