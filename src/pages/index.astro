@@ -1,66 +1,73 @@
 ---
-// ============================================================
-// src/pages/index.astro — Homepage (/)
-// ============================================================
-//
-// WHAT IS src/pages/?
-// Every .astro file inside src/pages/ automatically becomes a
-// URL on your site. Astro's file-based routing means:
-//
-//   src/pages/index.astro       →  https://iremitwins.com/
-//   src/pages/blog/index.astro  →  https://iremitwins.com/blog
-//   src/pages/blog/[slug].astro →  https://iremitwins.com/blog/css-tips
-//
-// This file (index.astro) is the homepage.
-//
-// HOW THIS PAGE IS BUILT:
-//   It imports BaseLayout (the shared HTML shell) and all
-//   section components. Adding a component here adds that
-//   section to the page.
-//
-// TO REORDER SECTIONS: move the component tags below.
-// TO REMOVE A SECTION: delete or comment out its tag.
-// TO ADD A NEW SECTION: create the component in src/components/
-//   and import + use it here.
-// ============================================================
-
-// Import the shared HTML shell (head, header, footer, JS)
+// index.astro — the shared twin hub at iremitwins.com
 import BaseLayout from '../layouts/BaseLayout.astro';
+import PostCard from '../components/PostCard.astro';
+import ReviewCard from '../components/ReviewCard.astro';
+import { TWINS, SITE } from '../data/site';
+import { getPosts, getReviews } from '../lib/content';
 
-// Import each homepage section as a component.
-// The order here determines the order they appear on the page.
-import HeroSection     from '../components/HeroSection.astro';
-import AboutSection    from '../components/AboutSection.astro';
-import PortfolioSection from '../components/PortfolioSection.astro';
-import WorkSection     from '../components/WorkSection.astro';
-import BlogPreviewSection from '../components/BlogPreviewSection.astro';
-import ContactSection  from '../components/ContactSection.astro';
+const posts = (await getPosts()).slice(0, 3);
+const reviews = (await getReviews()).slice(0, 3);
+const twins = [TWINS.gio, TWINS.nika];
 ---
+<BaseLayout title={SITE.name} description={SITE.description}>
+  <section class="hero container section">
+    <p class="eyebrow">Two brothers · one website</p>
+    <h1>Same face, <span class="nika">different</span> <span class="gio">side&nbsp;projects.</span></h1>
+    <p class="lede">
+      One of us reads genomes for a living, the other writes software. Here is what we build, play and
+      think about when we're off the clock.
+    </p>
+  </section>
 
-<!--
-  BaseLayout wraps everything in the shared HTML shell.
-  title → goes in the browser tab
-  description → goes in the <meta name="description"> tag (SEO)
--->
-<BaseLayout
-  title="Iremi Twins"
-  description="Iremi Twins — portfolio, work showcase, and blog by two twin web developers."
->
-  <!--
-    <main> wraps all page content between the header and footer.
-    The JS in BaseLayout observes section[id] elements inside
-    <main> for the active nav link highlighting feature.
+  <section class="container twins" aria-label="The twins">
+    {twins.map((t) => (
+      <a class="card twin" href={`/${t.id}`} data-twin={t.id}>
+        <span class="twin__emoji" aria-hidden="true">{t.emoji}</span>
+        <span class="twin__label mono">twin {t.id === 'gio' ? '01' : '02'}</span>
+        <h2>{t.name}</h2>
+        <p class="twin__role">{t.role}</p>
+        <p class="muted">{t.tagline}</p>
+        <span class="twin__go">Visit {t.name}'s corner →</span>
+      </a>
+    ))}
+  </section>
 
-    Each component below renders one section of the page.
-    They are imported at the top of this file.
-  -->
-  <main>
-    <HeroSection />
-    <AboutSection />
-    <PortfolioSection />
-    <WorkSection />
-    <BlogPreviewSection />
-    <ContactSection />
-  </main>
+  {posts.length > 0 && (
+    <section class="container section--tight">
+      <div class="head-row">
+        <h2>Latest from the blog</h2>
+        <a href="/blog" class="btn">All posts</a>
+      </div>
+      <div class="grid grid--3">{posts.map((p) => <PostCard post={p} />)}</div>
+    </section>
+  )}
 
+  {reviews.length > 0 && (
+    <section class="container section--tight">
+      <div class="head-row"><h2>Recently reviewed</h2></div>
+      <div class="grid grid--3">{reviews.map((r) => <ReviewCard review={r} />)}</div>
+    </section>
+  )}
 </BaseLayout>
+
+<style>
+  .hero { padding-bottom: 32px; }
+  .hero h1 { max-width: 15ch; }
+  .nika { color: var(--nika); }
+  .gio { color: var(--gio); }
+  .twins { display: grid; gap: 28px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
+  .twin { padding: 30px; background: var(--card); overflow: hidden; }
+  .twin::before {
+    content: ''; position: absolute; inset: 0 0 auto 0; height: 10px; background: var(--accent);
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .twin h2 { font-size: clamp(2.2rem, 5vw, 3.2rem); margin: 4px 0; }
+  .twin__emoji { position: absolute; right: 24px; top: 26px; font-size: 3rem; transition: transform 0.2s ease; }
+  .twin:hover .twin__emoji { transform: rotate(-12deg) scale(1.1); }
+  .twin__label { font-size: 0.8rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; }
+  .twin__role { font-weight: 700; margin-bottom: 6px; }
+  .twin__go { font-weight: 700; color: var(--accent); }
+  .head-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 24px 0 22px; }
+  .head-row h2 { margin: 0; }
+</style>

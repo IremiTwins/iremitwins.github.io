@@ -1,0 +1,51 @@
+---
+// /gio — Gio's corner. Same building blocks as Nika's section; Gio can fill it in.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ReviewCard from '../../components/ReviewCard.astro';
+import PostCard from '../../components/PostCard.astro';
+import { TWINS } from '../../data/site';
+import { getPosts, getReviews } from '../../lib/content';
+const t = TWINS.gio;
+const reviews = await getReviews('gio');
+const posts = (await getPosts()).filter((p) => p.data.tag === 'Gio');
+const skills = ['C#', '.NET 8', 'WPF', 'WinUI', 'gRPC', 'REST APIs', 'Desktop Architecture', 'MVVM', 'Python', 'PyGame', 'Docker', 'GitHub Actions', 'Raspberry Pi', 'UI/UX Systems'];
+---
+<BaseLayout title="Gio" description={t.tagline} twin="gio">
+  <section class="container section">
+    <p class="eyebrow">Twin 01 · Gio</p>
+    <h1>Hey, I'm Gio.</h1>
+    <p class="lede">
+      Senior software engineer focused on modern .NET client–server systems, high-performance device control,
+      and rich desktop UI. I love basketball, video games and all things tech, and I'm always building fun projects on the side.
+    </p>
+    <p class="prose">
+      I build gRPC/REST backends, WPF/WinUI frontends, and developer-friendly architectures with an emphasis on
+      clean design, scalability and pixel-perfect micro-interactions. Also exploring game development, Python
+      tooling, and hardware/IoT projects on Raspberry Pi.
+    </p>
+    <ul class="chips">{skills.map((s) => <li class="chip">{s}</li>)}</ul>
+  </section>
+
+  <section class="container section--tight">
+    <h2>Projects</h2>
+    <div class="card empty"><p class="muted">Projects coming soon.</p></div>
+  </section>
+
+  <section class="container section--tight">
+    <h2>Reviews</h2>
+    {reviews.length ? <div class="grid grid--3">{reviews.map((r) => <ReviewCard review={r} />)}</div>
+      : <div class="card empty"><p class="muted">No reviews published yet.</p></div>}
+  </section>
+
+  {posts.length > 0 && (
+    <section class="container section--tight">
+      <h2>Writing</h2>
+      <div class="grid grid--2">{posts.map((p) => <PostCard post={p} />)}</div>
+    </section>
+  )}
+</BaseLayout>
+<style>
+  .chips { margin-top: 20px; }
+  .empty { border-style: dashed; box-shadow: none; }
+  .empty p { margin: 0; }
+</style>

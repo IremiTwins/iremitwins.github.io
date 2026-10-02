@@ -1,0 +1,64 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { SITE, NIKA_LINKS } from '../../data/site';
+const speakerBio =
+  'Nika Iremadze is Associate Director of Sequencing Operations at Ultima Genomics, where he has worked since 2018 on bringing down the cost of genome sequencing. He has contributed Ultima sequencing to studies with the Broad Institute, NIST, Stanford and others. He holds a B.S. in Biochemistry and Cell Biology from UC San Diego.';
+---
+<BaseLayout title="About Nika" description="Background, bio and how to get in touch with Nika Iremadze." twin="nika">
+  <section class="container section about">
+    <div class="prose">
+      <p class="eyebrow">About</p>
+      <h1>The longer version</h1>
+      <p class="lede">Biochemist by training, sequencing person by trade, tinkerer by temperament.</p>
+      <p>
+        I studied Biochemistry and Cell Biology at UC San Diego, did a research internship at Scripps Health,
+        and in 2018 joined Ultima Genomics as a research associate. Eight years later I'm an associate director
+        in sequencing operations, still working on the same goal: making it cheaper and faster to read DNA.
+      </p>
+      <p>
+        I've always liked technology. I learned JavaScript in high school and C++ in community college, then
+        mostly stopped coding until work pulled me back in with Python. These days I'm learning again on
+        purpose: a <a href="/nika/games">Godot game</a>, Python projects, and this website, built with my brother.
+      </p>
+      <p>
+        The rest of my free time goes to the <a href="/nika/maker">3D printer and assorted hardware</a>,
+        to <a href="/nika/reviews">anime and games</a>, and to helping with our <a href="/nika/winery">family winery</a> in Georgia.
+      </p>
+
+      <h2>Speaker bio</h2>
+      <p class="muted small">Third person, for event organisers. Feel free to copy it.</p>
+      <blockquote id="bio">{speakerBio}</blockquote>
+      <button class="btn" type="button" data-copy-bio>Copy bio</button>
+    </div>
+
+    <aside class="card contact">
+      <h2 class="h3">Get in touch</h2>
+      <p class="muted">The best way to reach me:</p>
+      <p><a class="btn btn--accent" href={`mailto:${SITE.email}`}>Email me</a></p>
+      <ul class="links">
+        <li><a href={NIKA_LINKS.orcid}>ORCID ↗</a></li>
+        <li><a href={NIKA_LINKS.linkedin}>LinkedIn ↗</a></li>
+        <li><a href={NIKA_LINKS.scholar}>Google Scholar ↗</a></li>
+        <li><a href={SITE.github}>GitHub ↗</a></li>
+        <li><a href="/nika/science">Publications</a></li>
+      </ul>
+    </aside>
+  </section>
+</BaseLayout>
+<script>
+  document.querySelector<HTMLButtonElement>('[data-copy-bio]')?.addEventListener('click', async (e) => {
+    const b = e.currentTarget as HTMLButtonElement;
+    try { await navigator.clipboard.writeText(document.getElementById('bio')!.textContent!.trim()); b.textContent = 'Copied ✓'; }
+    catch { b.textContent = 'Copy failed'; }
+    setTimeout(() => (b.textContent = 'Copy bio'), 1800);
+  });
+</script>
+<style>
+  .about { display: grid; gap: 48px; grid-template-columns: minmax(0, 1fr) 300px; align-items: start; }
+  .contact { position: sticky; top: 140px; }
+  .h3 { font-size: 1.4rem; }
+  .links { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
+  .links a { display: inline-block; padding-block: 6px; font-weight: 600; }
+  .small { font-size: 0.9rem; }
+  @media (max-width: 860px) { .about { grid-template-columns: 1fr; } .contact { position: static; } }
+</style>

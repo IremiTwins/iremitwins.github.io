@@ -1,0 +1,33 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import ReviewCard from '../../../components/ReviewCard.astro';
+import { TWINS, type TwinId } from '../../../data/site';
+import { getReviews } from '../../../lib/content';
+
+export function getStaticPaths() {
+  return [{ params: { twin: 'nika' } }, { params: { twin: 'gio' } }];
+}
+const twin = Astro.params.twin as TwinId;
+const t = TWINS[twin];
+const reviews = await getReviews(twin);
+const anime = reviews.filter((r) => r.data.kind === 'anime');
+const games = reviews.filter((r) => r.data.kind === 'game');
+---
+<BaseLayout title={`${t.name}'s reviews`} description={`Anime and game reviews by ${t.name}.`} twin={twin}>
+  <section class="container section">
+    <p class="eyebrow">Reviews</p>
+    <h1>Things {t.name} watched and played</h1>
+    <p class="lede">Honest takes, rated out of five.</p>
+
+    <h2 id="anime">Anime</h2>
+    {anime.length ? <div class="grid grid--3">{anime.map((r) => <ReviewCard review={r} />)}</div>
+      : <p class="muted">No anime reviews yet. Check back soon.</p>}
+
+    <h2 id="games">Games</h2>
+    {games.length ? <div class="grid grid--3">{games.map((r) => <ReviewCard review={r} />)}</div>
+      : <p class="muted">No game reviews yet. Check back soon.</p>}
+  </section>
+</BaseLayout>
+<style>
+  h2 { margin-top: 48px; }
+</style>

@@ -1,0 +1,141 @@
+---
+// /nika — Nika's home page
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostCard from '../../components/PostCard.astro';
+import ReviewCard from '../../components/ReviewCard.astro';
+import { TWINS, SITE, NIKA_LINKS } from '../../data/site';
+import { getMaker, getPosts, getReviews } from '../../lib/content';
+import { publications } from '../../lib/publications';
+
+const t = TWINS.nika;
+const maker = (await getMaker('nika')).slice(0, 3);
+const reviews = (await getReviews('nika')).slice(0, 2);
+const posts = (await getPosts()).filter((p) => p.data.tag === 'Nika').slice(0, 2);
+const collaborators = [...new Set(publications.map((p) => p.collab.split(',')[0]))];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: t.fullName,
+  url: `${SITE.url}/nika`,
+  jobTitle: 'Associate Director, Sequencing Operations',
+  worksFor: { '@type': 'Organization', name: 'Ultima Genomics' },
+  alumniOf: { '@type': 'CollegeOrUniversity', name: 'University of California San Diego' },
+  sameAs: [NIKA_LINKS.orcid, NIKA_LINKS.linkedin, NIKA_LINKS.scholar],
+  identifier: { '@type': 'PropertyValue', propertyID: 'ORCID', value: '0000-0002-4977-204X' },
+};
+---
+<BaseLayout title="Nika Iremadze" description={`${t.role}. ${t.tagline}`} twin="nika" jsonLd={jsonLd}>
+  <section class="container section hero">
+    <div class="hero__text">
+      <p class="eyebrow">Twin 02 · Nika</p>
+      <h1>Hi, I'm Nika. I make DNA <span class="hl">readable</span> and plastic <span class="hl">useful</span>.</h1>
+      <p class="lede">
+        I'm an associate director of sequencing operations at Ultima Genomics, where I've spent eight years
+        helping make genome sequencing cheaper. Off the clock I 3D print, tinker with a lab robot,
+        and write about the anime and games I can't stop thinking about.
+      </p>
+      <div class="btn-row">
+        <a class="btn btn--accent" href="/nika/maker">See what I'm building</a>
+        <a class="btn" href="/nika/science">My science</a>
+      </div>
+    </div>
+    <div class="hero__art" aria-hidden="true">
+      <div class="tile t1 mono">ACGT<br />TGCA</div>
+      <div class="tile t2">🖨️</div>
+      <div class="tile t3">🍇</div>
+      <div class="tile t4">🧪</div>
+    </div>
+  </section>
+
+  <section class="container section--tight">
+    <div class="qbar" aria-hidden="true">{[9,12,14,11,13,14,10,14,13,12,8,14,13,11,14,12,9,13].map((h) => <span style={`height:${h}px`} />)}</div>
+    <h2>Right now</h2>
+    <div class="bento">
+      <a class="card feature size-wide" href="/nika/maker">
+        <span class="chip chip--accent">Maker</span>
+        <h3>Printers, robots and a smart-ish home</h3>
+        <p class="muted">A Bambu P1P 3D printer, an Opentrons OT-2 looking for a non-lab job, Home Assistant and a Raspberry Pi server.</p>
+        <span class="go">Open the workbench →</span>
+      </a>
+      <a class="card feature size-tall winery" href="/nika/winery">
+        <span class="chip chip--accent">Family</span>
+        <h3>Akido-Iremadze Winery</h3>
+        <p class="muted">Our family's qvevri winery in Ikalto, Kakheti, Georgia, making wine the 8,000-year-old way.</p>
+        <span class="big" aria-hidden="true">🍷</span>
+        <span class="go">Read the story →</span>
+      </a>
+      <a class="card feature" href="/nika/reviews">
+        <span class="chip chip--accent">Reviews</span>
+        <h3>Anime &amp; games, rated</h3>
+        <p class="muted">Latest: {reviews[0]?.data.title ?? 'coming soon'}.</p>
+        <span class="go">All reviews →</span>
+      </a>
+      <a class="card feature science" href="/nika/science">
+        <span class="chip chip--accent">Science</span>
+        <h3>{publications.length} publications</h3>
+        <p class="muted">Sequencing for {collaborators.length} partner labs and institutes, including the Broad, NIST and Stanford.</p>
+        <span class="go">Publications →</span>
+      </a>
+    </div>
+  </section>
+
+  {maker.length > 0 && (
+    <section class="container section--tight">
+      <h2>From the workbench</h2>
+      <div class="grid grid--3">
+        {maker.map((m) => (
+          <article class="card">
+            <span class="emoji" aria-hidden="true">{m.data.emoji}</span>
+            <h3><a href={`/nika/maker/${m.id}`}>{m.data.title}</a></h3>
+            <p class="muted">{m.data.summary}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  )}
+
+  {reviews.length > 0 && (
+    <section class="container section--tight">
+      <h2>Latest reviews</h2>
+      <div class="grid grid--3">{reviews.map((r) => <ReviewCard review={r} />)}</div>
+    </section>
+  )}
+
+  {posts.length > 0 && (
+    <section class="container section--tight">
+      <h2>Writing</h2>
+      <div class="grid grid--2">{posts.map((p) => <PostCard post={p} />)}</div>
+    </section>
+  )}
+</BaseLayout>
+
+<style>
+  .hero { display: grid; gap: 40px; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: center; }
+  .hero h1 { font-size: clamp(2.2rem, 5.2vw, 3.6rem); }
+  .hero__art { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 340px; justify-self: center; }
+  .tile {
+    aspect-ratio: 1; display: grid; place-items: center; font-size: 3rem; text-align: center;
+    border: var(--border); border-radius: 18px; box-shadow: var(--shadow); background: var(--card);
+  }
+  .t1 { background: var(--accent); color: var(--paper); font-size: 1.15rem; font-weight: 500; letter-spacing: 0.2em; transform: rotate(-4deg); }
+  .t2 { background: var(--sun); transform: rotate(3deg); }
+  .t3 { background: var(--gio-soft); transform: rotate(2deg); }
+  .t4 { background: var(--accent-soft); transform: rotate(-3deg); }
+  @media (max-width: 760px) {
+    .hero { grid-template-columns: 1fr; }
+    .hero__art { grid-template-columns: repeat(4, 1fr); max-width: none; width: 100%; gap: 10px; }
+    .tile { font-size: 1.8rem; border-radius: 12px; }
+    .t1 { font-size: 0.7rem; }
+  }
+  .feature { display: flex; flex-direction: column; gap: 8px; min-height: 200px; }
+  .feature h3 { margin: 4px 0 0; font-size: 1.5rem; }
+  .feature .chip { align-self: flex-start; }
+  .feature .go { margin-top: auto; font-weight: 700; color: var(--accent); }
+  .winery { background: var(--gio-soft); }
+  .winery .big { font-size: 4.5rem; margin: 8px 0; }
+  .science { background: var(--accent-soft); }
+  .winery .go, .science .go { color: var(--ink); text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 4px; }
+  .emoji { font-size: 2rem; }
+  .card h3 { margin-top: 8px; }
+</style>

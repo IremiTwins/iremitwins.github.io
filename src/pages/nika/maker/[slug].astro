@@ -1,0 +1,32 @@
+---
+import { render } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { getMaker } from '../../../lib/content';
+export async function getStaticPaths() {
+  return (await getMaker('nika')).map((m) => ({ params: { slug: m.id }, props: { m } }));
+}
+const { m } = Astro.props;
+const { Content } = await render(m);
+---
+<BaseLayout title={m.data.title} description={m.data.summary} twin="nika">
+  <article class="container section">
+    <p class="eyebrow"><a href="/nika/maker">Maker</a> · {m.data.status}</p>
+    <div class="head">
+      <span class="emoji" aria-hidden="true">{m.data.emoji}</span>
+      <div>
+        <h1>{m.data.title}</h1>
+        <p class="lede">{m.data.summary}</p>
+      </div>
+    </div>
+    <ul class="chips tools" aria-label="Tools">{m.data.tools.map((t) => <li class="chip chip--accent">{t}</li>)}</ul>
+    <div class="prose"><Content /></div>
+    <p><a class="btn" href="/nika/maker">← All projects</a></p>
+  </article>
+</BaseLayout>
+<style>
+  .head { display: flex; gap: 24px; align-items: flex-start; }
+  .emoji { font-size: 4rem; line-height: 1; padding: 14px; border: var(--border); border-radius: 18px; background: var(--accent-soft); box-shadow: var(--shadow); }
+  .tools { margin: 8px 0 32px; }
+  .prose { margin-bottom: 40px; }
+  @media (max-width: 560px) { .head { flex-direction: column; } .emoji { font-size: 3rem; } }
+</style>

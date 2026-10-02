@@ -1,49 +1,39 @@
-// ============================================================
-// astro.config.mjs — Astro Project Configuration
-// ============================================================
-//
-// This file controls how Astro builds and serves your site.
-// It is automatically read by Astro every time you run
-// `npm run dev`, `npm run build`, or `npm run preview`.
-//
-// WHAT IS ASTRO?
-// Astro is a "static site generator" (SSG). It takes your
-// component/markdown source files and outputs plain HTML,
-// CSS, and JS files that any web host can serve — no server
-// required. GitHub Pages hosts these output files for free.
-// ============================================================
-
+// astro.config.mjs — site configuration
+// Docs: https://docs.astro.build/en/reference/configuration-reference/
 import { defineConfig } from 'astro/config';
+import mdx from '@astrojs/mdx';
+import sitemap from '@astrojs/sitemap';
+import fs from 'node:fs';
 
-import react from '@astrojs/react';
+// Old review URLs (/twin2/twin2-anime-reviews/<slug>, ...) → /<twin>/reviews/<slug>.
+// Built from the files in src/content/reviews so new reviews never need a manual entry.
+const oldPrefix = { nika: 'twin2', gio: 'twin1' };
+const reviewRedirects = {};
+for (const twin of ['nika', 'gio']) {
+  for (const file of fs.readdirSync(`./src/content/reviews/${twin}`)) {
+    const slug = file.replace(/\.mdx?$/, '');
+    const text = fs.readFileSync(`./src/content/reviews/${twin}/${file}`, 'utf8');
+    const draft = /^draft:\s*true/m.test(text);
+    const kind = /^kind:\s*"?(anime|game)/m.exec(text)?.[1] ?? 'anime';
+    // unpublished (draft) reviews send old links to the review list instead of a 404
+    const to = draft ? `/${twin}/reviews` : `/${twin}/reviews/${slug}`;
+    reviewRedirects[`/${oldPrefix[twin]}/${oldPrefix[twin]}-${kind}-reviews/${slug}`] = to;
+  }
+}
 
 export default defineConfig({
-
-  // ----------------------------------------------------------
-  // site
-  // Your full live URL (including https://).
-  // Astro uses this to generate correct canonical links and
-  // sitemaps. Update this if your domain ever changes.
-  // ----------------------------------------------------------
   site: 'https://iremitwins.com',
-
-  // ----------------------------------------------------------
-  // output
-  // 'static' means Astro pre-renders every page to plain HTML
-  // at build time — the fastest possible delivery to visitors.
-  // Other options: 'server' (SSR) or 'hybrid'. You don't need
-  // to change this unless you add server-side features later.
-  // ----------------------------------------------------------
   output: 'static',
+  trailingSlash: 'ignore',
+  integrations: [mdx(), sitemap()],
 
-  // ----------------------------------------------------------
-  // integrations
-  // Plug-ins you can add to extend Astro. Examples:
-  //   import react from '@astrojs/react'  → use React components
-  //   import tailwind from '@astrojs/tailwind' → use Tailwind CSS
-  //   import sitemap from '@astrojs/sitemap' → auto sitemap.xml
-  //
-  // Add them here as an array, e.g. integrations: [react()]
-  // ----------------------------------------------------------
-  integrations: [react()],
+  // Old URLs from the first version of the site → new homes.
+  // GitHub Pages has no server redirects, so Astro writes a small
+  // static page at each old path that forwards the visitor.
+  redirects: {
+    '/twin1': '/gio',
+    '/twin2': '/nika',
+    '/twin2/genome-toolkit': '/nika',   // toolkit retired; still in git history on main
+    ...reviewRedirects,
+  },
 });

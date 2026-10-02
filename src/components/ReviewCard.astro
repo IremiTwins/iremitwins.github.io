@@ -1,0 +1,34 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import Stars from './Stars.astro';
+import { fmtDate, reviewSlug } from '../lib/content';
+interface Props { review: CollectionEntry<'reviews'> }
+const { review } = Astro.props;
+const d = review.data;
+const href = `/${d.twin}/reviews/${reviewSlug(review.id)}`;
+---
+<article class="card review" data-twin={d.twin}>
+  <div class="cover">
+    {d.coverImage
+      ? <img src={d.coverImage} alt="" loading="lazy" width="480" height="270" />
+      : <span aria-hidden="true">{d.kind === 'anime' ? '📺' : '🕹️'}</span>}
+    <span class="chip chip--accent kind">{d.kind}</span>
+  </div>
+  <Stars rating={d.rating} />
+  <h3><a href={href}>{d.title}</a></h3>
+  <p class="muted desc">{d.description}</p>
+  <p class="date mono">{fmtDate(d.date, { month: 'short', year: 'numeric' })}</p>
+</article>
+<style>
+  .review { display: flex; flex-direction: column; gap: 6px; padding: 14px 14px 18px; }
+  .cover {
+    position: relative; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden;
+    border: 2px solid var(--line); background: var(--accent-soft); display: grid; place-items: center; font-size: 2.6rem;
+    margin-bottom: 6px;
+  }
+  .cover img { width: 100%; height: 100%; object-fit: cover; }
+  .kind { position: absolute; top: 8px; left: 8px; }
+  h3 { margin: 0; font-size: 1.2rem; }
+  .desc { margin: 0; font-size: 0.95rem; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .date { margin: auto 0 0; font-size: 0.8rem; color: var(--ink-2); }
+</style>
