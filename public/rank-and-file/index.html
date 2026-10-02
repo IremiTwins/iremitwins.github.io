@@ -179,6 +179,41 @@ select.btn { padding-right: 28px; }
 .perkrow .btn { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
 .perkrow .btn span { color: var(--muted); font-weight: 400; font-size: 0.9rem; }
 
+/* ---- banners ---- */
+.banner-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.banner-card { display: grid; gap: 4px; text-align: left; padding: 14px 14px 14px 18px; border-left: 5px solid var(--bc); align-content: start; min-height: 150px; grid-template-columns: 44px 1fr; grid-template-areas: "art name" "art school" "desc desc"; column-gap: 12px; }
+.banner-card .banner-art { grid-area: art; align-self: start; }
+.banner-hero { display: flex; justify-content: center; margin: 4px 0 10px; }
+.banner-hero canvas { filter: drop-shadow(0 6px 10px rgba(0,0,0,0.5)); animation: pennant-wave 2.4s ease-in-out infinite; transform-origin: 50% 0; }
+.banner-card .bname { grid-area: name; align-self: end; }
+.banner-card .bschool { grid-area: school; }
+.banner-card .bdesc { grid-area: desc; margin-top: 6px; }
+.banner-card:hover:not(:disabled) { border-color: var(--bc); box-shadow: 0 0 0 1px var(--bc), 0 8px 24px rgba(0,0,0,0.35); transform: translateY(-2px); }
+.banner-card:hover:not(:disabled) .banner-art { animation: pennant-wave 1.2s ease-in-out infinite; transform-origin: 50% 0; }
+@keyframes pennant-wave { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+.banner-card .bname { font-family: var(--display); font-size: 1.05rem; color: var(--accent); }
+.banner-card .bschool { font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--bc); }
+.banner-card .bdesc { font-size: 0.92rem; color: var(--muted); font-weight: 400; white-space: normal; }
+.banner-chips, .banners-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.banners-row { margin-top: 10px; font-size: 0.9rem; }
+.bchip { display: inline-flex; align-items: center; gap: 5px; background: var(--bg-3); border: 1px solid var(--line-2); border-left: 4px solid var(--bc); border-radius: 4px; padding: 2px 8px; font-size: 0.82rem; cursor: help; }
+.bchip i { display: inline-block; width: 0; height: 0; border-left: 8px solid var(--bc); border-top: 4px solid transparent; border-bottom: 4px solid transparent; }
+#battle-banners { display: flex; flex-wrap: wrap; gap: 4px; }
+.item.banner { border-left-color: var(--bc); }
+/* ---- annals ---- */
+.annals-stats { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
+.annals { display: grid; gap: 4px; margin-top: 6px; }
+.annal { display: grid; grid-template-columns: 56px 1fr auto; gap: 4px 12px; text-align: left; align-items: center; }
+.annal.won { border-color: var(--accent-dim); }
+.annal .a-when { color: var(--muted); font-size: 0.85rem; }
+.annal .a-king { font-family: var(--display); }
+.annal .a-out { color: var(--accent); font-weight: 600; }
+.annal.won .a-out { color: var(--good); }
+.annal .a-num { grid-column: 2 / 4; color: var(--muted); font-size: 0.85rem; }
+.annal .a-pennants { grid-column: 1 / 2; grid-row: 2; display: flex; gap: 3px; }
+.annal .a-pennants i { display: inline-block; width: 10px; height: 14px; background: var(--bc); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%); }
+.a-body { background: var(--bg-3); border-radius: 6px; padding: 8px 10px; font-size: 0.9rem; display: grid; gap: 4px; }
+.a-body[hidden] { display: none; }
 /* ---- items ---- */
 .item { background: var(--bg-3); border: 1px solid var(--line-2); border-left-width: 4px; border-radius: 6px; padding: 8px 10px; cursor: pointer; }
 .item.weapon { border-left-color: #8fa3bf; } .item.offhand { border-left-color: #c9a3ff; } .item.cape { border-left-color: #b8323a; } .item.consumable { border-left-color: #7fc4a3; } .item.recruit { border-left-color: var(--accent); }
@@ -237,6 +272,7 @@ select.btn { padding-right: 28px; }
         <div class="btnrow">
           <button class="btn primary" id="btn-start" type="button">Make the promise</button>
           <button class="btn gold" id="btn-continue" type="button" hidden>Continue saved run</button>
+          <button class="btn" id="btn-annals" type="button" hidden>The Annals</button>
           <button class="btn btn-help" type="button">How to play</button>
         </div>
       </div>
@@ -258,6 +294,7 @@ select.btn { padding-right: 28px; }
       </div>
     </div>
     <div class="map-wrap"><canvas id="map"></canvas></div>
+    <div class="banners-row" id="ow-banners"></div>
     <div class="band" id="ow-band"></div>
     <div class="legend">
       <span><i style="background:#c9b79c"></i>Battle</span><span><i style="background:#e06a4f"></i>Elite — tougher, guaranteed cape</span><span><i style="background:#7fc4a3"></i>Camp — rest, train or confide</span><span><i style="background:#c9a3ff"></i>Event</span><span><i style="background:#f2c14e"></i>Market</span><span><i style="background:#ff5a3c"></i>Boss</span>
@@ -274,7 +311,7 @@ select.btn { padding-right: 28px; }
         <button class="btn btn-help" type="button">Help</button>
       </div>
     </div>
-    <div class="turnbar"><span class="lbl" id="round-label">Round 1</span><div id="queue"></div><span class="obj" id="objective-label"></span></div>
+    <div class="turnbar"><span class="lbl" id="round-label">Round 1</span><div id="queue"></div><span class="obj" id="objective-label"></span><div id="battle-banners"></div></div>
     <div class="battle-main">
       <div class="board-wrap"><canvas id="board"></canvas></div>
       <aside class="panel">
@@ -313,6 +350,8 @@ select.btn { padding-right: 28px; }
       </table>
       <h3>Growing</h3>
       <p>Units level from hits and kills: +HP, alternating +ATK / +DEF, +SPD every third level. At levels 3, 6 and 9 they choose a <b>talent</b>. Every recruit has an origin with a small stat lean. At camps you can rest, train one unit, or <b>confide</b> — sit with someone by the fire for +3 max HP and a little of their story.</p>
+      <h3>Banners</h3>
+      <p>A <b>banner</b> is a rule the whole band fights under for the rest of the run. You raise one at the start, one after each boss, one of two after an elite; markets sell one and some events offer cursed ones. Three schools: <b>the Shield Wall</b> (hold ground), <b>the Grey Cloaks</b> (hunt and burn), <b>the Rising Rank</b> (promotion itself). The King carries them as pennants on his standard. Two or three that fit each other are a playstyle.</p>
       <h3>Capes</h3>
       <p>A <b>cape</b> promotes a Pawn into a class, within chess limits: one Queen, two Rooks, two Bishops, two Knights. When a promoted unit dies its cape drops where it fell; end a unit's turn on it to recover it. If you rout the enemy, every cape still on the field is recovered. If the King escapes through an exit, they are lost.</p>
       <h3>Enemies</h3>
@@ -552,6 +591,47 @@ const ACTS = [
   },
 ];
 
+/* ---- Banners (v4) ---------------------------------------------------
+   Run-wide rule changes the band fights under. Three schools so a run
+   visibly becomes a playstyle, plus two cursed ones. Each is a hook
+   the battle resolver, AI or reward code checks by id; the numbers
+   live here. `school` colours the pennant the King carries. */
+const BANNER_SCHOOLS = {
+  wall:  { name: 'The Shield Wall', color: '#4f7fb5', blurb: 'Hold ground. Make them come to you.' },
+  cloak: { name: 'The Grey Cloaks', color: '#6f8f6a', blurb: 'Hunters and assassins. Strike first, strike sleeping.' },
+  rank:  { name: 'The Rising Rank', color: '#e0b25a', blurb: 'The promise itself: raise them, and let the capes outlive them.' },
+  curse: { name: 'Torn Standards',  color: '#c43a5a', blurb: 'Power with a price.' },
+};
+const BANNERS = {
+  PHALANX:     { name: 'Phalanx',       school: 'wall',  desc: 'An ally touching two or more allies takes 2 less from every hit.' },
+  ANVIL:       { name: 'Anvil',         school: 'wall',  desc: 'Enemies adjacent to one of your Rooks cannot move.' },
+  ROYAL_GUARD: { name: 'Royal Guard',   school: 'wall',  desc: 'An ally standing next to the King takes the hit meant for him.' },
+  ZUGZWANG:    { name: 'Zugzwang',      school: 'wall',  desc: 'An enemy that ends its turn without attacking takes 3 damage.' },
+  GREY_CLOAKS: { name: 'Grey Cloaks',   school: 'cloak', desc: 'Packs wake at 2 tiles instead of 3. Sleeping enemies take 50% more damage.' },
+  EMBER_EDGE:  { name: 'Ember Edge',    school: 'cloak', desc: 'Every melee strike leaves a burn: 2 damage at the start of the target\'s turn, stacking to 6.' },
+  TEMPO:       { name: 'Tempo',         school: 'cloak', desc: 'An ally that kills acts again at the end of the round.' },
+  VANGUARD:    { name: 'Vanguard',      school: 'cloak', desc: 'The first ally to act each round gets +1 move and +2 ATK.' },
+  BATTLEFIELD: { name: 'Battlefield Promotion', school: 'rank', desc: 'A Pawn standing on the enemy\'s back file when a battle is won earns a cape of your choosing.' },
+  HEIRLOOM:    { name: 'Heirloom',      school: 'rank',  desc: 'A cape recovered from a fallen ally carries their levels to the next wearer.' },
+  COMMISSION:  { name: 'Field Commission', school: 'rank', desc: 'Capes can be worn in battle, as a free action.' },
+  TWIN_CROWNS: { name: 'Twin Crowns',   school: 'rank',  desc: 'Two Queens are allowed. Queens lose 5 max HP.' },
+  WARHORNS:    { name: 'Warhorns',      school: 'curse', desc: 'Every pack starts awake. Gold rewards are doubled.' },
+  BLOOD_TITHE: { name: 'Blood Tithe',   school: 'curse', desc: '+3 ATK for everyone in the band. Everyone begins battles at 80% HP.' },
+};
+const BANNER_PRICE = 120;
+const PHALANX_REDUCTION = 2;
+const ZUGZWANG_DAMAGE = 3;
+const EMBER_BURN = 2;
+const EMBER_BURN_MAX = 6;
+const GREY_AGGRO = 2;
+const GREY_SLEEP_MULT = 1.5;
+const VANGUARD_ATK = 2;
+const TWIN_CROWNS_HP = 5;
+const BLOOD_TITHE_ATK = 3;
+const BLOOD_TITHE_HP = 0.8;
+/* Live rules a banner can change; Game.applyRules() sets them from the run. */
+const RULES = { queenLimit: 1, aggroRadius: AGGRO_RADIUS };
+
 /* Overworld node types (SDD 4.7). */
 const NODE_TYPES = {
   COMBAT: { name: 'Battle',  weight: 50 },
@@ -647,6 +727,15 @@ const EVENTS = [
       { label: 'Take the shield', effect: 'offhand:SHIELD:UNCOMMON' },
       { label: 'Take the ward', effect: 'offhand:WARD:UNCOMMON' },
       { label: 'Take both, and whatever is watching takes 10 HP from everyone', effect: 'offhand:SHIELD;offhand:WARD;hpAll:-10' },
+    ],
+  },
+  {
+    id: 'STANDARD', title: 'The Torn Standard',
+    text: 'A banner of the old court, half burned, still on its pole. Whoever raised it last did not survive the raising. It hums with something.',
+    options: [
+      { label: 'Raise Warhorns (every pack starts awake; gold doubled)', effect: 'banner:WARHORNS' },
+      { label: 'Raise Blood Tithe (+3 ATK for all; battles start at 80% HP)', effect: 'banner:BLOOD_TITHE' },
+      { label: 'Burn it properly (gain 45 gold)', effect: 'gold:45' },
     ],
   },
   {
@@ -1177,16 +1266,17 @@ function rollOffhand(rng, floor) { return makeOffhand(rng.pick(OFFHAND_ORDER), r
 /* ---- Capes & promotion (SDD 4.4) ----------------------------------
    A cape is an inventory item. `canPromote` enforces the chess-legal
    roster limits against the *living* warband. */
-function makeCape(cls) { return { kind: 'CAPE', cls }; }
+function makeCape(cls, heir) { const c = { kind: 'CAPE', cls }; if (heir) { c.heir = heir.level; c.from = heir.name; } return c; }
 function countClass(warband, cls) { return warband.filter(u => u.alive && u.cls === cls).length; }
+const classLimit = cls => cls === 'QUEEN' ? RULES.queenLimit : CLASSES[cls].limit;
 function canPromote(warband, unit, cls) {
   if (!unit.alive || unit.cls !== 'PAWN' || cls === 'PAWN' || cls === 'KING') return false;
-  return countClass(warband, cls) < CLASSES[cls].limit;
+  return countClass(warband, cls) < classLimit(cls);
 }
 /* Which capes could still be worn by someone (used by loot to avoid
    dropping a third Rook cape nobody can use). */
 function usefulCapeClasses(warband) {
-  return ['ROOK', 'KNIGHT', 'BISHOP', 'QUEEN'].filter(c => countClass(warband, c) < CLASSES[c].limit);
+  return ['ROOK', 'KNIGHT', 'BISHOP', 'QUEEN'].filter(c => countClass(warband, c) < classLimit(c));
 }
 function promote(unit, cls) {
   const ratio = pct(unit.hp, maxHp(unit));
@@ -1295,19 +1385,22 @@ function describeItem(it) {
     return `${weaponDamage(it)} ${w.kind} dmg, range ${w.range[0]}${w.range[1] > w.range[0] ? '–' + w.range[1] : ''}. ${w.tip} Suits: ${w.synergy.map(c => CLASSES[c].name).join(', ')}.`;
   }
   if (it.kind === 'OFFHAND') { const d = OFFHANDS[it.type]; return `+${offhandValue(it)} ${d.stat === 'maxHp' ? 'max HP' : d.stat.toUpperCase()}. ${d.tip}`; }
-  if (it.kind === 'CAPE') return `Promotes a Pawn to ${CLASSES[it.cls].name}. ${CLASSES[it.cls].role}`;
+  if (it.kind === 'BANNER') return BANNERS[it.id].desc;
+  if (it.kind === 'CAPE') return `Promotes a Pawn to ${CLASSES[it.cls].name}. ${CLASSES[it.cls].role}${it.heir ? ` Heirloom of ${it.from}: the wearer rises to level ${it.heir}.` : ''}`;
   return ITEMS[it.type].desc;
 }
 function itemName(it) {
   if (it.kind === 'WEAPON') return weaponName(it);
   if (it.kind === 'OFFHAND') return offhandName(it);
-  if (it.kind === 'CAPE') return `${CLASSES[it.cls].name}'s Cape`;
+  if (it.kind === 'CAPE') return it.from ? `${it.from}'s ${CLASSES[it.cls].name} Cape` : `${CLASSES[it.cls].name}'s Cape`;
+  if (it.kind === 'BANNER') return `Banner: ${BANNERS[it.id].name}`;
   return ITEMS[it.type].name;
 }
 function itemPrice(it) {
   if (it.kind === 'WEAPON') return RARITY[it.rarity].price;
   if (it.kind === 'OFFHAND') return OFFHAND_PRICE + RARITY[it.rarity].tier * 40;
   if (it.kind === 'CAPE') return CAPE_PRICE;
+  if (it.kind === 'BANNER') return BANNER_PRICE;
   return ITEMS[it.type].price;
 }
 
@@ -1355,6 +1448,10 @@ class Battle {
     this.summons = 0;
     this.spawnTiles = [];
     this.deploySel = null;
+    /* banners (v4): run-wide rule changes, checked by id */
+    this.has = id => !!(run.banners && run.banners.includes(id));
+    this.aggroRadius = this.has('GREY_CLOAKS') ? GREY_AGGRO : AGGRO_RADIUS;
+    this.vanguardId = null;
   }
 
   /* ---------------- setup ---------------- */
@@ -1369,13 +1466,14 @@ class Battle {
     band.forEach((u, i) => {
       this.initBt(u, false, -1);
       u.bt.sp = Math.min(maxSp(u), SP_START + (hasPerk(u, 'FOCUS') ? 2 : 0));
+      if (this.has('BLOOD_TITHE')) u.hp = Math.max(1, Math.min(u.hp, Math.floor(maxHp(u) * BLOOD_TITHE_HP)));
       const s = map.playerSpawns[i]; this.grid.place(u, s.x, s.y); u.bt.rx = s.x; u.bt.ry = s.y;
     });
     let gi = 0, ei = 0;
     for (const group of map.enemyGroups) {
       for (const s of group) {
         const u = enemies[ei++]; if (!u) break;
-        this.initBt(u, true, gi);
+        this.initBt(u, !this.has('WARHORNS'), gi);
         this.grid.place(u, s.x, s.y); u.bt.rx = s.x; u.bt.ry = s.y;
       }
       gi++;
@@ -1435,9 +1533,12 @@ class Battle {
       this.current = u; this.turns++;
       u.bt.sp = Math.min(maxSp(u), u.bt.sp + SP_REGEN);
       u.bt.brace = false; u.bt.fortify = false; u.bt.itemUsed = false;   // "until your next turn" effects expire here
+      u.bt.vanguard = this.has('VANGUARD') && u.id === this.vanguardId;
+      if (u.bt.burn) { this.floater(u, 'BURN', '#ff9f43'); this.effect('arcane', u, null, '#ff9f43'); await this.applyDamage(u, u.bt.burn, null); if (this.over) break; if (!u.alive) continue; }
       if (hasPerk(u, 'SECOND_WIND') && u.hp < maxHp(u) / 2) await this.heal(u, 4, true);
       this.ui.refresh();
       if (isPlayer(u)) await this.playerTurn(u); else await this.enemyTurn(u);
+      u.bt.vanguard = false;
       if (this.over) break;
       await this.pickUpCape(u);
       this.checkAggro();
@@ -1487,6 +1588,7 @@ class Battle {
       this.queue = this.units.filter(u => u.alive && !u.bt.dormant)
         .sort((a, b) => statOf(b, 'spd') - statOf(a, 'spd') || (isPlayer(a) ? -1 : 1) - (isPlayer(b) ? -1 : 1) || a.id - b.id);
       if (!this.queue.length) return null;
+      const first = this.queue.find(u => isPlayer(u)); this.vanguardId = first ? first.id : null;   // Vanguard banner
     }
     return this.queue.shift();
   }
@@ -1515,9 +1617,10 @@ class Battle {
       this.beginMovePhase();
     });
   }
+  moveRangeOf(u) { return moveRange(u) + (u.bt && u.bt.vanguard ? 1 : 0); }
   beginMovePhase() {
     const u = this.current;
-    this.reach = this.grid.reachable(u, moveRange(u));
+    this.reach = this.grid.reachable(u, this.moveRangeOf(u));
     this.phase = 'move';
     this.targets = this.attackTargets(u);
     this.ui.refresh();
@@ -1611,8 +1714,10 @@ class Battle {
     const w = att.weapon ? WEAPONS[att.weapon.type] : null;
     const kind = w ? w.kind : 'steel';
     let raw = statOf(att, 'atk') + (att.weapon ? weaponDamage(att.weapon) : 0) + this.teamBuff[att.faction].atk + (att.bt ? att.bt.bloodlust : 0);
+    if (isPlayer(att)) { if (att.bt && att.bt.vanguard) raw += VANGUARD_ATK; if (this.has('BLOOD_TITHE')) raw += BLOOD_TITHE_ATK; }
     if (hasSynergy(att)) raw *= SYNERGY_MULT;
     if (hasPerk(att, 'EXECUTIONER') && def.hp < maxHp(def) * 0.3) raw *= 1.5;
+    if (isPlayer(att) && def.bt && def.bt.dormant && this.has('GREY_CLOAKS')) raw *= GREY_SLEEP_MULT;
     raw = Math.round(raw * mult);
     let d;
     if (kind === 'arcane') d = statOf(def, 'res');
@@ -1621,7 +1726,15 @@ class Battle {
     let dmg = Math.max(1, raw - d);
     if (def.bt && def.bt.brace) dmg = Math.ceil(dmg / 2);
     if (this.guardianNear(def)) dmg = Math.max(1, dmg - 1);
+    if (isPlayer(def) && this.has('PHALANX') && this.alliesAdjacent(def) >= 2) dmg = Math.max(1, dmg - PHALANX_REDUCTION);
     return { perHit: dmg, hits: (w && w.hits) || 1, total: dmg * ((w && w.hits) || 1), kind };
+  }
+  alliesAdjacent(u) { return this.units.filter(o => o !== u && o.alive && o.faction === u.faction && cheb(o, u) === 1).length; }
+  /* Royal Guard banner: the ally next to the King with the most HP steps in. */
+  guardFor(def) {
+    if (!isPlayer(def) || def.cls !== 'KING' || !this.has('ROYAL_GUARD')) return null;
+    const guards = this.units.filter(o => o !== def && o.alive && isPlayer(o) && cheb(o, def) === 1);
+    return guards.length ? guards.reduce((a, b) => (a.hp >= b.hp ? a : b)) : null;
   }
   guardianNear(def) {
     return this.units.some(o => o !== def && o.alive && o.faction === def.faction && hasPerk(o, 'GUARDIAN') && cheb(o, def) === 1);
@@ -1629,6 +1742,8 @@ class Battle {
 
   async doAttack(att, def) {
     this.phase = 'busy'; this.targets = []; this.ui.refresh();
+    const guard = this.guardFor(def);
+    if (guard) { this.log(`${guard.name} steps in front of the King.`); this.floater(guard, 'ROYAL GUARD', '#4f7fb5'); def = guard; }
     const dmg = this.damageAgainst(att, def);
     const ranged = cheb(att, def) > 1 || dmg.kind === 'arcane';
     if (ranged) { await this.animateRanged(att, def, dmg.kind); this.effect(dmg.kind === 'arcane' ? 'bolt' : 'arrow', att, def); await Anim.wait(260); }
@@ -1638,6 +1753,7 @@ class Battle {
       this.effect(dmg.kind === 'arcane' ? 'arcane' : 'slash', def, null);
       await this.applyDamage(def, dmg.perHit, att);
     }
+    if (!ranged && isPlayer(att) && def.alive && this.has('EMBER_EDGE')) { def.bt.burn = Math.min(EMBER_BURN_MAX, (def.bt.burn || 0) + EMBER_BURN); this.floater(def, `BURN ${def.bt.burn}`, '#ff9f43'); }
     if (isPlayer(att) && def.alive) this.awardXp(att, XP_HIT);
     await Anim.wait(120);
     if (att === this.current && isPlayer(att)) this.endTurn();
@@ -1666,10 +1782,11 @@ class Battle {
     if (source && isPlayer(source)) {
       source.kills++; this.kills++; this.awardXp(source, u.elite ? XP_KILL_ELITE : XP_KILL);
       if (hasPerk(source, 'BLOODLUST') && source.bt.bloodlust < 3) { source.bt.bloodlust++; this.floater(source, 'BLOODLUST', '#ff9f43'); }
+      if (this.has('TEMPO') && source.alive) { this.queue.push(source); this.floater(source, 'TEMPO', '#6f8f6a'); this.log(`Tempo: ${source.name} will act again.`); }
     }
     if (isPlayer(u)) this.fallen.push(u.name);
     if (isPlayer(u) && u.cls !== 'PAWN' && u.cls !== 'KING') {
-      this.groundCapes.push({ x: u.x, y: u.y, cls: u.cls });
+      this.groundCapes.push({ x: u.x, y: u.y, cls: u.cls, level: u.level, name: u.name });
       this.log(`${u.name}'s ${CLASSES[u.cls].name} cape lies where they fell. Step on it to recover it.`);
     }
     await this.animateDeath(u);
@@ -1787,13 +1904,30 @@ class Battle {
     this.phase = prev; this.targets = this.attackTargets(u); this.ui.refresh();
   }
 
+  /* Field Commission banner: a Pawn puts a cape on mid-battle, free. */
+  async wearCape(index) {
+    const u = this.current, it = this.run.inventory[index];
+    if (!(this.phase === 'move' || this.phase === 'act') || !this.has('COMMISSION') || !it || it.kind !== 'CAPE' || !canPromote(this.run.warband, u, it.cls)) return;
+    const prev = this.phase;
+    this.phase = 'busy'; this.ui.refresh();
+    this.run.inventory.splice(index, 1);
+    promote(u, it.cls); this.run.stats.promotions++;
+    if (it.cls === 'QUEEN' && this.has('TWIN_CROWNS')) { u.boosts.maxHp -= TWIN_CROWNS_HP; u.hp = Math.max(1, Math.min(u.hp, maxHp(u))); }
+    if (it.heir) while (u.level < it.heir) gainXp(u, XP_PER_LEVEL);
+    this.floater(u, `RISES A ${CLASSES[it.cls].name.toUpperCase()}`, CAPE_COLORS[it.cls]);
+    this.effect('level', u, null); Sfx.play('level');
+    this.log(`${u.name} puts on the ${CLASSES[it.cls].name} cape in the field and rises.`);
+    await Anim.wait(400);
+    this.phase = prev; this.targets = this.attackTargets(u); this.ui.refresh();
+  }
+
   /* A unit that ends its turn on a dropped cape recovers it. */
   async pickUpCape(u) {
     if (!u.alive || !isPlayer(u)) return;
     const i = this.groundCapes.findIndex(c => c.x === u.x && c.y === u.y);
     if (i < 0) return;
     const c = this.groundCapes.splice(i, 1)[0];
-    this.run.inventory.push(makeCape(c.cls));
+    this.run.inventory.push(makeCape(c.cls, this.has('HEIRLOOM') ? { level: c.level, name: c.name } : null));
     this.floater(u, 'Cape recovered', '#ffd166');
     this.log(`${u.name} recovers the ${CLASSES[c.cls].name} cape.`);
     await Anim.wait(250);
@@ -1804,7 +1938,7 @@ class Battle {
     const players = this.units.filter(u => u.alive && isPlayer(u));
     for (const e of this.units) {
       if (!e.alive || isPlayer(e) || !e.bt.dormant) continue;
-      if (players.some(p => cheb(p, e) <= AGGRO_RADIUS)) this.wakeGroup(e.bt.group, 'spots you');
+      if (players.some(p => cheb(p, e) <= this.aggroRadius)) this.wakeGroup(e.bt.group, 'spots you');
     }
   }
   wakeGroup(group, why) {
@@ -1823,7 +1957,8 @@ class Battle {
   finish(res) {
     if (this.over) return;
     this.over = true;
-    this.result = { ...res, kills: this.kills, rounds: this.round, groundCapes: this.groundCapes.map(c => c.cls), fallen: this.fallen.slice() };
+    const farFile = (res.victory && !res.escaped && this.has('BATTLEFIELD')) ? this.units.filter(u => u.alive && isPlayer(u) && u.cls === 'PAWN' && u.x === GRID_W - 1).map(u => u.id) : [];
+    this.result = { ...res, kills: this.kills, rounds: this.round, groundCapes: this.groundCapes.map(c => ({ cls: c.cls, level: c.level, name: c.name })), fallen: this.fallen.slice(), farFile };
     Sfx.play(res.victory ? 'win' : 'lose');
     if (this.resolveTurn) { const r = this.resolveTurn; this.resolveTurn = null; r(); }
     if (this.resolveDeploy) { const r = this.resolveDeploy; this.resolveDeploy = null; r(); }
@@ -1834,10 +1969,12 @@ class Battle {
      stands, so the same function drives the turn AND the intent
      preview the player sees on hover (Into the Breach's rule: no
      hidden decisions). */
+  /* Anvil banner: an enemy next to one of your Rooks is pinned in place. */
+  pinned(u) { return !isPlayer(u) && this.has('ANVIL') && this.units.some(o => o.alive && isPlayer(o) && o.cls === 'ROOK' && cheb(o, u) === 1); }
   planFor(u) {
     const players = this.units.filter(p => p.alive && isPlayer(p));
     if (!players.length) return null;
-    const reach = this.grid.reachable(u, moveRange(u));
+    const reach = this.pinned(u) ? new Map([[key(u.x, u.y), { cost: 0, prev: null, stoppable: true }]]) : this.grid.reachable(u, this.moveRangeOf(u));
 
     /* Support: a healer heals a wounded ally instead of poking with a staff. */
     if (CLASSES[u.cls].ability === 'HEAL' && u.bt.sp >= abilityCost(u)) {
@@ -1896,6 +2033,10 @@ class Battle {
       case 'fortify': await this.useAbility(u, null); break;
       case 'move': await this.moveUnit(u, plan.tile.x, plan.tile.y, plan.reach); await Anim.wait(120); break;
     }
+    /* Zugzwang banner: a turn spent not attacking hurts. */
+    if (plan.kind !== 'attack' && plan.kind !== 'heal' && u.alive && this.has('ZUGZWANG') && !this.over) {
+      this.floater(u, 'ZUGZWANG', '#4f7fb5'); await this.applyDamage(u, ZUGZWANG_DAMAGE, null);
+    }
   }
 
   /* Boss signatures (v2). Return true when the signature consumed the
@@ -1949,7 +2090,7 @@ class Battle {
     const danger = new Set();
     for (const e of this.units) {
       if (!e.alive || isPlayer(e) || e.bt.dormant) continue;
-      const reach = this.grid.reachable(e, moveRange(e));
+      const reach = this.pinned(e) ? new Map([[key(e.x, e.y), { cost: 0, prev: null, stoppable: true }]]) : this.grid.reachable(e, this.moveRangeOf(e));
       const [lo, hi] = attackRange(e);
       for (const [k, v] of reach) {
         if (!v.stoppable) continue;
@@ -1961,7 +2102,7 @@ class Battle {
   /* What this enemy would do if it acted right now. */
   intentOf(e) {
     if (!e.alive || isPlayer(e)) return null;
-    if (e.bt.dormant) return { kind: 'dormant', reach: this.grid.reachable(e, moveRange(e)) };
+    if (e.bt.dormant) return { kind: 'dormant', reach: this.grid.reachable(e, this.moveRangeOf(e)) };
     return this.planFor(e);
   }
 
@@ -2341,7 +2482,7 @@ const BattleUI = {
     if (b.hover) {
       const o = g.unitAt(b.hover.x, b.hover.y);
       if (o && o.alive && o.bt.dormant) {
-        const r = AGGRO_RADIUS;
+        const r = b.aggroRadius;
         ctx.save(); ctx.strokeStyle = 'rgba(255,159,67,0.8)'; ctx.setLineDash([6, 5]); ctx.lineWidth = 2;
         ctx.strokeRect((o.x - r) * TILE + 2, (o.y - r) * TILE + 2, (2 * r + 1) * TILE - 4, (2 * r + 1) * TILE - 4);
         ctx.fillStyle = 'rgba(255,159,67,0.08)'; ctx.fillRect((o.x - r) * TILE, (o.y - r) * TILE, (2 * r + 1) * TILE, (2 * r + 1) * TILE); ctx.restore();
@@ -2423,12 +2564,16 @@ const BattleUI = {
     else if (u.elite) { ctx.strokeStyle = 'rgba(255,140,90,0.45)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.ellipse(cx, cy + 20, 24, 9, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); }
     const size = u.boss ? TILE * 1.32 : TILE * 1.12;
     const pose = this.poseOf(u, now);
+    if (u.cls === 'KING' && isPlayer(u) && u.alive && !bt.fall && this.battle.run.banners && this.battle.run.banners.length) this.drawStandard(ctx, u, cx, cy, pose.facing || 1, now);
     drawCharacter(ctx, charSpec(u), cx - size / 2, cy + 18 - size * CHAR.footY, size, pose);
     if (bt.flash > 0) bt.flash = Math.max(0, bt.flash - 0.08);
     if (bt.dormant) { ctx.fillStyle = '#cbb'; ctx.font = 'bold 13px "Alegreya Sans", sans-serif'; ctx.textAlign = 'center'; ctx.fillText('z', cx + 20, cy - 24); }
     if (bt.brace) this.badge(ctx, cx - 24, cy - 24, '#7fb2ff', 'B');
     if (bt.fortify) this.badge(ctx, cx - 24, cy - 24, '#ffd166', 'F');
     if (bt.bloodlust) this.badge(ctx, cx + 24, cy - 24, '#ff9f43', '+' + bt.bloodlust);
+    if (bt.burn) this.badge(ctx, cx + 24, cy - 8, '#ff6a3c', String(bt.burn));
+    if (bt.vanguard) this.badge(ctx, cx - 24, cy - 8, '#e0b25a', 'V');
+    if (!isPlayer(u) && this.battle.pinned(u)) this.badge(ctx, cx - 24, cy - 8, '#4f7fb5', 'P');
     if (u.alive) {
       const w = TILE - 16, hpw = w * pct(u.hp, maxHp(u));
       ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(cx - w / 2, cy + 24, w, 6);
@@ -2440,6 +2585,22 @@ const BattleUI = {
   badge(ctx, x, y, color, letter) {
     ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#1a1416'; ctx.font = 'bold 11px "Alegreya Sans", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(letter, x, y + 0.5); ctx.textBaseline = 'alphabetic';
+  },
+  /* v4: the King carries the run's banners on a standard behind him, one
+     pennant per banner in its school's colour. */
+  drawStandard(ctx, u, cx, cy, facing, now) {
+    const banners = this.battle.run.banners.slice(0, 5);
+    const px = cx - facing * 15, top = cy - 46, bottom = cy + 19;
+    ctx.save();
+    ctx.strokeStyle = '#3a2a1a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px, bottom); ctx.lineTo(px, top); ctx.stroke();
+    ctx.fillStyle = '#e0b25a'; ctx.beginPath(); ctx.arc(px, top - 2, 3, 0, Math.PI * 2); ctx.fill();
+    banners.forEach((id, i) => {
+      const col = BANNER_SCHOOLS[BANNERS[id].school].color, y = top + 2 + i * 10;
+      const wave = Anim.reduced ? 0 : Math.sin(now / 350 + i) * 2;
+      ctx.fillStyle = col; ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px - facing * 16, y + 4 + wave); ctx.lineTo(px, y + 8); ctx.closePath(); ctx.fill(); ctx.stroke();
+    });
+    ctx.restore();
   },
 
   /* ---- effects (v2): each entry in battle.fx plays for `dur` ms ---- */
@@ -2524,6 +2685,8 @@ const BattleUI = {
     $('#round-label').textContent = b.phase === 'deploy' ? 'Deployment' : `Round ${b.round}`;
     $('#objective-label').textContent = b.kind === 'BOSS' ? `Boss: ${b.act.boss.name}` : b.exit ? 'Rout all, or escape with the King' : 'Rout all enemies';
     const q = clear($('#queue'));
+    const bb = clear($('#battle-banners'));
+    if (b.run.banners && b.run.banners.length) bb.append(Screens.bannerChips(b.run));
     if (b.phase === 'deploy') return;
     if (b.current) q.append(this.chip(b.current, 'current'));
     for (const { u, nextRound } of b.upcoming(10)) q.append(this.chip(u, nextRound ? 'dim' : ''));
@@ -2589,6 +2752,15 @@ const BattleUI = {
       sel.addEventListener('change', () => { if (sel.value !== '') b.useItem(Number(sel.value)); });
       row.append(sel);
     }
+    /* Field Commission banner: a Pawn may put on a cape mid-battle, free. */
+    if (b.has('COMMISSION') && u.cls === 'PAWN') {
+      const capes = b.run.inventory.map((it, i) => ({ it, i })).filter(x => x.it.kind === 'CAPE' && canPromote(b.run.warband, u, x.it.cls));
+      if (capes.length) {
+        const csel = h('select.btn.gold', { id: 'cape-select', title: 'Field Commission: free action' }, h('option', { value: '' }, `Wear cape (${capes.length}) — free`), ...capes.map(x => h('option', { value: x.i }, `${itemName(x.it)} — rise as a ${CLASSES[x.it.cls].name}`)));
+        csel.addEventListener('change', () => { if (csel.value !== '') b.wearCape(Number(csel.value)); });
+        row.append(csel);
+      }
+    }
     if (b.phase === 'act') row.append(h('button.btn', { onclick: () => b.undoMove() }, 'Undo move (U)'));
     if (b.exit && u.cls === 'KING' && u.x === b.exit.x && u.y === b.exit.y) row.append(h('button.btn.gold', { onclick: () => b.escape() }, 'Escape!'));
     row.append(h('button.btn', { onclick: () => b.wait() }, 'Wait (W)'));
@@ -2615,8 +2787,12 @@ const BattleUI = {
       if (!isPlayer(o)) {
         const it = this.intent;
         let text = '';
-        if (!it || it.kind === 'dormant') text = `Dormant. Wakes with its pack when you come within ${AGGRO_RADIUS} tiles, or when struck.`;
-        else if (it.kind === 'attack') text = `Will ${it.tile.x === o.x && it.tile.y === o.y ? 'stay' : 'move'} and strike ${it.target.name} for ${it.dmg}${it.dmg >= it.target.hp ? ' — lethal' : ''}.`;
+        if (!it || it.kind === 'dormant') text = `Dormant. Wakes with its pack when you come within ${b.aggroRadius} tiles, or when struck.`;
+        else if (it.kind === 'attack') {
+          const guard = b.guardFor(it.target);
+          text = guard ? `Will ${it.tile.x === o.x && it.tile.y === o.y ? 'stay' : 'move'} and strike at the King — ${guard.name} steps in and takes ${b.damageAgainst(o, guard).total}.`
+            : `Will ${it.tile.x === o.x && it.tile.y === o.y ? 'stay' : 'move'} and strike ${it.target.name} for ${it.dmg}${it.dmg >= it.target.hp ? ' — lethal' : ''}.`;
+        }
         else if (it.kind === 'move') text = `Will advance toward ${it.toward.name}. Nothing in reach yet.`;
         else if (it.kind === 'heal') text = `Will heal ${it.target.name}.`;
         else if (it.kind === 'fortify') text = 'Will fortify.';
@@ -2627,7 +2803,7 @@ const BattleUI = {
         const mine = b.damageAgainst(u, o), theirs = b.damageAgainst(o, u);
         extra = h('div.preview', null, extra,
           h('div', null, h('b', null, 'Your hit: '), `${mine.perHit}${mine.hits > 1 ? ' ×' + mine.hits : ''} ${mine.kind}${mine.total >= o.hp ? ' — kills' : ''}`),
-          h('div', null, h('b', null, 'Their hit on you: '), `${theirs.perHit}${theirs.hits > 1 ? ' ×' + theirs.hits : ''} ${theirs.kind}`));
+          h('div', null, h('b', null, 'Their hit on you: '), `${theirs.perHit}${theirs.hits > 1 ? ' ×' + theirs.hits : ''} ${theirs.kind}`, b.guardFor(u) ? ` (${b.guardFor(u).name} would step in)` : ''));
       }
       el.append(this.unitCard(o, extra));
     }
@@ -3143,6 +3319,8 @@ const WorldUI = {
 
 const SAVE_KEY = 'rankfile_save_v2';
 const RECORDS_KEY = 'rankfile_records_v1';
+const ANNALS_KEY = 'rankfile_annals_v1';
+const ANNALS_MAX = 60;
 
 const Game = {
   run: null,
@@ -3156,7 +3334,7 @@ const Game = {
       seed, seedStr, act: 0, gold: 50, battleCount: 0,
       warband: [], inventory: [{ kind: 'CONSUMABLE', type: 'POTION' }, { kind: 'CONSUMABLE', type: 'POTION' }],
       fallen: [], stats: { battles: 0, kills: 0, escapes: 0, promotions: 0 }, world: null,
-      lastFallen: [], perkOffers: {},
+      lastFallen: [], perkOffers: {}, banners: [], bannerOffer: null, opening: openingCls,
       startedAt: Date.now(),
     };
     const king = makeUnit('KING', 'PLAYER', (kingName || '').trim() || rng.pick(NAMES)); king.weapon = makeWeapon('BOW', 'COMMON');
@@ -3169,28 +3347,75 @@ const Game = {
     if (openingCls === 'ROOK') champ.offhand = makeOffhand('SHIELD', 'COMMON');
     run.world = generateOverworld(new RNG(seed ^ 0xA5A5), 0);
     this.run = run;
+    this.applyRules();
     this.save();
-    Screens.prologue(run, () => this.showOverworld());
+    /* the run opens with the King raising a banner: identity from turn one.
+       The offer is rolled now so a save made during the prologue still gets it. */
+    const opening = this.offerBanners(3, false);
+    Screens.prologue(run, () => Screens.bannerChoice(run, opening, 'Raise a banner', () => this.showOverworld()));
   },
   continueRun() {
     const run = Store.get(SAVE_KEY);
     if (!run) return false;
+    run.banners = run.banners || []; run.stats.promotions = run.stats.promotions || 0;
     this.run = run;
+    this.applyRules();
     nextUnitId = Math.max(1, ...run.warband.map(u => u.id + 1), ...run.fallen.map(u => u.id + 1));
+    if (run.bannerOffer) { Screens.bannerChoice(run, run.bannerOffer, 'Raise a banner', () => this.showOverworld()); return true; }
     this.showOverworld();
     return true;
   },
+  /* ---------------- banners (v4) ---------------- */
+  hasBanner(id) { return !!(this.run && this.run.banners.includes(id)); },
+  applyRules() {
+    RULES.queenLimit = this.hasBanner('TWIN_CROWNS') ? 2 : 1;
+    RULES.aggroRadius = this.hasBanner('GREY_CLOAKS') ? GREY_AGGRO : AGGRO_RADIUS;
+  },
+  /* n banners the run does not hold yet; cursed ones only when allowed. */
+  offerBanners(n, allowCursed) {
+    const run = this.run;
+    const rng = new RNG(run.seed ^ (run.banners.length * 7331 + run.battleCount * 17 + 101));
+    const pool = Object.keys(BANNERS).filter(id => !run.banners.includes(id) && (allowCursed || BANNERS[id].school !== 'curse'));
+    rng.shuffle(pool);
+    /* prefer one banner per school so the choice is a choice of identity */
+    const picks = [], seen = new Set();
+    for (const id of pool) if (picks.length < n && !seen.has(BANNERS[id].school)) { picks.push(id); seen.add(BANNERS[id].school); }
+    for (const id of pool) if (picks.length < n && !picks.includes(id)) picks.push(id);
+    run.bannerOffer = picks; this.save();
+    return picks;
+  },
+  raiseBanner(id) {
+    const run = this.run;
+    if (!BANNERS[id] || run.banners.includes(id)) return false;
+    run.banners.push(id); run.bannerOffer = null;
+    this.applyRules();
+    if (id === 'TWIN_CROWNS') for (const u of run.warband) if (u.cls === 'QUEEN') { u.boosts.maxHp -= TWIN_CROWNS_HP; u.hp = Math.max(1, Math.min(u.hp, maxHp(u))); }
+    this.save(); return true;
+  },
+  declineBanner() { this.run.bannerOffer = null; this.save(); },
   hasSave() { return !!Store.get(SAVE_KEY); },
   save() { if (this.run) Store.set(SAVE_KEY, this.run); },
-  abandon() { Store.del(SAVE_KEY); this.recordRun(false); this.run = null; Screens.title(); },
+  abandon() { Store.del(SAVE_KEY); this.recordRun(false, 'Abandoned'); this.run = null; Screens.title(); },
 
   records() { return Store.get(RECORDS_KEY) || { runs: 0, wins: 0, bestAct: 0, kills: 0, lastSeed: null }; },
-  recordRun(won) {
+  annals() { return Store.get(ANNALS_KEY) || []; },
+  recordRun(won, cause) {
     const r = this.records(); const run = this.run; if (!run) return;
     r.runs++; if (won) r.wins++;
     r.bestAct = Math.max(r.bestAct, Math.min(ACTS.length, run.act + 1));   // 1-based act reached
     r.kills += run.stats.kills; r.lastSeed = run.seedStr;
     Store.set(RECORDS_KEY, r);
+    /* the Annals: one entry per finished run */
+    const entry = {
+      at: Date.now(), seed: run.seedStr, king: run.kingName, opening: run.opening || null, won: !!won,
+      act: Math.min(ACTS.length, run.act + 1), cause: cause || (won ? 'Checkmate' : 'The King fell'),
+      battles: run.stats.battles, kills: run.stats.kills, promotions: run.stats.promotions || 0, escapes: run.stats.escapes || 0,
+      banners: run.banners.slice(), minutes: Math.round((Date.now() - (run.startedAt || Date.now())) / 60000),
+      survivors: run.warband.map(u => ({ name: u.name, cls: u.cls, level: u.level, kills: u.kills, origin: u.origin })),
+      fallen: run.fallen.map(u => ({ name: u.name, cls: u.cls, level: u.level, kills: u.kills, origin: u.origin, diedIn: u.diedIn })),
+    };
+    const list = this.annals(); list.unshift(entry);
+    Store.set(ANNALS_KEY, list.slice(0, ANNALS_MAX));
   },
 
   /* ---------------- overworld ---------------- */
@@ -3235,10 +3460,17 @@ const Game = {
     /* perk offers for anyone who crossed a perk level this battle */
     const prng = new RNG(run.seed ^ (run.battleCount * 2111 + 9));
     for (const u of run.warband) if (u.perkPending > 0 && !run.perkOffers[u.id]) run.perkOffers[u.id] = offerPerks(u, prng);
+    /* Battlefield Promotion banner: pawns who reached the far file choose a cape */
+    run.farFile = (result.farFile || []).filter(id => run.warband.some(u => u.id === id && u.cls === 'PAWN'));
     this.save();
-    Screens.results(run, kind, result, rewards, () => {
-      if (kind === 'BOSS') this.nextAct(); else this.showOverworld();
-    });
+    const afterResults = () => {
+      const lastBoss = kind === 'BOSS' && run.act >= ACTS.length - 1;
+      const offer = kind === 'BOSS' && !lastBoss ? this.offerBanners(3, true) : kind === 'ELITE' ? this.offerBanners(2, false) : null;
+      const go = () => { if (kind === 'BOSS') this.nextAct(); else this.showOverworld(); };
+      if (offer && offer.length) Screens.bannerChoice(run, offer, kind === 'BOSS' ? 'The boss is down. Raise a banner.' : 'A hard fight. Raise a banner.', go, true);
+      else go();
+    };
+    Screens.results(run, kind, result, rewards, afterResults);
   },
   rollRewards(kind, result) {
     const run = this.run;
@@ -3246,10 +3478,11 @@ const Game = {
     const rewards = { gold: 0, items: [], recovered: [] };
     const [lo, hi] = GOLD_REWARD[kind];
     rewards.gold = rng.int(lo, hi);
+    if (this.hasBanner('WARHORNS')) rewards.gold *= 2;
     if (result.escaped) {
       rewards.gold = Math.round(rewards.gold / 2);
     } else {
-      for (const cls of result.groundCapes) { rewards.recovered.push(makeCape(cls)); }
+      for (const c of result.groundCapes) rewards.recovered.push(makeCape(c.cls, this.hasBanner('HEIRLOOM') ? { level: c.level, name: c.name } : null));
       /* Capes: the Queen is the Act II boss's prize; before that, drops
          come from the three ordinary classes. */
       let useful = usefulCapeClasses(run.warband).filter(c => run.act > 0 || c !== 'QUEEN');
@@ -3281,7 +3514,7 @@ const Game = {
   },
   gameOver() {
     const run = this.run;
-    this.recordRun(false); Store.del(SAVE_KEY);
+    this.recordRun(false, `The King fell in ${ACTS[run.act].name}, battle ${run.battleCount}`); Store.del(SAVE_KEY);
     Screens.gameOver(run, false);
     this.run = null;
   },
@@ -3307,7 +3540,10 @@ const Game = {
     const run = this.run, it = run.inventory[itemIndex];
     if (!it || it.kind !== 'CAPE' || !canPromote(run.warband, unit, it.cls)) return false;
     run.inventory.splice(itemIndex, 1);
-    promote(unit, it.cls); run.stats.promotions++; this.save(); return true;
+    promote(unit, it.cls); run.stats.promotions++;
+    if (it.cls === 'QUEEN' && this.hasBanner('TWIN_CROWNS')) { unit.boosts.maxHp -= TWIN_CROWNS_HP; unit.hp = Math.max(1, Math.min(unit.hp, maxHp(unit))); }
+    if (it.heir) { const prng = new RNG(run.seed ^ (unit.id * 919)); while (unit.level < it.heir) { gainXp(unit, XP_PER_LEVEL); if (unit.perkPending > 0 && !run.perkOffers[unit.id]) run.perkOffers[unit.id] = offerPerks(unit, prng); } }
+    this.save(); return true;
   },
   useConsumable(unit, itemIndex) {
     const run = this.run, it = run.inventory[itemIndex];
@@ -3317,6 +3553,15 @@ const Game = {
     if (d.heal) { if (unit.hp >= maxHp(unit)) return false; unit.hp = Math.min(maxHp(unit), unit.hp + d.heal); }
     if (d.stat) { unit.boosts[d.stat] += d.amount; if (d.stat === 'maxHp') unit.hp += d.amount; }
     run.inventory.splice(itemIndex, 1); this.save(); return true;
+  },
+  /* Battlefield Promotion: promote a far-file pawn to a chosen class, no cape needed. */
+  fieldPromote(unit, cls) {
+    const run = this.run;
+    if (!run.farFile || !run.farFile.includes(unit.id) || !canPromote(run.warband, unit, cls)) return false;
+    promote(unit, cls); run.stats.promotions++;
+    if (cls === 'QUEEN' && this.hasBanner('TWIN_CROWNS')) { unit.boosts.maxHp -= TWIN_CROWNS_HP; unit.hp = Math.max(1, Math.min(unit.hp, maxHp(unit))); }
+    run.farFile = run.farFile.filter(id => id !== unit.id);
+    this.save(); return true;
   },
   choosePerk(unit, perk) {
     const run = this.run;
@@ -3368,6 +3613,65 @@ const Screens = {
     $('#seed-input').value = randomSeedString();
     $('#btn-continue').hidden = !Game.hasSave();
     $('#records').textContent = r.runs ? `${r.runs} run${r.runs > 1 ? 's' : ''} · ${r.wins} crowned · furthest: Act ${r.bestAct}${r.wins ? ' (won)' : ''} · ${r.kills} shades slain` : 'No runs yet. The board is set.';
+    $('#btn-annals').hidden = !Game.annals().length;
+  },
+  /* ---------------- banners (v4) ---------------- */
+  /* A drawn banner: a hanging cloth in the school's colour with its sigil
+     (tower / crescent / crown / torn edge). Used on cards and in the Annals. */
+  bannerCanvas(id, w) {
+    const b = BANNERS[id], sc = BANNER_SCHOOLS[b.school];
+    w = w || 48; const hgt = Math.round(w * 1.5);
+    const c = h('canvas.banner-art', { width: w, height: hgt, 'aria-hidden': 'true' });
+    const ctx = c.getContext('2d'); ctx.scale(w, w);
+    const H = hgt / w;
+    /* pole */
+    ctx.fillStyle = '#5a4634'; ctx.fillRect(0.04, 0.02, 0.92, 0.06);
+    ctx.fillStyle = '#e0b25a'; ctx.beginPath(); ctx.arc(0.04, 0.05, 0.05, 0, Math.PI * 2); ctx.arc(0.96, 0.05, 0.05, 0, Math.PI * 2); ctx.fill();
+    /* cloth: rectangle with a swallow-tail; torn for the curses */
+    ctx.beginPath(); ctx.moveTo(0.12, 0.08); ctx.lineTo(0.88, 0.08);
+    if (b.school === 'curse') { ctx.lineTo(0.9, H - 0.42); ctx.lineTo(0.78, H - 0.2); ctx.lineTo(0.68, H - 0.36); ctx.lineTo(0.56, H - 0.1); ctx.lineTo(0.44, H - 0.3); ctx.lineTo(0.3, H - 0.14); ctx.lineTo(0.2, H - 0.34); ctx.lineTo(0.1, H - 0.2); }
+    else { ctx.lineTo(0.88, H - 0.08); ctx.lineTo(0.5, H - 0.3); ctx.lineTo(0.12, H - 0.08); }
+    ctx.closePath();
+    ctx.fillStyle = sc.color; ctx.fill();
+    ctx.save(); ctx.clip();
+    const g = ctx.createLinearGradient(0, 0, 1, 0); g.addColorStop(0, 'rgba(255,255,255,0.14)'); g.addColorStop(0.5, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.28)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 1, H);
+    ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(0.12, 0.08, 0.76, 0.1);           // shadow under the pole
+    ctx.restore();
+    ctx.lineWidth = 0.03; ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.stroke();
+    /* sigil */
+    ctx.fillStyle = 'rgba(255,245,220,0.9)'; ctx.strokeStyle = 'rgba(255,245,220,0.9)'; ctx.lineWidth = 0.05; ctx.lineJoin = 'round';
+    const cx = 0.5, cy = 0.56;
+    switch (b.school) {
+      case 'wall': ctx.beginPath(); ctx.rect(cx - 0.17, cy - 0.12, 0.34, 0.3); ctx.fill(); for (let i = 0; i < 3; i++) ctx.fillRect(cx - 0.17 + i * 0.13, cy - 0.2, 0.08, 0.09); ctx.fillStyle = sc.color; ctx.fillRect(cx - 0.05, cy + 0.02, 0.1, 0.16); break;
+      case 'cloak': ctx.beginPath(); ctx.arc(cx + 0.02, cy, 0.19, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = sc.color; ctx.beginPath(); ctx.arc(cx + 0.11, cy - 0.04, 0.16, 0, Math.PI * 2); ctx.fill(); break;
+      case 'rank': ctx.beginPath(); ctx.moveTo(cx - 0.2, cy + 0.12); ctx.lineTo(cx - 0.2, cy - 0.1); ctx.lineTo(cx - 0.08, cy); ctx.lineTo(cx, cy - 0.16); ctx.lineTo(cx + 0.08, cy); ctx.lineTo(cx + 0.2, cy - 0.1); ctx.lineTo(cx + 0.2, cy + 0.12); ctx.closePath(); ctx.fill(); break;
+      case 'curse': ctx.beginPath(); ctx.moveTo(cx + 0.04, cy - 0.2); ctx.lineTo(cx - 0.1, cy + 0.02); ctx.lineTo(cx + 0.02, cy + 0.02); ctx.lineTo(cx - 0.06, cy + 0.22); ctx.lineTo(cx + 0.12, cy - 0.04); ctx.lineTo(cx, cy - 0.04); ctx.closePath(); ctx.fill(); break;
+    }
+    return c;
+  },
+  bannerCard(id, onPick) {
+    const b = BANNERS[id], sc = BANNER_SCHOOLS[b.school];
+    const card = h('button.btn.banner-card', { style: `--bc:${sc.color}`, onclick: onPick ? () => onPick(id) : null, disabled: !onPick });
+    card.append(this.bannerCanvas(id, 44), h('span.bname', null, b.name), h('span.bschool', null, sc.name), h('span.bdesc', null, b.desc));
+    return card;
+  },
+  bannerChoice(run, offers, title, done, canDecline) {
+    const sh = this.sheet(title, h('p', null, run.banners.length ? `The band fights under ${run.banners.map(id => BANNERS[id].name).join(', ')}. Add one more.` : 'A banner is a rule the whole band fights under, for the rest of the run. Choose the kind of army you mean to be.'));
+    const row = h('div.banner-row');
+    for (const id of offers) row.append(this.bannerCard(id, pick => {
+      Game.raiseBanner(pick);
+      const b = BANNERS[pick];
+      const sh2 = this.sheet(`${b.name} is raised`, h('div.banner-hero', null, this.bannerCanvas(pick, 72)), this.story([`${run.kingName}: "Under this banner, then. ${BANNER_SCHOOLS[b.school].blurb}"`], 'dialogue'), h('p.muted', null, b.desc));
+      sh2.append(h('div.btnrow', null, h('button.btn.primary', { onclick: done }, 'Continue')));
+    }));
+    sh.append(row);
+    if (canDecline) sh.append(h('div.btnrow', null, h('button.btn', { onclick: () => { Game.declineBanner(); done(); } }, 'Raise none')));
+  },
+  bannerChips(run) {
+    const box = h('div.banner-chips');
+    for (const id of run.banners) { const b = BANNERS[id]; box.append(h('span.bchip', { style: `--bc:${BANNER_SCHOOLS[b.school].color}`, title: `${b.name} — ${b.desc}` }, h('i'), b.name)); }
+    return box;
   },
   prologue(run, done) {
     const sh = this.sheet('The Promise', this.story(STORY.prologue));
@@ -3396,6 +3700,8 @@ const Screens = {
     }
     const inv = run.inventory.length;
     strip.append(h('button.mini.inv' + (run.inventory.some(i => i.kind === 'CAPE') || pending ? '.alert' : ''), { onclick: () => this.warband(run, () => this.refreshResources(run)) }, h('div.mini-text', null, h('div.uname', null, 'Warband & items'), h('div.usub', null, `${inv} item${inv === 1 ? '' : 's'}${run.inventory.some(i => i.kind === 'CAPE') ? ' · cape ready' : ''}${pending ? ' · talents to choose' : ''}`))));
+    const bb = clear($('#ow-banners'));
+    if (run.banners.length) { bb.append(h('span.muted', null, 'Banners: '), this.bannerChips(run)); }
   },
 
   /* ---------------- warband overlay ---------------- */
@@ -3509,6 +3815,11 @@ const Screens = {
         list.append(h('div.item.' + it.kind.toLowerCase(), null, h('div', null, h('div.iname', null, itemName(it)), h('div.idesc', null, describeItem(it))),
           h('button.btn', { disabled: run.gold < price, onclick: () => { run.gold -= price; run.inventory.push(it); stock.items[i] = null; Sfx.play('coin'); Game.save(); render(); } }, `${price} g`)));
       });
+      if (stock.banner && !run.banners.includes(stock.banner)) {
+        const b = BANNERS[stock.banner];
+        list.append(h('div.item.banner', { style: `--bc:${BANNER_SCHOOLS[b.school].color}` }, this.bannerCanvas(stock.banner, 30), h('div', { style: 'flex:1' }, h('div.iname', null, `Banner: ${b.name}`), h('div.idesc', null, `${BANNER_SCHOOLS[b.school].name}. ${b.desc}`)),
+          h('button.btn', { disabled: run.gold < BANNER_PRICE, onclick: () => { run.gold -= BANNER_PRICE; Game.raiseBanner(stock.banner); stock.banner = null; Sfx.play('coin'); Game.save(); render(); } }, `${BANNER_PRICE} g`)));
+      }
       if (stock.recruit) list.append(h('div.item.recruit', null, h('div', null, h('div.iname', null, `Recruit ${stock.recruit.name}, ${originOf(stock.recruit).name}`), h('div.idesc', null, 'A Pawn with an iron sword. Capes make them more.')),
         h('button.btn', { disabled: run.gold < RECRUIT_PRICE || run.warband.length >= WARBAND_CAP, title: run.warband.length >= WARBAND_CAP ? 'Warband is full' : '', onclick: () => { run.gold -= RECRUIT_PRICE; run.warband.push(stock.recruit); stock.recruit = null; Sfx.play('coin'); Game.save(); render(); } }, `${RECRUIT_PRICE} g`)));
       sh.append(list, h('div.btnrow', null, h('button.btn', { onclick: () => this.warband(run) }, 'Open warband'), h('button.btn.primary', { onclick: done }, 'Leave')));
@@ -3521,7 +3832,8 @@ const Screens = {
       { kind: 'CONSUMABLE', type: 'POTION' }, { kind: 'CONSUMABLE', type: rng.pick(['TONIC', 'ELIXIR']) }, { kind: 'CONSUMABLE', type: rng.pick(['WHETSTONE', 'PLATE', 'SIGIL', 'CHARM']) }];
     const useful = usefulCapeClasses(run.warband).filter(c => run.act > 0 || c !== 'QUEEN');
     if (useful.length) items.push(makeCape(rng.pick(useful)));
-    return { node: run.world.current, items, recruit: makeRecruit(rng, run.warband) };
+    const bannerPool = Object.keys(BANNERS).filter(id => !run.banners.includes(id) && BANNERS[id].school !== 'curse');
+    return { node: run.world.current, items, recruit: makeRecruit(rng, run.warband), banner: bannerPool.length ? rng.pick(bannerPool) : null };
   },
 
   /* ---------------- events ---------------- */
@@ -3553,6 +3865,7 @@ const Screens = {
         case 'weaponType': { const w = makeWeapon(args[0], args[1] || 'COMMON'); run.inventory.push(w); lines.push(`Found: ${weaponName(w)}.`); break; }
         case 'offhand': { const o = makeOffhand(args[0], args[1] || 'COMMON'); run.inventory.push(o); lines.push(`Found: ${offhandName(o)}.`); break; }
         case 'item': run.inventory.push({ kind: 'CONSUMABLE', type: args[0] }); lines.push(`Received: ${ITEMS[args[0]].name}.`); break;
+        case 'banner': if (Game.raiseBanner(args[0])) lines.push(`The band now fights under ${BANNERS[args[0]].name}: ${BANNERS[args[0]].desc}`); else lines.push('You already fight under that banner. You burn it instead and find 45 gold.') || (run.gold += 45); break;
         case 'hpAll': for (const u of run.warband) u.hp = Math.max(1, Math.min(maxHp(u), u.hp + Number(args[0]))); lines.push(`Every unit ${Number(args[0]) < 0 ? 'loses' : 'gains'} ${Math.abs(Number(args[0]))} HP.`); break;
         case 'hpAllPct': for (const u of run.warband) u.hp = Math.max(1, Math.min(maxHp(u), u.hp + Math.round(maxHp(u) * Number(args[0])))); lines.push(`Every unit loses ${Math.round(-Number(args[0]) * 100)}% HP.`); break;
         case 'healAllPct': for (const u of run.warband) u.hp = Math.min(maxHp(u), u.hp + Math.round(maxHp(u) * Number(args[0]))); lines.push(`Every unit recovers ${Math.round(Number(args[0]) * 100)}% HP.`); break;
@@ -3589,8 +3902,20 @@ const Screens = {
     list.append(h('li', null, `${rewards.gold} gold${result.escaped ? ' (halved — you fled)' : ''}`));
     for (const it of rewards.recovered) list.append(h('li.gold', null, `${itemName(it)} recovered from the field`));
     for (const it of rewards.items) list.append(h('li', null, `${itemName(it)} — ${describeItem(it)}`));
-    if (result.escaped && result.groundCapes.length) list.append(h('li.warn', null, `Left behind: ${result.groundCapes.map(c => CLASSES[c].name + "'s cape").join(', ')}.`));
+    if (result.escaped && result.groundCapes.length) list.append(h('li.warn', null, `Left behind: ${result.groundCapes.map(c => CLASSES[c.cls].name + "'s cape").join(', ')}.`));
     sh.append(list);
+    /* Battlefield Promotion banner: pawns on the far file choose their cape */
+    const far = (run.farFile || []).map(id => run.warband.find(u => u.id === id)).filter(u => u && u.cls === 'PAWN');
+    if (far.length) {
+      const box = h('div.perks', null, h('h3', null, 'Battlefield promotion'));
+      for (const u of far) {
+        const opts = ['ROOK', 'KNIGHT', 'BISHOP', 'QUEEN'].filter(c => canPromote(run.warband, u, c));
+        const row = h('div.perkrow', null, h('div.hint', null, `${u.name} reached the far file. ${opts.length ? 'Rise as:' : 'No cape can be given — every rank is full.'}`));
+        for (const c of opts) row.append(h('button.btn.gold', { onclick: () => { const wasFirst = run.stats.promotions === 0; if (Game.fieldPromote(u, c)) { const ctx = { name: u.name, king: run.kingName, cls: c, origin: originOf(u) }; const lines = STORY.promotion[c].map(l => fillLine(l, ctx)); if (wasFirst) lines.push(fillLine(STORY.reactions.firstPromotion[0], ctx)); const sh2 = this.sheet(`${u.name} rises a ${CLASSES[c].name}`, h('div.ceremony', null, this.pieceCanvas(u, 96), this.story(lines, 'dialogue'))); sh2.append(h('div.btnrow', null, h('button.btn.primary', { onclick: () => this.results(run, kind, result, rewards, done) }, 'Continue'))); } } }, h('b', null, CLASSES[c].name), h('span', null, CLASSES[c].role)));
+        box.append(row);
+      }
+      sh.append(box);
+    }
     /* talent choices for anyone who levelled past 3 / 6 / 9 */
     const pending = run.warband.filter(u => u.perkPending > 0 && run.perkOffers[u.id]);
     if (pending.length) {
@@ -3619,6 +3944,7 @@ const Screens = {
       sh.append(this.story(STORY.epilogue.map(l => fillLine(l, { survivors: text }))));
     } else sh.append(h('p', null, `The run ends in ${ACTS[run.act].name}.`));
     sh.append(h('p.muted', null, `Seed ${run.seedStr} · ${run.stats.battles} battles · ${run.stats.kills} enemies slain · ${run.stats.promotions} raised · ${run.fallen.length} fallen`));
+    if (run.banners.length) sh.append(h('p.muted', null, 'Banners: ' + run.banners.map(id => BANNERS[id].name).join(', ')));
     if (run.fallen.length) {
       const list = h('ul.memorial');
       run.fallen.forEach((u, i) => { const o = originOf(u); list.append(h('li', null, h('b', null, u.name), ` the ${CLASSES[u.cls].name}${o ? ', ' + o.name : ''} — Lv ${u.level}, ${u.kills} kills, ${STORY.epitaphs[i % STORY.epitaphs.length]} (${u.diedIn}).`)); });
@@ -3628,6 +3954,53 @@ const Screens = {
   },
   help() {
     $('#help').hidden = false;
+  },
+  /* ---------------- the Annals (v4): every finished run ---------------- */
+  annals() {
+    const list = Game.annals();
+    const sh = this.sheet('The Annals');
+    if (!list.length) { sh.append(h('p.muted', null, 'No runs recorded yet.'), h('button.btn', { onclick: () => this.title() }, 'Back')); return; }
+    const wins = list.filter(r => r.won).length, kills = list.reduce((a, r) => a + r.kills, 0), battles = list.reduce((a, r) => a + r.battles, 0);
+    const best = Math.max(...list.map(r => r.act)), minutes = list.reduce((a, r) => a + (r.minutes || 0), 0);
+    const count = (arr, f) => { const m = {}; for (const r of arr) for (const k of f(r)) m[k] = (m[k] || 0) + 1; return Object.entries(m).sort((a, b) => b[1] - a[1]); };
+    const topBanner = count(list, r => r.banners || [])[0];
+    const topOpening = count(list.filter(r => r.opening), r => [r.opening])[0];
+    const veteran = list.flatMap(r => [...r.survivors, ...r.fallen]).filter(u => u.cls !== 'KING').sort((a, b) => b.level - a.level || b.kills - a.kills)[0];
+    const deadliest = list.flatMap(r => [...r.survivors, ...r.fallen]).sort((a, b) => b.kills - a.kills)[0];
+    const stats = h('div.stats.annals-stats', null, ...[
+      ['RUNS', list.length], ['CROWNED', wins], ['WIN RATE', `${Math.round(wins / list.length * 100)}%`], ['BEST ACT', best], ['BATTLES', battles], ['SLAIN', kills], ['HOURS', (minutes / 60).toFixed(1)],
+    ].map(([k, v]) => h('div', null, h('b', null, k), String(v))));
+    sh.append(stats);
+    const facts = [];
+    if (topBanner) facts.push(`Most raised banner: ${BANNERS[topBanner[0]] ? BANNERS[topBanner[0]].name : topBanner[0]} (${topBanner[1]}×).`);
+    if (topOpening) facts.push(`Favourite opening: ${CLASSES[topOpening[0]] ? CLASSES[topOpening[0]].name : topOpening[0]}.`);
+    if (veteran) facts.push(`Highest rank reached: ${veteran.name} the ${CLASSES[veteran.cls].name}, level ${veteran.level}.`);
+    if (deadliest && deadliest.kills) facts.push(`Deadliest: ${deadliest.name} the ${CLASSES[deadliest.cls].name}, ${deadliest.kills} kills.`);
+    if (facts.length) sh.append(h('p.muted', null, facts.join(' ')));
+    const rows = h('div.annals');
+    list.forEach((r, i) => {
+      const d = new Date(r.at);
+      const head = h('button.btn.annal' + (r.won ? '.won' : ''), null,
+        h('span.a-when', null, d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })),
+        h('span.a-king', null, `${r.king}`),
+        h('span.a-out', null, r.won ? 'Checkmate' : `Fell in Act ${r.act}`),
+        h('span.a-num', null, `${r.battles} battles · ${r.kills} slain · ${r.promotions} promoted · ${r.fallen.length} fallen`),
+        h('span.a-pennants', null, ...(r.banners || []).filter(id => BANNERS[id]).map(id => h('i', { style: `--bc:${BANNER_SCHOOLS[BANNERS[id].school].color}`, title: BANNERS[id].name }))));
+      const body = h('div.a-body', { hidden: true });
+      body.append(h('div.muted', null, `${r.cause}. Seed ${r.seed}${r.opening ? ' · opening ' + CLASSES[r.opening].name : ''}${r.minutes ? ' · ' + r.minutes + ' min' : ''}.`));
+      if (r.banners && r.banners.length) body.append(h('div.banners-row', null, h('b', null, 'Banners: '), this.bannerChips({ banners: r.banners.filter(id => BANNERS[id]) })));
+      if (r.survivors.length) body.append(h('div', null, h('b', null, r.won ? 'The court: ' : 'Left standing: '), r.survivors.map(u => `${u.name} the ${CLASSES[u.cls].name} (Lv ${u.level}, ${u.kills} kills)`).join('; ')));
+      if (r.fallen.length) body.append(h('div', null, h('b', null, 'Fallen: '), r.fallen.map(u => `${u.name} the ${CLASSES[u.cls].name} (Lv ${u.level}, ${u.diedIn || ''})`).join('; ')));
+      head.addEventListener('click', () => { body.hidden = !body.hidden; });
+      rows.append(head, body);
+    });
+    sh.append(rows);
+    const copy = h('button.btn', { onclick: () => {
+      const text = list.map(r => `${new Date(r.at).toISOString().slice(0, 10)}  ${r.won ? 'WON ' : 'Act ' + r.act}  ${r.king}  seed ${r.seed}  ${r.battles} battles, ${r.kills} slain, ${r.promotions} promoted, ${r.fallen.length} fallen  banners: ${(r.banners || []).map(id => BANNERS[id] ? BANNERS[id].name : id).join(', ') || '-'}`).join('\n');
+      const done = () => { copy.textContent = 'Copied'; setTimeout(() => { copy.textContent = 'Copy as text'; }, 1500); };
+      try { navigator.clipboard.writeText(text).then(done, () => { copy.textContent = 'Copy failed'; }); } catch (e) { copy.textContent = 'Copy failed'; }
+    } }, 'Copy as text');
+    sh.append(h('div.btnrow', null, copy, h('button.btn.primary', { onclick: () => this.title() }, 'Back to title')));
   },
 };
 
@@ -3720,6 +4093,7 @@ function init() {
     Game.newRun(seed, opening, $('#king-input').value);
   });
   $('#btn-continue').addEventListener('click', () => Game.continueRun());
+  $('#btn-annals').addEventListener('click', () => Screens.annals());
   $('#btn-reroll').addEventListener('click', () => { $('#seed-input').value = randomSeedString(); });
   for (const b of document.querySelectorAll('.btn-help')) b.addEventListener('click', () => Screens.help());
   $('#help-close').addEventListener('click', () => { $('#help').hidden = true; });
@@ -3741,7 +4115,7 @@ function init() {
 }
 
 /* Debug / test handle. Not used by the UI. */
-window.RF = { Game, Battle, BattleUI, Screens, WorldUI, Anim, CLASSES, WEAPONS, ABILITIES, ACTS, PERKS, OFFHANDS, STORY, ORIGINS, generateMap, generateOverworld, RNG, makeUnit, makeEnemy, makeOffhand, makeWeapon, statOf, maxHp, moveRange, Store, SAVE_KEY };
+window.RF = { Game, Battle, BattleUI, Screens, WorldUI, Anim, CLASSES, WEAPONS, ABILITIES, ACTS, PERKS, OFFHANDS, STORY, ORIGINS, BANNERS, RULES, generateMap, generateOverworld, RNG, makeUnit, makeEnemy, makeOffhand, makeWeapon, makeCape, promote, canPromote, statOf, maxHp, moveRange, Store, SAVE_KEY, ANNALS_KEY };
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 
