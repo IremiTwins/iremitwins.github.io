@@ -1,5 +1,48 @@
 {
-  "sfx": {},
-  "music": {},
-  "credits": []
+  "sfx": {
+    "swing": "sfx/swing.mp3",
+    "hit": "sfx/hit.mp3",
+    "arrow": "sfx/arrow.mp3",
+    "spell": "sfx/spell.mp3",
+    "burn": "sfx/burn.mp3",
+    "kill": "sfx/kill.mp3",
+    "heal": "sfx/heal.mp3",
+    "ability": "sfx/ability.mp3",
+    "alert": "sfx/alert.mp3",
+    "deploy": "sfx/deploy.mp3",
+    "level": "sfx/level.mp3",
+    "cape": "sfx/cape.mp3",
+    "banner": "sfx/banner.mp3",
+    "win": "sfx/win.mp3",
+    "lose": "sfx/lose.mp3",
+    "click": "sfx/click.mp3",
+    "coin": "sfx/coin.mp3"
+  },
+  "music": {
+    "title": "music/title.mp3",
+    "map1": "music/map1.mp3",
+    "map2": "music/map2.mp3",
+    "map3": "music/map3.mp3",
+    "battle1": "music/map1.mp3",
+    "battle2": "music/map2.mp3",
+    "battle3": "music/map3.mp3",
+    "boss": "music/boss.mp3",
+    "camp": "music/camp.mp3",
+    "victory": "music/victory.mp3",
+    "defeat": "music/defeat.mp3"
+  },
+  "credits": [
+    {
+      "what": "Sound effects",
+      "who": "Sonniss GDC 2026 Game Audio Bundle: David Dumais Audio (swing, hit), 344 Audio (arrow, defeat), Epic Stock Media (spell, burn, ability, alert, level, cape, click), SoundBits (kill), CB Sounddesign (heal), Federico Soler (deploy), Jake Fielding (banner), Ivo Vicic (victory bells), Cinematic Sound Design (lose, coin)",
+      "license": "Royalty-free, no attribution required (Sonniss GDC bundle license)",
+      "url": "https://gdc.sonniss.com"
+    },
+    {
+      "what": "Ambience beds (no composed music yet)",
+      "who": "Epic Stock Media (title), 344 Audio (Act I forest, Act III evil-spell ambience), InMotionAudio (Act II chimney wind), Alexander Kopeikin (boss drone), Ivo Vicic (camp fire)",
+      "license": "Royalty-free, no attribution required (Sonniss GDC bundle license)",
+      "url": "https://gdc.sonniss.com"
+    }
+  ]
 }

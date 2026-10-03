@@ -1,6 +1,11 @@
 # Rank & File — audio folder
 
-The game has no audio files of its own: every sound effect is synthesised in the browser,
+Status (2026-10-03): 17 sampled cues and 8 ambience beds from the free Sonniss GDC 2026 bundle are
+in `sfx/` and `music/` and named in `manifest.json` (3.4 MB total; see `../CREDITS.md` for sources and
+`../tools/sonniss-cut.py` for how they were cut). Composed music is still open: replace the `music/`
+beds with real tracks under the same keys when you have them.
+
+Originally the game had no audio files of its own: every sound effect is synthesised in the browser,
 and there is no music until files are placed here. This folder sits beside the game page
 (`rank-and-file.html` locally, `/rank-and-file/` on the site) and is read once at start-up
 through `audio/manifest.json`. If the manifest is missing or empty, the game stays synth-only
