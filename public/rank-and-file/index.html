@@ -117,7 +117,7 @@ select.btn { padding-right: 28px; }
 .chip.dim { opacity: 0.45; }
 .chip canvas { width: 22px; height: 22px; }
 .battle-main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; align-items: start; }
-.board-wrap { border: 2px solid #4a3f2a; border-radius: 6px; box-shadow: 0 0 0 1px #000, 0 20px 50px rgba(0,0,0,0.5); overflow: hidden; background: #000; }
+.board-wrap { position: relative; border: 2px solid #4a3f2a; border-radius: 6px; box-shadow: 0 0 0 1px #000, 0 20px 50px rgba(0,0,0,0.5); overflow: hidden; background: #000; }
 #board { width: 100%; aspect-ratio: 12 / 10; cursor: pointer; }
 .panel { display: grid; gap: 10px; min-width: 0; }
 .card { background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px; min-width: 0; }
@@ -269,6 +269,14 @@ li .ibox { display: inline-grid; width: 24px; height: 24px; vertical-align: midd
 .settings input[type=range] { width: 160px; accent-color: var(--accent); }
 .credit { font-size: 0.95rem; }
 .credit a { color: var(--accent-2); }
+.tap-hint { margin-top: 6px; padding: 6px 8px; border-radius: 6px; background: var(--accent); color: #1a1416; font-weight: 600; text-align: center; }
+.legend .ico { margin-right: 5px; vertical-align: -0.2em; }
+.openings .opening-ico { float: left; margin: 2px 8px 0 0; }
+.last-run { margin-top: 6px; color: var(--muted); font-size: 0.92rem; }
+#tap-toast { position: absolute; left: 8px; right: 8px; bottom: 8px; background: rgba(26,20,22,0.92); border: 1px solid var(--accent); border-radius: 8px; padding: 8px 12px; font-size: 0.95rem; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+#tap-toast[hidden] { display: none; }
+#tap-toast b { color: var(--accent); }
+#tap-toast .go { background: var(--accent); color: #1a1416; font-weight: 700; padding: 6px 12px; border-radius: 6px; border: 0; cursor: pointer; }
 
 </style>
 </head>
@@ -340,7 +348,7 @@ li .ibox { display: inline-grid; width: 24px; height: 24px; vertical-align: midd
     </div>
     <div class="turnbar"><span class="lbl" id="round-label">Round 1</span><div id="queue"></div><span class="obj" id="objective-label"></span><div id="battle-banners"></div></div>
     <div class="battle-main">
-      <div class="board-wrap"><canvas id="board"></canvas></div>
+      <div class="board-wrap"><canvas id="board"></canvas><div id="tap-toast" hidden></div></div>
       <aside class="panel">
         <div class="card" id="cur-unit"></div>
         <div class="card" id="actions"></div>
@@ -839,6 +847,11 @@ const STORY = {
     escaped: ['{king}: "We ran. There is no shame in it. There is a cape on that floor with a shame on it, though."'],
     firstPromotion: ['{king}: "The first cape. The promise is no longer only words."'],
   },
+  lastStand: [
+    '{king}: "So. It is only me now. Good: I have been carried long enough."',
+    '{king}: "{fallen} was the last of them. Come, then. A king still moves."',
+    '{king}: "Every one of them stood. I will not be the one who kneels."',
+  ],
   epitaphs: ['stood in the line', 'went in first', 'held the wall', 'kept the others standing', 'did not run', 'fell facing them'],
 };
 
@@ -1669,7 +1682,7 @@ class Battle {
     this.kills = 0;
     this.turns = 0;
     this.fallen = [];                               // player units lost this battle (names)
-    this.showDanger = false;
+    this.showDanger = !!Store.get('rankfile_danger');
     this.summons = 0;
     this.spawnTiles = [];
     this.deploySel = null;
@@ -2011,6 +2024,15 @@ class Battle {
       if (this.has('TEMPO') && source.alive) { this.queue.push(source); this.floater(source, 'TEMPO', '#6f8f6a'); this.log(`Tempo: ${source.name} will act again.`); }
     }
     if (isPlayer(u)) this.fallen.push(u.name);
+    /* v5.1: the King alone — one line, once */
+    if (isPlayer(u) && u.cls !== 'KING' && !this.lastStand) {
+      const left = this.units.filter(p => p.alive && isPlayer(p));
+      if (left.length === 1 && left[0].cls === 'KING' && this.units.some(e => e.alive && !isPlayer(e))) {
+        this.lastStand = true; const king = left[0];
+        this.floater(king, 'LAST STAND', '#ffd166');
+        this.log(fillLine(this.rng.pick(STORY.lastStand), { king: king.name, fallen: u.name }));
+      }
+    }
     if (isPlayer(u) && u.cls !== 'PAWN' && u.cls !== 'KING') {
       this.groundCapes.push({ x: u.x, y: u.y, cls: u.cls, level: u.level, name: u.name });
       this.log(`${u.name}'s ${CLASSES[u.cls].name} cape lies where they fell. Step on it to recover it.`);
@@ -2601,8 +2623,22 @@ const BattleUI = {
       return inBounds(x, y) ? { x, y } : null;
     };
     c.addEventListener('mousemove', e => { const t = tileOf(e); if (this.battle) { this.battle.hover = t; this.refreshHover(); } });
-    c.addEventListener('mouseleave', () => { if (this.battle) { this.battle.hover = null; this.refreshHover(); } });
-    c.addEventListener('click', e => { const t = tileOf(e); if (t && this.battle) this.battle.onTile(t.x, t.y); });
+    c.addEventListener('mouseleave', () => { if (this.battle && this.lastPointer !== 'touch') { this.battle.hover = null; this.refreshHover(); } });   // a finger never "leaves"; the preview stays until the next tap
+    /* v5.1: touch has no hover, so the first tap on an enemy shows its intent and the
+       damage preview; the same tile tapped again attacks. Mouse clicks are unchanged. */
+    this.coarse = !!(window.matchMedia && window.matchMedia('(hover: none)').matches);
+    c.addEventListener('pointerdown', e => { this.lastPointer = e.pointerType; }, { passive: true });
+    c.addEventListener('click', e => {
+      const t = tileOf(e); if (!t || !this.battle) return;
+      const b = this.battle;
+      const touch = this.lastPointer === 'touch' || (this.lastPointer == null && this.coarse);
+      if (touch && this.wantsConfirm(t)) {
+        if (this.armed && this.armed.x === t.x && this.armed.y === t.y) { this.armed = null; b.onTile(t.x, t.y); return; }
+        this.armed = t; b.hover = t; this.refreshHover(); return;
+      }
+      this.armed = null; this.hideToast();
+      b.onTile(t.x, t.y);
+    });
     c.addEventListener('contextmenu', e => { e.preventDefault(); this.cancel(); });
     window.addEventListener('keydown', e => {
       if (!this.battle || $('#battle').hidden || e.target.tagName === 'INPUT') return;
@@ -2616,13 +2652,20 @@ const BattleUI = {
     });
     window.addEventListener('resize', () => this.resize());
   },
+  /* A tap that would commit an attack: a living enemy, during the player's move or act phase. */
+  wantsConfirm(t) {
+    const b = this.battle; if (!b || !b.current || !isPlayer(b.current)) return false;
+    if (b.phase !== 'move' && b.phase !== 'act') return false;
+    const o = b.grid.unitAt(t.x, t.y);
+    return !!(o && o.alive && !isPlayer(o));
+  },
   cancel() {
     const b = this.battle; if (!b) return;
     if (b.phase === 'target') b.cancelTarget();
     else if (b.phase === 'act') b.undoMove();
     else if (b.phase === 'deploy') { b.deploySel = null; this.refresh(); }
   },
-  toggleDanger() { const b = this.battle; if (!b) return; b.showDanger = !b.showDanger; this.danger = null; this.refreshActions(); },
+  toggleDanger() { const b = this.battle; if (!b) return; b.showDanger = !b.showDanger; Store.set('rankfile_danger', b.showDanger); this.danger = null; this.refreshActions(); },
 
   /* ---------------- drawing ---------------- */
   shake(amp) { if (Anim.reduced) return; this.shakeT0 = performance.now(); this.shakeAmp = Math.max(this.shakeAmp || 0, amp); },
@@ -2642,6 +2685,14 @@ const BattleUI = {
       else if (t === 'LAVA') this.lava(ctx, x, y, now);
     }
     for (const c of b.groundCapes) this.drawCape(ctx, c, now);
+    /* Battlefield Promotion banner: the far file is where a Pawn earns its cape */
+    if (b.has('BATTLEFIELD') && b.units.some(p => p.alive && isPlayer(p) && p.cls === 'PAWN')) {
+      ctx.save(); const fx = (GRID_W - 1) * TILE, pulse = 0.5 + 0.5 * Math.sin(now / 700);
+      ctx.fillStyle = `rgba(224,178,90,${0.08 + 0.05 * pulse})`; ctx.fillRect(fx, 0, TILE, GRID_H * TILE);
+      ctx.strokeStyle = `rgba(224,178,90,${0.35 + 0.2 * pulse})`; ctx.lineWidth = 2; ctx.setLineDash([6, 6]); ctx.strokeRect(fx + 2, 2, TILE - 4, GRID_H * TILE - 4); ctx.setLineDash([]);
+      for (let y = 0; y < GRID_H; y++) if (!b.grid.unitAt(GRID_W - 1, y) && TERRAIN[b.grid.t(GRID_W - 1, y)].moveCost !== null) drawIcon(ctx, 'PAWN', fx + TILE / 2, y * TILE + TILE / 2, 22, `rgba(224,178,90,${0.18 + 0.12 * pulse})`);
+      ctx.restore();
+    }
     const u = b.current;
     /* deployment */
     if (b.phase === 'deploy') {
@@ -2713,7 +2764,8 @@ const BattleUI = {
         ctx.strokeRect((o.x - r) * TILE + 2, (o.y - r) * TILE + 2, (2 * r + 1) * TILE - 4, (2 * r + 1) * TILE - 4);
         ctx.fillStyle = 'rgba(255,159,67,0.08)'; ctx.fillRect((o.x - r) * TILE, (o.y - r) * TILE, (2 * r + 1) * TILE, (2 * r + 1) * TILE); ctx.restore();
       }
-      ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 2; ctx.strokeRect(b.hover.x * TILE + 1.5, b.hover.y * TILE + 1.5, TILE - 3, TILE - 3);
+      const armed = this.armed && this.armed.x === b.hover.x && this.armed.y === b.hover.y;
+      ctx.strokeStyle = armed ? `rgba(255,209,102,${0.7 + 0.3 * Math.sin(now / 160)})` : 'rgba(255,255,255,0.85)'; ctx.lineWidth = armed ? 3 : 2; ctx.strokeRect(b.hover.x * TILE + 1.5, b.hover.y * TILE + 1.5, TILE - 3, TILE - 3);
     }
     ctx.restore();
   },
@@ -2901,9 +2953,10 @@ const BattleUI = {
   },
 
   /* ---------------- side panel ---------------- */
+  hideToast() { const t = $('#tap-toast'); if (t) { t.hidden = true; } },
   refresh() {
     const b = this.battle; if (!b) return;
-    this.danger = null; this.intentFor = null;
+    this.danger = null; this.intentFor = null; this.armed = null; this.hideToast();
     this.refreshTurnBar(); this.refreshUnitCard(); this.refreshActions(); this.refreshHover();
   },
   refreshTurnBar() {
@@ -3006,7 +3059,7 @@ const BattleUI = {
     else { this.intentFor = null; this.intent = null; }
     if (!t) return;
     const terr = TERRAIN[b.grid.t(t.x, t.y)];
-    el.append(h('div.tile-info', null, h('b', null, terr.name), terr.name === 'Forest' ? ' · +2 DEF, costs 2 to enter' : terr.moveCost === null ? ' · impassable' : terr.name === 'Exit' ? ' · the King may escape from here' : ''));
+    el.append(h('div.tile-info', null, h('b', null, terr.name), terr.name === 'Forest' ? ' · +2 DEF, costs 2 to enter' : terr.moveCost === null ? ' · impassable' : terr.name === 'Exit' ? ' · the King may escape from here' : '', b.has('BATTLEFIELD') && t.x === GRID_W - 1 && terr.moveCost !== null ? ' · far file: a Pawn standing here when the field is won earns a cape' : ''));
     if (o && o.alive && o !== b.current) {
       let extra = null;
       const u = b.current;
@@ -3030,6 +3083,16 @@ const BattleUI = {
         extra = h('div.preview', null, extra,
           h('div', null, h('b', null, 'Your hit: '), `${mine.perHit}${mine.hits > 1 ? ' ×' + mine.hits : ''} ${mine.kind}${mine.total >= o.hp ? ' — kills' : ''}`),
           h('div', null, h('b', null, 'Their hit on you: '), `${theirs.perHit}${theirs.hits > 1 ? ' ×' + theirs.hits : ''} ${theirs.kind}`, b.guardFor(u) ? ` (${b.guardFor(u).name} would step in)` : ''));
+        if (this.armed && this.armed.x === t.x && this.armed.y === t.y) {
+          const inRange = b.targets.some(x => x.x === t.x && x.y === t.y), canReach = inRange || (b.phase === 'move' && !!b.bestTileToHit(u, o));
+          const hint = canReach ? (inRange ? 'Tap again to attack.' : 'Tap again to walk over and attack.') : 'Out of reach this turn.';
+          extra.append(h('div.tap-hint', null, hint));
+          /* the side panel sits below the board on a phone, so the summary floats over the board */
+          const toast = clear($('#tap-toast')); toast.hidden = false;
+          toast.append(h('span', null, h('b', null, o.name), ` · your hit ${mine.total}${mine.total >= o.hp ? ' (kills)' : ''} · theirs ${theirs.total}`));
+          if (canReach) toast.append(h('button.go.silent', { onclick: () => { this.armed = null; this.hideToast(); b.onTile(t.x, t.y); } }, 'Attack'));
+          else toast.append(h('span.muted', null, hint));
+        }
       }
       el.append(this.unitCard(o, extra));
     }
@@ -3839,7 +3902,10 @@ const Screens = {
     const r = Game.records();
     $('#seed-input').value = randomSeedString();
     $('#btn-continue').hidden = !Game.hasSave();
-    $('#records').textContent = r.runs ? `${r.runs} run${r.runs > 1 ? 's' : ''} · ${r.wins} crowned · furthest: Act ${r.bestAct}${r.wins ? ' (won)' : ''} · ${r.kills} shades slain` : 'No runs yet. The board is set.';
+    const last = Game.annals()[0];
+    const rec = clear($('#records'));
+    rec.append(r.runs ? `${r.runs} run${r.runs > 1 ? 's' : ''} · ${r.wins} crowned · furthest: Act ${r.bestAct}${r.wins ? ' (won)' : ''} · ${r.kills} shades slain` : 'No runs yet. The board is set.');
+    if (last) rec.append(h('div.last-run', null, icon(last.won ? 'CROWN' : 'FALLEN', 14, last.won ? '#e0b25a' : '#9a8a90'), ` Last run: ${last.king}${last.won ? ' was crowned' : ` fell in Act ${last.act}`}${last.banners && last.banners.length ? ', under ' + last.banners.map(id => BANNERS[id] ? BANNERS[id].name : id).join(', ') : ''} · ${last.battles} battles, ${last.kills} slain.`));
     $('#btn-annals').hidden = !Game.annals().length;
   },
   /* ---------------- banners (v4) ---------------- */
@@ -4353,7 +4419,15 @@ function init() {
     else { ab.dataset.armed = '1'; ab.textContent = 'Really abandon? (click again)'; setTimeout(() => { ab.dataset.armed = ''; ab.textContent = 'Abandon run'; }, 3000); }
   });
   /* battle */
-  $('#battle-speed').addEventListener('click', e => { Anim.speed = Anim.speed === 1 ? 2.5 : 1; e.target.textContent = Anim.speed === 1 ? 'Speed ×1' : 'Speed ×2.5'; });
+  const speedLabel = () => { $('#battle-speed').textContent = Anim.speed === 1 ? 'Speed ×1' : 'Speed ×2.5'; };
+  if (Store.get('rankfile_speed') === 2.5) Anim.speed = 2.5;
+  speedLabel();
+  $('#battle-speed').addEventListener('click', () => { Anim.speed = Anim.speed === 1 ? 2.5 : 1; Store.set('rankfile_speed', Anim.speed); speedLabel(); });
+  /* v5.1: map legend and opening cards carry the same icons as the map and the pieces */
+  const legend = $('#overworld .legend');
+  if (legend) { clear(legend); for (const [k, text] of [['BATTLE', 'Battle'], ['ELITE', 'Elite — tougher, guaranteed cape'], ['CAMP', 'Camp — rest, train or confide'], ['EVENT', 'Event'], ['SHOP', 'Market'], ['CROWN', 'Boss']]) legend.append(h('span', null, icon(k, 15, { BATTLE: '#c9b79c', ELITE: '#e06a4f', CAMP: '#7fc4a3', EVENT: '#c9a3ff', SHOP: '#f2c14e', CROWN: '#ff5a3c' }[k]), text)); }
+  for (const lab of document.querySelectorAll('.openings label')) { const cls = lab.querySelector('input').value; lab.querySelector('span').prepend(icon(cls, 26, CAPE_COLORS[cls], 'opening-ico')); }
+  if (!document.querySelector('link[rel="icon"]')) { const l = document.createElement('link'); l.rel = 'icon'; l.href = 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="#15121a"/><path fill="#e0b25a" d="${ICON_PATHS.KING}"/></svg>`); document.head.append(l); }
   /* overlay close on backdrop click */
   $('#overlay').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.hidden = true; });
   $('#help').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.hidden = true; });
