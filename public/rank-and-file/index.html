@@ -403,7 +403,7 @@ li .ibox { display: inline-grid; width: 24px; height: 24px; vertical-align: midd
         <tr><td>Knight</td><td>Charge — leap 2–3 tiles, hit all adjacent foes (3)</td><td>Lance (reach 2)</td><td>Low HP</td></tr>
         <tr><td>Bishop</td><td>Heal — 12 HP to an ally within 3 (2)</td><td>Staff (+50% heal), Tome</td><td>Steel (DEF 3)</td></tr>
         <tr><td>Queen</td><td>Royal Decree — +3 ATK to all allies, 2 rounds (4)</td><td>Dagger (hits twice), Tome</td><td>Being the only one</td></tr>
-        <tr><td>King</td><td>Inspire — allies within 2 heal 20% (3)</td><td>Bow (range 2–3), Sword</td><td>Dying</td></tr>
+        <tr><td>King</td><td>Inspire — allies within 2 heal 20% and gain +2 ATK until the end of next round (3)</td><td>Bow (range 2–3), Sword</td><td>Dying</td></tr>
       </table>
       <h3>Growing</h3>
       <p>Units level from hits and kills: +HP, alternating +ATK / +DEF, +SPD every third level. At levels 3, 6 and 9 they choose a <b>talent</b>. Every recruit has an origin with a small stat lean. At camps you can rest, train one unit, or <b>confide</b> — sit with someone by the fire for +3 max HP and a little of their story.</p>
@@ -465,13 +465,14 @@ const ABILITIES = {
   CHARGE:  { name: 'Charge',       cost: 3, target: 'tile', range: [2, 3], desc: 'Leap 2–3 tiles over anything, then strike every adjacent enemy for 75% damage.' },
   HEAL:    { name: 'Heal',         cost: 2, target: 'ally', range: [1, 3], desc: 'Restore 12 HP to an ally within 3 tiles. A staff adds +50%.' },
   DECREE:  { name: 'Royal Decree', cost: 4, target: 'self',               desc: 'Every ally gains +3 ATK for 2 rounds.' },
-  INSPIRE: { name: 'Inspire',      cost: 3, target: 'self',               desc: 'Allies within 2 tiles recover 20% of max HP.' }, // SDD says 10%; doubled because 2–4 HP never changed a decision
+  INSPIRE: { name: 'Inspire',      cost: 3, target: 'self',               desc: 'Allies within 2 tiles recover 20% of max HP and strike for +2 until the end of next round.' }, // SDD says 10% heal only; v7.1 adds the ATK so it is not a worse Heal
 };
 const HEAL_AMOUNT = 12;
 const CHARGE_DAMAGE_MULT = 0.75;
 const DECREE_ATK = 3;
 const FORTIFY_DEF = 5;
 const INSPIRE_PCT = 0.20;
+const INSPIRE_ATK = 2;          // v7.1: the King says their names and they stand straighter
 const SP_START = 2;          // SP every unit begins a battle with
 const SP_REGEN = 1;          // SP gained at the start of each own turn
 
@@ -1972,6 +1973,7 @@ class Battle {
       this.current = u; this.turns++;
       u.bt.sp = Math.min(maxSp(u), u.bt.sp + SP_REGEN);
       u.bt.brace = false; u.bt.fortify = false; u.bt.itemUsed = false;   // "until your next turn" effects expire here
+      if (u.bt.inspired != null && u.bt.inspired < this.round) u.bt.inspired = null;
       u.bt.vanguard = this.has('VANGUARD') && u.id === this.vanguardId;
       if (u.bt.burn) { this.floater(u, 'BURN', '#ff9f43'); this.effect('arcane', u, null, '#ff9f43'); Sfx.play('burn'); await this.applyDamage(u, u.bt.burn, null); if (this.over) break; if (!u.alive) continue; }
       if (hasPerk(u, 'SECOND_WIND') && u.hp < maxHp(u) / 2) await this.heal(u, 4, true);
@@ -2155,6 +2157,7 @@ class Battle {
     const kind = w ? w.kind : 'steel';
     let raw = statOf(att, 'atk') + (att.weapon ? weaponDamage(att.weapon) : 0) + this.teamBuff[att.faction].atk + (att.bt ? att.bt.bloodlust : 0);
     if (isPlayer(att)) { if (att.bt && att.bt.vanguard) raw += VANGUARD_ATK; if (this.has('BLOOD_TITHE')) raw += BLOOD_TITHE_ATK; }
+    if (att.bt && att.bt.inspired != null && att.bt.inspired >= this.round) raw += INSPIRE_ATK;
     if (hasSynergy(att)) raw *= SYNERGY_MULT;
     if (hasPerk(att, 'EXECUTIONER') && def.hp < maxHp(def) * 0.3) raw *= 1.5;
     if (isPlayer(att) && def.bt && def.bt.dormant && this.has('GREY_CLOAKS')) raw *= GREY_SLEEP_MULT;
@@ -2300,8 +2303,13 @@ class Battle {
       }
       case 'DECREE': this.teamBuff[u.faction] = { atk: DECREE_ATK, rounds: 2 }; this.log(`${u.name} issues a Royal Decree: +${DECREE_ATK} ATK to all allies for 2 rounds.`); break;
       case 'INSPIRE': {
-        for (const o of this.units) if (o.alive && o !== u && o.faction === u.faction && cheb(o, u) <= 2) await this.heal(o, Math.round(maxHp(o) * INSPIRE_PCT) + (hasPerk(u, 'MENDER') ? 4 : 0));
-        this.log(`${u.name} inspires the band.`);
+        let n = 0;
+        for (const o of this.units) if (o.alive && o !== u && o.faction === u.faction && cheb(o, u) <= 2) {
+          await this.heal(o, Math.round(maxHp(o) * INSPIRE_PCT) + (hasPerk(u, 'MENDER') ? 4 : 0));
+          o.bt.inspired = this.round + 1; n++;                       // +ATK through the end of next round
+          this.floater(o, `+${INSPIRE_ATK} ATK`, '#ffd166');
+        }
+        this.log(`${u.name} says their names, and ${n ? n + ' of them stand straighter' : 'no one is near enough to hear'}: +${INSPIRE_ATK} ATK until the end of next round.`);
         break;
       }
       case 'CHARGE': {
@@ -3079,6 +3087,7 @@ const BattleUI = {
     if (bt.fortify) this.badge(ctx, cx - 24, cy - 24, '#ffd166', 'F');
     if (bt.bloodlust) this.badge(ctx, cx + 24, cy - 24, '#ff9f43', '+' + bt.bloodlust);
     if (bt.burn) this.badge(ctx, cx + 24, cy - 8, '#ff6a3c', String(bt.burn));
+    if (bt.inspired != null && bt.inspired >= this.battle.round) this.badge(ctx, cx + 24, cy + 8, '#ffd166', 'I');
     if (bt.vanguard) this.badge(ctx, cx - 24, cy - 8, '#e0b25a', 'V');
     if (!isPlayer(u) && this.battle.pinned(u)) this.badge(ctx, cx - 24, cy - 8, '#4f7fb5', 'P');
     if (u.alive) {
@@ -3219,7 +3228,7 @@ const BattleUI = {
     const sp = h('div.sp', null, `SP `); for (let i = 0; i < maxSp(u); i++) sp.append(h('i' + (i < u.bt.sp ? '.on' : ''))); sp.append(h('span', null, ` ${u.bt.sp}/${maxSp(u)}`));
     card.append(sp);
     const b = this.battle;
-    card.append(h('div.stats', null, ...[['ATK', statOf(u, 'atk') + b.teamBuff[u.faction].atk + (u.bt.bloodlust || 0)], ['DEF', statOf(u, 'def') + (u.bt.fortify ? FORTIFY_DEF : 0) + (b.grid.t(u.x, u.y) === 'FOREST' ? FOREST_DEF : 0)], ['RES', statOf(u, 'res')], ['SPD', statOf(u, 'spd')], ['MOV', moveRange(u)]].map(([k, v]) => h('div', null, h('b', null, k), String(v)))));
+    card.append(h('div.stats', null, ...[['ATK', statOf(u, 'atk') + b.teamBuff[u.faction].atk + (u.bt.bloodlust || 0) + (u.bt.inspired != null && u.bt.inspired >= b.round ? INSPIRE_ATK : 0)], ['DEF', statOf(u, 'def') + (u.bt.fortify ? FORTIFY_DEF : 0) + (b.grid.t(u.x, u.y) === 'FOREST' ? FOREST_DEF : 0)], ['RES', statOf(u, 'res')], ['SPD', statOf(u, 'spd')], ['MOV', moveRange(u)]].map(([k, v]) => h('div', null, h('b', null, k), String(v)))));
     const r = attackRange(u);
     card.append(h('div.line.iconline', null, icon(u.weapon ? u.weapon.type : 'SWORD', 15, u.weapon ? ITEM_KIND_COLORS.WEAPON : '#5a5058'), u.weapon ? `${weaponName(u.weapon)} · ${weaponDamage(u.weapon)} ${weaponKind(u)} · range ${r[0]}${r[1] > r[0] ? '–' + r[1] : ''}${hasSynergy(u) ? ' · +25%' : ''}` : 'Unarmed · range 1', u.offhand ? [' · ', icon(u.offhand.type, 15, ITEM_KIND_COLORS.OFFHAND), offhandName(u.offhand)] : ''));
     card.append(h('div.line.ab.iconline', null, icon(CLASSES[u.cls].ability, 15, '#c9a3ff'), h('b', null, `${a.name} (${abilityCost(u)} SP)`), ` ${a.desc}`));
@@ -4431,6 +4440,7 @@ const Game = {
   /* Can this item be applied to this unit right now? Used by the
      warband screen to decide which units light up. */
   canApply(unit, it) {
+    if (!it || !unit) return false;
     if (it.kind === 'WEAPON' || it.kind === 'OFFHAND') return true;
     if (it.kind === 'CAPE') return canPromote(this.run.warband, unit, it.cls);
     const d = ITEMS[it.type];
@@ -4597,7 +4607,7 @@ const Screens = {
       const left = h('div.col'), right = h('div.col');
       left.append(h('h3', null, 'Units'));
       for (const u of run.warband) {
-        const can = selected !== null && Game.canApply(u, run.inventory[selected]);
+        const can = selected !== null && !!run.inventory[selected] && Game.canApply(u, run.inventory[selected]);
         const card = h('div.wcard' + (can ? '.can' : ''));
         const o = originOf(u);
         card.append(h('div.uhead', null, this.pieceCanvas(u, 56), h('div', null, h('div.uname', null, u.name), h('div.usub', null, `${CLASSES[u.cls].name}${o ? ', ' + o.name : ''} · Lv ${u.level} · ${u.xp}/${XP_PER_LEVEL} xp · ${u.kills} kills`))));
@@ -4612,7 +4622,7 @@ const Screens = {
           for (const p of run.perkOffers[u.id]) row.append(h('button.btn.gold', { onclick: () => { Game.choosePerk(u, p); render(); } }, icon('TALENT', 18), h('b', null, PERKS[p].name), h('span', null, PERKS[p].desc)));
           card.append(row);
         }
-        if (can) card.append(h('button.btn.primary', { onclick: () => { this.applyItem(run, u, selected, render); selected = null; } }, `Apply ${itemName(run.inventory[selected])} to ${u.name}`));
+        if (can) card.append(h('button.btn.primary', { onclick: () => { const idx = selected; selected = null; this.applyItem(run, u, idx, render); } }, `Apply ${itemName(run.inventory[selected])} to ${u.name}`));
         left.append(card);
       }
       right.append(h('h3', null, 'Inventory'));
@@ -4845,7 +4855,7 @@ const Screens = {
   credits() {
     const sh = this.sheet('Credits');
     const row = (what, who, lic, url) => h('div.credit', null, h('b', null, what), ' ', who, lic ? h('span.muted', null, ` · ${lic}`) : '', url ? [' · ', h('a', { href: url, target: '_blank', rel: 'noopener' }, url.replace(/^https?:\/\//, ''))] : '');
-    sh.append(h('p', null, 'Rank & File is a chess roguelite by IremiBros (Nika and Alex Iremadze), designed from their SDD and built with Claude. Characters, boards, effects and the frame are drawn in code; the pieces are not sprites.'));
+    sh.append(h('p', null, 'Rank & File is a chess roguelite by IremiBros (Nika and Gio), designed from their SDD and built with Claude. Characters, boards, effects and the frame are drawn in code; the pieces are not sprites.'));
     sh.append(row('Icons', `game-icons.net — ${ICON_AUTHORS.join(', ')}`, 'CC BY 3.0', 'https://game-icons.net'));
     sh.append(row('Type', 'Cinzel (Natanael Gama), Alegreya Sans (Juan Pablo del Peral)', 'SIL Open Font License', 'https://fonts.google.com'));
     if (Music.credits && Music.credits.length) for (const c of Music.credits) sh.append(row(c.what || 'Audio', c.who || '', c.license || '', c.url || ''));
@@ -5057,7 +5067,7 @@ function init() {
 }
 
 /* Debug / test handle. Not used by the UI. */
-window.RF = { Game, Battle, BattleUI, Screens, WorldUI, Anim, CLASSES, WEAPONS, ABILITIES, ACTS, PERKS, OFFHANDS, STORY, ORIGINS, BANNERS, RULES, generateMap, generateOverworld, RNG, makeUnit, makeEnemy, makeOffhand, makeWeapon, makeCape, promote, canPromote, drawIcon, icon, ICON_PATHS, ICON_CREDITS, Sfx, Music, ITEMS, ORIGINS, ORIGIN_STORIES, LORE, CODEX, confideLines, fillLine, loreOf, statOf, maxHp, moveRange, Store, SAVE_KEY, ANNALS_KEY };
+window.RF = { Game, Battle, BattleUI, Screens, WorldUI, Anim, CLASSES, WEAPONS, ABILITIES, ACTS, PERKS, OFFHANDS, STORY, ORIGINS, BANNERS, RULES, generateMap, generateOverworld, RNG, makeUnit, makeEnemy, makeOffhand, makeWeapon, makeCape, promote, canPromote, drawIcon, icon, ICON_PATHS, ICON_CREDITS, Sfx, Music, ITEMS, ORIGINS, ORIGIN_STORIES, LORE, CODEX, confideLines, fillLine, loreOf, statOf, maxHp, hasSynergy, moveRange, Store, SAVE_KEY, ANNALS_KEY };
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 
