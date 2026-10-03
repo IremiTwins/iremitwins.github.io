@@ -405,9 +405,9 @@ html, #board, #map, #tap-toast, button, .btn { touch-action: manipulation; }
         <tr><th>Class</th><th>Ability (SP)</th><th>Suited weapons</th><th>Soft spot</th></tr>
         <tr><td>Pawn</td><td>Brace — half damage until your next turn (2)</td><td>Sword</td><td>Everything</td></tr>
         <tr><td>Rook</td><td>Fortify — +5 DEF, adjacent enemies must hit you (3)</td><td>Axe (ignores half DEF)</td><td>Magic (RES 2)</td></tr>
-        <tr><td>Knight</td><td>Charge — leap 2–3 tiles, hit all adjacent foes (3)</td><td>Lance (reach 2)</td><td>Low HP</td></tr>
+        <tr><td>Knight</td><td>Charge — leap 2–3 tiles, hit all adjacent foes at 75% attack power (3)</td><td>Lance (reach 2)</td><td>Low HP</td></tr>
         <tr><td>Bishop</td><td>Heal — 12 HP to an ally within 3 (2)</td><td>Staff (+50% heal), Tome</td><td>Steel (DEF 3)</td></tr>
-        <tr><td>Queen</td><td>Royal Decree — +3 ATK to all allies, 2 rounds (4)</td><td>Dagger (hits twice), Tome</td><td>Being the only one</td></tr>
+        <tr><td>Queen</td><td>Royal Decree — +3 ATK to all allies, this round and the next (4)</td><td>Dagger (hits twice), Tome</td><td>Being the only one</td></tr>
         <tr><td>King</td><td>Inspire — allies within 2 heal 20% and gain +2 ATK until the end of next round (3)</td><td>Bow (range 2–3), Sword</td><td>Dying</td></tr>
       </table>
       <h3>Growing</h3>
@@ -467,9 +467,9 @@ const CAPE_COLORS = { ROOK: '#4f7fb5', KNIGHT: '#3f9a5a', BISHOP: '#8a5ad6', QUE
 const ABILITIES = {
   BRACE:   { name: 'Brace',        cost: 2, target: 'self',               desc: 'Take half damage until your next turn.' },
   FORTIFY: { name: 'Fortify',      cost: 3, target: 'self',               desc: '+5 DEF until your next turn. Adjacent enemies must attack you.' },
-  CHARGE:  { name: 'Charge',       cost: 3, target: 'tile', range: [2, 3], desc: 'Leap 2–3 tiles over anything, then strike every adjacent enemy for 75% damage.' },
+  CHARGE:  { name: 'Charge',       cost: 3, target: 'tile', range: [2, 3], desc: 'Leap 2–3 tiles over anything, then strike every adjacent enemy with 75% of your attack power (before armour).' },
   HEAL:    { name: 'Heal',         cost: 2, target: 'ally', range: [1, 3], desc: 'Restore 12 HP to an ally within 3 tiles. A staff adds +50%.' },
-  DECREE:  { name: 'Royal Decree', cost: 4, target: 'self',               desc: 'Every ally gains +3 ATK for 2 rounds.' },
+  DECREE:  { name: 'Royal Decree', cost: 4, target: 'self',               desc: 'Every ally gains +3 ATK for the rest of this round and all of the next.' },
   INSPIRE: { name: 'Inspire',      cost: 3, target: 'self',               desc: 'Allies within 2 tiles recover 20% of max HP and strike for +2 until the end of next round.' }, // SDD says 10% heal only; v7.1 adds the ATK so it is not a worse Heal
 };
 const HEAL_AMOUNT = 12;
@@ -549,7 +549,7 @@ const PERKS = {
   RANGER:      { name: 'Far Sight',    desc: '+1 max range with bows, tomes, lances and staves.' },
   MENDER:      { name: 'Mender',       desc: 'Your heals restore +4.' },
   GUARDIAN:    { name: 'Guardian',     desc: 'Adjacent allies take 1 less damage.' },
-  EXECUTIONER: { name: 'Executioner',  desc: '+50% damage to targets below 30% HP.' },
+  EXECUTIONER: { name: 'Executioner',  desc: '+50% attack power (before armour) against targets below 30% HP.' },
 };
 const PERK_LEVELS = [3, 6, 9];
 
@@ -610,7 +610,7 @@ const ACTS = [
     ],
     bossCape: ['ROOK', 'KNIGHT', 'BISHOP'],
     boss: { name: 'Ordo, the Warden', story: 'WARDEN', cls: 'ROOK', hp: 60, atk: 8, def: 8, res: 1, spd: 3, weapon: 'AXE', rarity: 'COMMON', signature: 'CRUSH',
-            escort: ['PAWN', 'PAWN'], intro: 'Ordo, a rook of cracked granite, guards the only stair down. Given the keys three hundred years ago and never relieved. He has never moved; he will not need to. His armour laughs at steel — bring magic, or bring an axe.' },
+            escort: ['PAWN', 'PAWN'], intro: 'Ordo, a rook of cracked granite, guards the only stair down. Given the keys three hundred years ago and never relieved. He has never moved; he will not need to. His armour laughs at steel — bring magic, or bring an axe. Crowd him and the axe comes down on everyone within reach.' },
   },
   {
     name: 'The Drowned Halls',
@@ -670,11 +670,11 @@ const BANNER_SCHOOLS = {
 const BANNERS = {
   PHALANX:     { name: 'Phalanx',       school: 'wall',  desc: 'An ally touching two or more allies takes 2 less from every hit.' },
   ANVIL:       { name: 'Anvil',         school: 'wall',  desc: 'Enemies adjacent to one of your Rooks cannot move.' },
-  ROYAL_GUARD: { name: 'Royal Guard',   school: 'wall',  desc: 'An ally standing next to the King takes the hit meant for him.' },
-  ZUGZWANG:    { name: 'Zugzwang',      school: 'wall',  desc: 'An enemy that ends its turn without attacking takes 3 damage.' },
-  GREY_CLOAKS: { name: 'Grey Cloaks',   school: 'cloak', desc: 'Packs wake at 2 tiles instead of 3. Sleeping enemies take 50% more damage.' },
-  EMBER_EDGE:  { name: 'Ember Edge',    school: 'cloak', desc: 'Every melee strike leaves a burn: 2 damage at the start of the target\'s turn, stacking to 6.' },
-  TEMPO:       { name: 'Tempo',         school: 'cloak', desc: 'An ally that kills acts again at the end of the round.' },
+  ROYAL_GUARD: { name: 'Royal Guard',   school: 'wall',  desc: 'An ally standing next to the King takes every hit meant for him, boss signatures included.' },
+  ZUGZWANG:    { name: 'Zugzwang',      school: 'wall',  desc: 'An enemy that ends its turn without attacking or healing takes 3 damage. A boss\'s signature move counts as an attack.' },
+  GREY_CLOAKS: { name: 'Grey Cloaks',   school: 'cloak', desc: 'Packs wake at 2 tiles instead of 3. Strikes on sleeping enemies get +50% attack power (before armour).' },
+  EMBER_EDGE:  { name: 'Ember Edge',    school: 'cloak', desc: 'Every melee strike, Charge included, leaves a burn: 2 damage at the start of the target\'s turn, stacking to 6.' },
+  TEMPO:       { name: 'Tempo',         school: 'cloak', desc: 'An ally that kills acts again at the end of the round (once per action, however many it kills).' },
   VANGUARD:    { name: 'Vanguard',      school: 'cloak', desc: 'The first ally to act each round gets +1 move and +2 ATK.' },
   BATTLEFIELD: { name: 'Battlefield Promotion', school: 'rank', desc: 'A Pawn standing on the enemy\'s back file when a battle is won earns a cape of your choosing.' },
   HEIRLOOM:    { name: 'Heirloom',      school: 'rank',  desc: 'A cape recovered from a fallen ally carries their levels to the next wearer.' },
@@ -883,7 +883,7 @@ const STORY = {
      what changed); then class lines as a fallback. */
   confide: [
     { when: c => c.fallenLast, lines: ['{king}: "We lost {fallen} today. I keep counting the places by the fire and coming up one short."', '{name}: "Count again tomorrow, my lord. You will come up one short again. That is how we carry them."'] },
-    { when: c => c.cls === 'QUEEN', lines: ['{king}: "You wear the queen\'s cape. It is the youngest cloth on the mantle, and nobody agrees what it is. The last one who wore it was never found."', '{name}: "Then I will not ask what it is. I will just try to be what it is for."'] },
+    { when: c => c.cls === 'QUEEN' && c.tier >= 3, lines: ['{king}: "You wear the queen\'s cape. It is the youngest cloth on the mantle, and nobody agrees what it is. The last one who wore it was never found."', '{name}: "Then I will not ask what it is. I will just try to be what it is for."'] },
     { when: c => c.cls === 'KING', lines: [] },
     { when: c => c.tier === 0 && c.originStory, lines: c => c.originStory.why },
     { when: c => c.tier === 1 && c.originStory, lines: c => c.originStory.wound },
@@ -900,14 +900,14 @@ const STORY = {
     ROOK:   ['{king}: "Kneel, {name}. You have held the line when it bent. This is the Rook\'s panel. Put it on, and be the wall."', '{name}: "I was a wall before, my lord. Now I have a cape for it. It is heavier than it looks."'],
     KNIGHT: ['{king}: "Kneel, {name}. You go where the fighting is thickest. This is the Knight\'s panel. Put it on, and go there first."', '{name}: "First in, my lord. I like the sound of that better than last out."'],
     BISHOP: ['{king}: "Kneel, {name}. Steel has failed us more than once. This is the Bishop\'s panel. Put it on, and carry what steel cannot."', '{name}: "There are words sewn into the lining, my lord. I do not know them yet. I will."'],
-    QUEEN:  ['{king}: "Kneel, {name}. This is the youngest cloth on the mantle, and the last queen was never found. Put it on, and let the Court find out what one looks like."', '{name}: "{originLine} And now this. Caissa is a strange country, my lord."'],
+    QUEEN:  ['{king}: "Kneel, {name}. {originLine} I have not forgotten it. This is the youngest cloth on the mantle, and the last queen was never found. Put it on, and let the Court find out what one looks like."', '{name}: "I came to you with nothing, my lord, and now this. Caissa is a strange country."'],
   },
   /* One-line reactions on the results screen. */
   reactions: {
     fallen: ['{king}: "{fallen} stood in the line. That is the whole of the epitaph, and it is enough."', '{survivor}: "They would have hated the speech, my lord. Save it. Keep walking."', '{king}: "I said {fallen}\'s name over the body. Twice. I am told it matters, and I am not sure I believe it, and I did it anyway."'],
-    bossDown: ['{king}: "Relieved. Three hundred years on one stair, and a miller\'s child relieved him. Someone should write that down."', '{king}: "I said her name and she stopped. I have been a king for forty years and that is the first time a name has done anything when I said it."', '{king}: "Checkmate. I have waited my whole life to say it and it tastes like ash. Let us go home."'],
+    bossDown: ['{king}: "Relieved. Three hundred years on one stair, and the rank and file relieved him. Someone should write that down."', '{king}: "I said her name and she stopped. I have been a king for forty years and that is the first time a name has done anything when I said it."', '{king}: "Checkmate. I have waited my whole life to say it and it tastes like ash. Let us go home."'],
     clean: ['{king}: "No one lost. Say it again, quietly, before the luck hears you."', '{survivor}: "We are getting good at this, my lord. I hate how that sounds."'],
-    escaped: ['{king}: "We ran. There is no shame in it. There is a cape on that floor, though, and by morning it will be black."'],
+    escaped: ['{king}: "We ran. There is no shame in it. There is a cape on that floor, though, and by morning it will be black."', '{king}: "We ran, and everyone who went in came out. Some days that is the whole of the victory."'],
     firstPromotion: ['{king}: "The first cape. One panel off the mantle, and the promise is no longer only words."'],
   },
   lastStand: [
@@ -956,12 +956,12 @@ const ORIGIN_STORIES = {
   },
   MASON: {
     why:   ['{king}: "A stonemason in a war. I keep expecting you to measure the enemy."', '{name}: "I do, my lord. A shade is five feet nine on average. A wall is as high as the man you want to stop plus a hand. I stayed because every wall in Caissa is mine or my master\'s, and they are using them."'],
-    wound: ['{king}: "You went quiet on the stair in Scacchia. Under the Warden."', '{name}: "I cut that stair. Apprentice work: the third landing is a quarter inch out, and my master\'s mark is on the fourth riser. He was proud of it. He is a shade now, somewhere, and his stair is holding up the thing that struck him."'],
+    wound: ['{king}: "You went quiet when I said the word stair. The one in Scacchia, under the Warden."', '{name}: "I cut that stair. Apprentice work: the third landing is a quarter inch out, and my master\'s mark is on the fourth riser. He was proud of it. He is a shade now, somewhere, and his stair is holding up the thing that struck him."'],
     want:  ['{king}: "When this is over, what do you build first?"', '{name}: "Nothing. I take down the gate on the Archive stair, stone by stone, and I number them, and I put them back the right way round. Then Scacchia. Then a house. In that order, my lord. Measure twice."'],
   },
   ACOLYTE: {
     why:   ['{king}: "The candle. You still will not say whose."', '{name}: "It is from the Archive, my lord. The lamp by the reading desk. I was a student there. I took it the night the water came in. I stayed with you because you were walking toward the Archive and everyone else was walking away."'],
-    wound: ['{king}: "You knew her. Venn."', '{name}: "She taught me the first hundred names. She was kind, which is the part nobody will believe. When the Court came she looked at the book and at us and she chose the book. I would like to ask her why, and I am afraid she will tell me."'],
+    wound: ['{king}: "When the Archive comes up you look at the floor. Its keeper, Mother Venn — you knew her."', '{name}: "She taught me the first hundred names. She was kind, which is the part nobody will believe. When the Court came she looked at the book and at us and she chose the book. I would like to ask her why, and I am afraid she will tell me."'],
     want:  ['{king}: "You say the names over the wounded before you touch them. I thought it was prayer."', '{name}: "It is the first thing she taught me. The Word is just a name said by someone who means it. She stopped meaning it, my lord. I have decided I will not. That is the whole of my heresy."'],
   },
   SHEPHERD: {
@@ -1074,7 +1074,7 @@ function fillLine(line, ctx) {
     if (k === 'originLine') return ctx.origin ? ctx.origin.line : '';
     if (k === 'cls') return ctx.cls ? CLASSES[ctx.cls].name : '';
     return ctx[k] != null ? String(ctx[k]) : m;
-  });
+  }).replace(/ {2,}/g, ' ');
 }
 function confideLines(ctx) {
   ctx.originStory = ctx.origin ? ORIGIN_STORIES[ctx.origin.id] || null : null;
@@ -2216,10 +2216,11 @@ class Battle {
     const ownsTurn = att === this.current && isPlayer(att);
     if (ownsTurn) this.acting = true;                         // finish() waits for this action to end its own turn
     this.phase = 'busy'; this.targets = []; this.ui.refresh();
+    const meant = def;                                         // whom the blow was aimed at (decides melee vs ranged)
     const guard = this.guardFor(def);
     if (guard) { this.log(`${guard.name} steps in front of the King.`); this.floater(guard, 'ROYAL GUARD', '#4f7fb5'); def = guard; }
     const dmg = this.damageAgainst(att, def);
-    const ranged = cheb(att, def) > 1 || dmg.kind === 'arcane';
+    const ranged = cheb(att, meant) > 1 || dmg.kind === 'arcane';      // review M-BE-3: a sword swing stays a sword swing
     if (ranged) { Sfx.play(dmg.kind === 'arcane' ? 'spell' : 'arrow'); await this.animateRanged(att, def, dmg.kind); this.effect(dmg.kind === 'arcane' ? 'bolt' : 'arrow', att, def); await Anim.wait(260); }
     else { Sfx.play('swing'); await this.animateBump(att, def); }
     for (let i = 0; i < dmg.hits && def.alive && !this.over; i++) {
@@ -2227,12 +2228,18 @@ class Battle {
       this.effect(dmg.kind === 'arcane' ? 'arcane' : 'slash', def, null);
       await this.applyDamage(def, dmg.perHit, att);
     }
-    if (!ranged && isPlayer(att) && def.alive && this.has('EMBER_EDGE')) { def.bt.burn = Math.min(EMBER_BURN_MAX, (def.bt.burn || 0) + EMBER_BURN); def.bt.burnBy = att; this.floater(def, `BURN ${def.bt.burn}`, '#ff9f43'); }
+    if (!ranged) this.ignite(att, def);
     if (isPlayer(att) && def.alive) this.awardXp(att, XP_HIT);
     await Anim.wait(120);
     if (ownsTurn) { this.acting = false; this.endTurn(); }
   }
 
+  /* Ember Edge: every melee blow by the band leaves a burn (Charge included, v7.2). */
+  ignite(att, def) {
+    if (!isPlayer(att) || !def.alive || !this.has('EMBER_EDGE')) return;
+    def.bt.burn = Math.min(EMBER_BURN_MAX, (def.bt.burn || 0) + EMBER_BURN); def.bt.burnBy = att;
+    this.floater(def, `BURN ${def.bt.burn}`, '#ff9f43');
+  }
   async applyDamage(target, amount, source, opts) {
     target.hp = Math.max(0, target.hp - amount);
     target.bt.flash = 1; target.bt.hitT0 = performance.now();
@@ -2256,7 +2263,10 @@ class Battle {
     if (source && isPlayer(source)) {
       source.kills++; this.kills++; this.awardXp(source, u.elite ? XP_KILL_ELITE : XP_KILL);
       if (hasPerk(source, 'BLOODLUST') && source.bt.bloodlust < 3) { source.bt.bloodlust++; this.floater(source, 'BLOODLUST', '#ff9f43'); }
-      if (this.has('TEMPO') && source.alive) { this.queue.push(source); this.floater(source, 'TEMPO', '#6f8f6a'); this.log(`Tempo: ${source.name} will act again.`); }
+      if (this.has('TEMPO') && source.alive && source.bt.tempoTurn !== this.turns) {   // Nika: one extra turn per action, however many it kills
+        source.bt.tempoTurn = this.turns;
+        this.queue.push(source); this.floater(source, 'TEMPO', '#6f8f6a'); this.log(`Tempo: ${source.name} will act again.`);
+      }
     } else if (!source && credit && isPlayer(credit) && credit.alive && !isPlayer(u)) {
       credit.kills++; this.kills++; this.awardXp(credit, u.elite ? XP_KILL_ELITE : XP_KILL);   // a burn kill belongs to whoever lit it
     }
@@ -2330,13 +2340,13 @@ class Battle {
     await Anim.wait(250);
     switch (name) {
       case 'BRACE': u.bt.brace = true; this.log(`${u.name} braces.`); break;
-      case 'FORTIFY': u.bt.fortify = true; this.log(`${u.name} fortifies — adjacent foes must strike the Rook.`); break;
+      case 'FORTIFY': u.bt.fortify = true; this.log(isPlayer(u) ? `${u.name} fortifies — adjacent foes must strike the Rook.` : `${u.name} fortifies (+${FORTIFY_DEF} DEF).`); break;
       case 'HEAL': {
         const ally = this.grid.unitAt(target.x, target.y);
         await this.heal(ally, this.healAmount(u));
         break;
       }
-      case 'DECREE': this.teamBuff[u.faction] = { atk: DECREE_ATK, rounds: 2 }; this.log(`${u.name} issues a Royal Decree: +${DECREE_ATK} ATK to all allies for 2 rounds.`); break;
+      case 'DECREE': this.teamBuff[u.faction] = { atk: DECREE_ATK, rounds: 2 }; this.log(`${u.name} issues a Royal Decree: +${DECREE_ATK} ATK to all allies for the rest of this round and all of the next.`); break;
       case 'INSPIRE': {
         let n = 0;
         for (const o of this.units) if (o.alive && o !== u && o.faction === u.faction && cheb(o, u) <= 2) {
@@ -2356,8 +2366,12 @@ class Battle {
           const o = this.grid.unitAt(u.x + dx, u.y + dy);
           if (o && o.alive && o.faction !== u.faction) {
             const dmg = this.damageAgainst(u, o, CHARGE_DAMAGE_MULT);
-            this.effect('slash', o, null);
-            await this.applyDamage(o, dmg.perHit, u);
+            for (let i = 0; i < dmg.hits && o.alive && !this.over; i++) {     // review BE-8: a dagger strikes twice here too
+              if (i) await Anim.wait(140);
+              this.effect('slash', o, null);
+              await this.applyDamage(o, dmg.perHit, u);
+            }
+            if (!this.over) this.ignite(u, o);                                  // Nika: banners apply to every blow
             if (o.alive && isPlayer(u)) this.awardXp(u, XP_HIT);
           }
         }
@@ -2412,7 +2426,8 @@ class Battle {
     this.effect('level', u, null); Sfx.play('level');
     this.log(`${u.name} puts on the ${CLASSES[it.cls].name} cape in the field and rises.`);
     await Anim.wait(400);
-    this.phase = prev; this.targets = this.attackTargets(u); this.ui.refresh();
+    if (prev === 'move') this.beginMovePhase();                             // review BE-7: a Knight moves like a Knight from now on
+    else { this.phase = prev; this.targets = this.attackTargets(u); this.ui.refresh(); }
   }
 
   /* A unit that ends its turn on a dropped cape recovers it. */
@@ -2483,11 +2498,16 @@ class Battle {
        heavily. Fortified Rooks taunt: if one is in range from a tile, it
        is the only legal target from there. */
     const [lo, hi] = attackRange(u);
+    /* v7.2 (Nika's call): an enemy that STARTS its turn next to a fortified
+       Rook must attack that Rook if it can at all; stepping away to hit
+       someone else is no longer an option. */
+    const taunted = players.filter(p => p.bt.fortify && cheb(p, u) === 1);
     let best = null;
     for (const [k, v] of reach) {
       if (!v.stoppable) continue;
       const x = k % GRID_W, y = Math.floor(k / GRID_W);
       let cands = players.filter(p => { const d = cheb({ x, y }, p); return d >= lo && d <= hi; });
+      if (taunted.length) cands = cands.filter(p => taunted.includes(p));
       const taunters = cands.filter(p => p.bt.fortify);
       if (taunters.length) cands = taunters;
       for (const p of cands) {
@@ -2548,7 +2568,13 @@ class Battle {
         if (adj.length >= 2 && u.bt.sp >= 3) {
           u.bt.sp -= 3; this.floater(u, 'CRUSH', '#ff9f43'); this.log(`${u.name} brings the axe down on everyone near it.`);
           this.effect('shock', u, null, '#ff6a4d'); await Anim.wait(250);
-          for (const p of adj) { if (!p.alive) continue; const dmg = this.damageAgainst(u, p, 0.7); this.effect('slash', p, null); await this.applyDamage(p, dmg.perHit, u); if (this.over) return true; }
+          for (const p of adj) {
+            if (!p.alive) continue;
+            let t = p; const guard = this.guardFor(p);                         // Nika: Royal Guard covers every blow, Crush included
+            if (guard) { this.log(`${guard.name} steps in front of the King.`); this.floater(guard, 'ROYAL GUARD', '#4f7fb5'); t = guard; }
+            const dmg = this.damageAgainst(u, t, 0.7); this.effect('slash', t, null); await this.applyDamage(t, dmg.perHit, u);
+            if (this.over) return true;
+          }
           return true;
         }
         return false;
@@ -2573,7 +2599,7 @@ class Battle {
           u.bt.decreeRound = this.round; u.bt.sp -= 3;
           this.teamBuff.ENEMY = { atk: DECREE_ATK, rounds: 2 };
           this.floater(u, 'DECREE OF SHADOW', '#c9a3ff'); this.effect('rune', u, null, '#c9a3ff');
-          this.log(`${STORY.boss.BLACK_KING.decree} Every shade strikes harder for 2 rounds.`); await Anim.wait(300);
+          this.log(`${STORY.boss.BLACK_KING.decree} Every shade strikes harder until the end of next round.`); await Anim.wait(300);
           return true;
         }
         return false;
@@ -4871,13 +4897,14 @@ const Screens = {
     const title = result.escaped ? 'Escaped' : kind === 'BOSS' ? `${ACTS[run.act].boss.name} is defeated` : 'Victory';
     const sh = this.sheet(title);
     const fallen = run.fallen.filter(u => u.diedIn === `Act ${run.act + 1}, battle ${run.battleCount}`);
-    const survivor = run.warband.find(u => u.cls !== 'KING') || run.warband[0];
+    const survivor = run.warband.find(u => u.cls !== 'KING') || null;          // review C4: the King never answers himself 'my lord'
     const ctx = { king: run.kingName, fallen: fallen.map(u => u.name).join(' and '), survivor: survivor ? survivor.name : run.kingName };
     if (fallen.length) sh.append(h('p.warn', null, `Fallen: ${fallen.map(u => `${u.name} the ${CLASSES[u.cls].name}`).join(', ')}.`));
-    const line = fallen.length ? STORY.reactions.fallen[fallen.length > 1 || !survivor ? 0 : (run.battleCount % 2)]
+    /* review C9: every authored line is reachable; lines voiced by {survivor} need one */
+    const line = fallen.length ? STORY.reactions.fallen[fallen.length > 1 ? 0 : !survivor ? [0, 2][run.battleCount % 2] : run.battleCount % 3]
       : kind === 'BOSS' ? STORY.reactions.bossDown[run.act]
-      : result.escaped ? STORY.reactions.escaped[0]
-      : STORY.reactions.clean[run.battleCount % 2];
+      : result.escaped ? STORY.reactions.escaped[result.groundCapes.length ? 0 : 1]
+      : STORY.reactions.clean[survivor ? run.battleCount % 2 : 0];
     sh.append(this.story([fillLine(line, ctx)], 'dialogue'));
     sh.append(h('p', null, `${result.kills} enemies slain in ${result.rounds} round${result.rounds === 1 ? '' : 's'}. Survivors recover 25% HP.`));
     const list = h('ul.rewards');
