@@ -248,7 +248,7 @@ select.btn { padding-right: 28px; }
   .cols { grid-template-columns: 1fr; }
   .ceremony { flex-direction: column; }
 }
-@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } .banner-hero canvas, .banner-card:hover .banner-art { animation: none; } }   /* review E6 */
 
 /* ---- v5: icons (game-icons.net) ---- */
 .ico { display: inline-block; vertical-align: -0.2em; flex: none; }
@@ -278,6 +278,11 @@ li .ibox { display: inline-grid; width: 24px; height: 24px; vertical-align: midd
 .last-run { margin-top: 6px; color: var(--muted); font-size: 0.92rem; }
 #tap-toast { position: absolute; left: 8px; right: 8px; bottom: 8px; background: rgba(26,20,22,0.92); border: 1px solid var(--accent); border-radius: 8px; padding: 8px 12px; font-size: 0.95rem; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
 #tap-toast[hidden] { display: none; }
+/* review E1: the toast floats over the bottom rows; taps pass through it to the board, only its button catches them */
+#tap-toast { pointer-events: none; }
+#tap-toast .go { pointer-events: auto; }
+/* review E3: no double-tap zoom on the board — the attack confirm is a second tap on the same tile */
+html, #board, #map, #tap-toast, button, .btn { touch-action: manipulation; }
 #tap-toast b { color: var(--accent); }
 #tap-toast .go { background: var(--accent); color: #1a1416; font-weight: 700; padding: 6px 12px; border-radius: 6px; border: 0; cursor: pointer; }
 
@@ -473,6 +478,7 @@ const DECREE_ATK = 3;
 const FORTIFY_DEF = 5;
 const INSPIRE_PCT = 0.20;
 const INSPIRE_ATK = 2;          // v7.1: the King says their names and they stand straighter
+const INPUT_LOCK_MS = 200;      // v7.2: clicks and keys are ignored this long after a player turn begins (double-click guard)
 const SP_START = 2;          // SP every unit begins a battle with
 const SP_REGEN = 1;          // SP gained at the start of each own turn
 
@@ -1248,7 +1254,6 @@ function h(tag, attrs, ...children) {
   }
   if (attrs) for (const [k, v] of Object.entries(attrs)) {
     if (k === 'onclick') el.addEventListener('click', v);
-    else if (k === 'html') el.innerHTML = v;
     else if (k === 'style') el.style.cssText = v;
     else if (k === 'disabled') el.disabled = !!v;
     else el.setAttribute(k, v);
@@ -1312,12 +1317,16 @@ const Sfx = {
   ctx: null, muted: false, manifest: null, samples: {}, volume: 0.8,
   init() {
     this.muted = !!(Store.get('rankfile_muted'));
+    /* review E2: a touch pointerdown is not a user activation (only a mouse one
+       is); the activation arrives with pointerup / touchend / click. Listen to
+       all of them and act only once the browser says the gesture counts. */
     const wake = () => {
+      if (!userActive()) return;
       if (!this.ctx) { try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { this.ctx = null; } }
       if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
       Music.unlock();
     };
-    document.addEventListener('pointerdown', wake, { passive: true });
+    for (const ev of ['pointerdown', 'pointerup', 'touchend', 'click']) document.addEventListener(ev, wake, { passive: true });
     document.addEventListener('keydown', wake);
     /* every button clicks, unless it says otherwise */
     document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('button'); if (b && !b.disabled && !b.classList.contains('silent')) this.play('click'); }, true);
@@ -1402,6 +1411,10 @@ const Sfx = {
   },
 };
 
+/* Has the page had a gesture that lets it make sound? Browsers without the
+   UserActivation API are assumed yes; a refused play() retries later. */
+function userActive() { const ua = navigator.userActivation; return !ua || ua.isActive || ua.hasBeenActive; }
+
 /* ---- Music: one looping track at a time, crossfaded ------------------ */
 const Music = {
   tracks: {}, credits: [], current: null, el: null, fading: [], volume: 0.5, unlocked: false, wanted: null,
@@ -1412,7 +1425,7 @@ const Music = {
     return this.tracks[key] || this.tracks[key.replace(/\d+$/, '')] || null;
   },
   /* Browsers refuse autoplay before a gesture; remember what was asked and start it on the first click. */
-  unlock() { if (this.unlocked) return; this.unlocked = true; if (this.wanted) { const w = this.wanted; this.wanted = null; this.play(w.key, w.opts); } },
+  unlock() { if (this.unlocked || !userActive()) return; this.unlocked = true; if (this.wanted) { const w = this.wanted; this.wanted = null; this.play(w.key, w.opts); } },
   play(key, opts) {
     opts = opts || {};
     this.lastKey = key; this.lastOpts = opts;                   // re-applied when the manifest arrives late
@@ -1425,7 +1438,10 @@ const Music = {
     if (!src || Sfx.muted) return;
     const el = new Audio(AUDIO_BASE + src);
     el.loop = opts.loop !== false; el.volume = 0; el.preload = 'auto';
-    el.play().catch(() => { /* blocked or missing: stay silent */ });
+    el.play().catch(e => {
+      /* blocked (not missing): forget it was started, so the next gesture tries again (review E2) */
+      if (e && e.name === 'NotAllowedError' && this.el === el) { this.el = null; this.current = null; this.unlocked = false; this.wanted = { key, opts }; }
+    });
     this.el = el;
     this.fade(el, 0, this.volume, 900);
   },
@@ -1975,7 +1991,12 @@ class Battle {
       u.bt.brace = false; u.bt.fortify = false; u.bt.itemUsed = false;   // "until your next turn" effects expire here
       if (u.bt.inspired != null && u.bt.inspired < this.round) u.bt.inspired = null;
       u.bt.vanguard = this.has('VANGUARD') && u.id === this.vanguardId;
-      if (u.bt.burn) { this.floater(u, 'BURN', '#ff9f43'); this.effect('arcane', u, null, '#ff9f43'); Sfx.play('burn'); await this.applyDamage(u, u.bt.burn, null); if (this.over) break; if (!u.alive) continue; }
+      if (u.bt.burn) {
+        this.floater(u, 'BURN', '#ff9f43'); this.effect('arcane', u, null, '#ff9f43'); Sfx.play('burn');
+        await this.applyDamage(u, u.bt.burn, null, { burn: true, credit: u.bt.burnBy });
+        if (this.over) break;
+        if (!u.alive) { this.checkEnd(); continue; }          // review BE-1: the last enemy burning to death ends the battle now
+      }
       if (hasPerk(u, 'SECOND_WIND') && u.hp < maxHp(u) / 2) await this.heal(u, 4, true);
       this.ui.refresh();
       if (isPlayer(u)) await this.playerTurn(u); else await this.enemyTurn(u);
@@ -2053,6 +2074,7 @@ class Battle {
 
   /* ---------------- player turn ---------------- */
   playerTurn(u) {
+    this.inputLockUntil = performance.now() + INPUT_LOCK_MS;   // review BE-4: a double-click on Wait must not spend the next unit's turn
     return new Promise(resolve => {
       this.resolveTurn = resolve;
       this.origin = { x: u.x, y: u.y };
@@ -2152,12 +2174,19 @@ class Battle {
   /* Damage preview and resolution share this so the UI never lies.
      v2: steel is stopped by DEF, arcane by RES; perks and modifiers
      apply here too. */
+  /* Flat ATK on top of the unit's own stat: decree, bloodlust, vanguard,
+     Blood Tithe, Inspire. The unit card shows exactly this (review C6). */
+  flatAtk(att) {
+    const bt = att.bt || {};
+    let a = this.teamBuff[att.faction].atk + (bt.bloodlust || 0);
+    if (isPlayer(att)) { if (bt.vanguard) a += VANGUARD_ATK; if (this.has('BLOOD_TITHE')) a += BLOOD_TITHE_ATK; }
+    if (bt.inspired != null && bt.inspired >= this.round) a += INSPIRE_ATK;
+    return a;
+  }
   damageAgainst(att, def, mult = 1) {
     const w = att.weapon ? WEAPONS[att.weapon.type] : null;
     const kind = w ? w.kind : 'steel';
-    let raw = statOf(att, 'atk') + (att.weapon ? weaponDamage(att.weapon) : 0) + this.teamBuff[att.faction].atk + (att.bt ? att.bt.bloodlust : 0);
-    if (isPlayer(att)) { if (att.bt && att.bt.vanguard) raw += VANGUARD_ATK; if (this.has('BLOOD_TITHE')) raw += BLOOD_TITHE_ATK; }
-    if (att.bt && att.bt.inspired != null && att.bt.inspired >= this.round) raw += INSPIRE_ATK;
+    let raw = statOf(att, 'atk') + (att.weapon ? weaponDamage(att.weapon) : 0) + this.flatAtk(att);
     if (hasSynergy(att)) raw *= SYNERGY_MULT;
     if (hasPerk(att, 'EXECUTIONER') && def.hp < maxHp(def) * 0.3) raw *= 1.5;
     if (isPlayer(att) && def.bt && def.bt.dormant && this.has('GREY_CLOAKS')) raw *= GREY_SLEEP_MULT;
@@ -2184,6 +2213,8 @@ class Battle {
   }
 
   async doAttack(att, def) {
+    const ownsTurn = att === this.current && isPlayer(att);
+    if (ownsTurn) this.acting = true;                         // finish() waits for this action to end its own turn
     this.phase = 'busy'; this.targets = []; this.ui.refresh();
     const guard = this.guardFor(def);
     if (guard) { this.log(`${guard.name} steps in front of the King.`); this.floater(guard, 'ROYAL GUARD', '#4f7fb5'); def = guard; }
@@ -2191,18 +2222,18 @@ class Battle {
     const ranged = cheb(att, def) > 1 || dmg.kind === 'arcane';
     if (ranged) { Sfx.play(dmg.kind === 'arcane' ? 'spell' : 'arrow'); await this.animateRanged(att, def, dmg.kind); this.effect(dmg.kind === 'arcane' ? 'bolt' : 'arrow', att, def); await Anim.wait(260); }
     else { Sfx.play('swing'); await this.animateBump(att, def); }
-    for (let i = 0; i < dmg.hits && def.alive; i++) {
+    for (let i = 0; i < dmg.hits && def.alive && !this.over; i++) {
       if (i) await Anim.wait(140);
       this.effect(dmg.kind === 'arcane' ? 'arcane' : 'slash', def, null);
       await this.applyDamage(def, dmg.perHit, att);
     }
-    if (!ranged && isPlayer(att) && def.alive && this.has('EMBER_EDGE')) { def.bt.burn = Math.min(EMBER_BURN_MAX, (def.bt.burn || 0) + EMBER_BURN); this.floater(def, `BURN ${def.bt.burn}`, '#ff9f43'); }
+    if (!ranged && isPlayer(att) && def.alive && this.has('EMBER_EDGE')) { def.bt.burn = Math.min(EMBER_BURN_MAX, (def.bt.burn || 0) + EMBER_BURN); def.bt.burnBy = att; this.floater(def, `BURN ${def.bt.burn}`, '#ff9f43'); }
     if (isPlayer(att) && def.alive) this.awardXp(att, XP_HIT);
     await Anim.wait(120);
-    if (att === this.current && isPlayer(att)) this.endTurn();
+    if (ownsTurn) { this.acting = false; this.endTurn(); }
   }
 
-  async applyDamage(target, amount, source) {
+  async applyDamage(target, amount, source, opts) {
     target.hp = Math.max(0, target.hp - amount);
     target.bt.flash = 1; target.bt.hitT0 = performance.now();
     if (source && source.x !== target.x) target.bt.facing = Math.sign(source.x - target.x);
@@ -2210,14 +2241,14 @@ class Battle {
     Sfx.play('hit');
     await Anim.wait(70);                                  // hit-stop: the frame holds while the blow lands
     this.floater(target, `-${amount}`, '#ff6b5b');
-    this.log(`${source ? source.name + ' hits ' : ''}${target.name} for ${amount}.`);
+    this.log(opts && opts.burn ? `${target.name} burns for ${amount}.` : `${source ? source.name + ' hits ' : ''}${target.name} for ${amount}.`);
     if (source && source.modifier === 'VAMPIRIC' && source.alive) { const h = Math.min(Math.ceil(amount / 2), maxHp(source) - source.hp); if (h > 0) { source.hp += h; this.floater(source, `+${h}`, '#7ee787'); } }
     if (target.bt.dormant) this.wakeGroup(target.bt.group, 'is struck and wakes');
-    if (target.hp <= 0) await this.kill(target, source);
+    if (target.hp <= 0) await this.kill(target, source, opts && opts.credit);
     this.ui.refresh();
   }
 
-  async kill(u, source) {
+  async kill(u, source, credit) {
     u.alive = false;
     Sfx.play('kill');
     this.effect('death', u, null, isPlayer(u) ? '#efe4cc' : '#d9533f');
@@ -2226,6 +2257,8 @@ class Battle {
       source.kills++; this.kills++; this.awardXp(source, u.elite ? XP_KILL_ELITE : XP_KILL);
       if (hasPerk(source, 'BLOODLUST') && source.bt.bloodlust < 3) { source.bt.bloodlust++; this.floater(source, 'BLOODLUST', '#ff9f43'); }
       if (this.has('TEMPO') && source.alive) { this.queue.push(source); this.floater(source, 'TEMPO', '#6f8f6a'); this.log(`Tempo: ${source.name} will act again.`); }
+    } else if (!source && credit && isPlayer(credit) && credit.alive && !isPlayer(u)) {
+      credit.kills++; this.kills++; this.awardXp(credit, u.elite ? XP_KILL_ELITE : XP_KILL);   // a burn kill belongs to whoever lit it
     }
     if (isPlayer(u)) this.fallen.push(u.name);
     /* v5.1: the King alone — one line, once */
@@ -2284,6 +2317,8 @@ class Battle {
   }
 
   async useAbility(u, target) {
+    const ownsTurn = u === this.current && isPlayer(u);
+    if (ownsTurn) this.acting = true;
     const a = abilityOf(u);
     const name = CLASSES[u.cls].ability;
     this.phase = 'busy'; this.targets = []; this.ui.refresh();
@@ -2317,6 +2352,7 @@ class Battle {
         await this.animateLeap(u, target);
         this.effect('shock', u, null, '#ffd166');
         for (const [dx, dy] of DIRS8) {
+          if (this.over) break;                                   // review BE-3: the boss fell; the rest scatter
           const o = this.grid.unitAt(u.x + dx, u.y + dy);
           if (o && o.alive && o.faction !== u.faction) {
             const dmg = this.damageAgainst(u, o, CHARGE_DAMAGE_MULT);
@@ -2329,7 +2365,7 @@ class Battle {
       }
     }
     await Anim.wait(150);
-    if (u === this.current && isPlayer(u)) this.endTurn();
+    if (ownsTurn) { this.acting = false; this.endTurn(); }
   }
   healAmount(u) {
     return Math.round(HEAL_AMOUNT * (u.weapon && WEAPONS[u.weapon.type].healBoost ? WEAPONS[u.weapon.type].healBoost : 1)) + (hasPerk(u, 'MENDER') ? 4 : 0);
@@ -2351,6 +2387,7 @@ class Battle {
     const u = this.current;
     const it = this.run.inventory[index];
     if (!(this.phase === 'move' || this.phase === 'act') || !it || it.kind !== 'CONSUMABLE' || !ITEMS[it.type].inBattle || u.bt.itemUsed) return;
+    if (ITEMS[it.type].heal && !ITEMS[it.type].sp && u.hp >= maxHp(u)) { this.log(`${u.name} is unhurt; the ${ITEMS[it.type].name} is kept.`); this.ui.refresh(); return; }   // review: no wasted potions
     this.run.inventory.splice(index, 1);
     const def = ITEMS[it.type];
     const prev = this.phase;
@@ -2417,7 +2454,11 @@ class Battle {
     const farFile = (res.victory && !res.escaped && this.has('BATTLEFIELD')) ? this.units.filter(u => u.alive && isPlayer(u) && u.cls === 'PAWN' && u.x === GRID_W - 1).map(u => u.id) : [];
     this.result = { ...res, kills: this.kills, rounds: this.round, groundCapes: this.groundCapes.map(c => ({ cls: c.cls, level: c.level, name: c.name })), fallen: this.fallen.slice(), farFile };
     Sfx.play(res.victory ? 'win' : 'lose');
-    if (this.resolveTurn) { const r = this.resolveTurn; this.resolveTurn = null; r(); }
+    /* review BE-3: if a player's attack or ability is still running, it ends
+       the turn itself when it is done; resolving here let the game tear the
+       battle down under it. An idle turn (tests, the escape button) is
+       resolved at once. */
+    if (this.resolveTurn && !this.acting) { const r = this.resolveTurn; this.resolveTurn = null; r(); }
     if (this.resolveDeploy) { const r = this.resolveDeploy; this.resolveDeploy = null; r(); }
   }
 
@@ -2866,11 +2907,11 @@ const BattleUI = {
     this.coarse = !!(window.matchMedia && window.matchMedia('(hover: none)').matches);
     c.addEventListener('pointerdown', e => { this.lastPointer = e.pointerType; }, { passive: true });
     c.addEventListener('click', e => {
-      const t = tileOf(e); if (!t || !this.battle) return;
+      const t = tileOf(e); if (!t || !this.battle || this.locked()) return;
       const b = this.battle;
       const touch = this.lastPointer === 'touch' || (this.lastPointer == null && this.coarse);
       if (touch && this.wantsConfirm(t)) {
-        if (this.armed && this.armed.x === t.x && this.armed.y === t.y) { this.armed = null; b.onTile(t.x, t.y); return; }
+        if (this.armed && this.armed.x === t.x && this.armed.y === t.y) { this.armed = null; this.hideToast(); b.onTile(t.x, t.y); return; }   // review E4
         this.armed = t; b.hover = t; this.refreshHover(); return;
       }
       this.armed = null; this.hideToast();
@@ -2878,7 +2919,9 @@ const BattleUI = {
     });
     c.addEventListener('contextmenu', e => { e.preventDefault(); this.cancel(); });
     window.addEventListener('keydown', e => {
-      if (!this.battle || $('#battle').hidden || e.target.tagName === 'INPUT') return;
+      if (!this.battle || $('#battle').hidden || /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+      if (!$('#help').hidden || !$('#overlay').hidden) return;            // review UI-5: Help is open, the board is not listening
+      if (e.repeat || this.locked()) return;                              // review BE-4: held keys and double presses
       const b = this.battle;
       if (e.key === 'Escape') this.cancel();
       else if (e.key === 'w' || e.key === 'W') b.wait();
@@ -2889,6 +2932,9 @@ const BattleUI = {
     });
     window.addEventListener('resize', () => this.resize());
   },
+  /* True for a moment after a player turn starts: input then belongs to the turn that just ended. */
+  locked() { const b = this.battle; return !!(b && b.inputLockUntil && performance.now() < b.inputLockUntil); },
+  guard(fn) { return () => { if (!this.locked()) fn(); }; },
   /* A tap that would commit an attack: a living enemy, during the player's move or act phase. */
   wantsConfirm(t) {
     const b = this.battle; if (!b || !b.current || !isPlayer(b.current)) return false;
@@ -3228,7 +3274,7 @@ const BattleUI = {
     const sp = h('div.sp', null, `SP `); for (let i = 0; i < maxSp(u); i++) sp.append(h('i' + (i < u.bt.sp ? '.on' : ''))); sp.append(h('span', null, ` ${u.bt.sp}/${maxSp(u)}`));
     card.append(sp);
     const b = this.battle;
-    card.append(h('div.stats', null, ...[['ATK', statOf(u, 'atk') + b.teamBuff[u.faction].atk + (u.bt.bloodlust || 0) + (u.bt.inspired != null && u.bt.inspired >= b.round ? INSPIRE_ATK : 0)], ['DEF', statOf(u, 'def') + (u.bt.fortify ? FORTIFY_DEF : 0) + (b.grid.t(u.x, u.y) === 'FOREST' ? FOREST_DEF : 0)], ['RES', statOf(u, 'res')], ['SPD', statOf(u, 'spd')], ['MOV', moveRange(u)]].map(([k, v]) => h('div', null, h('b', null, k), String(v)))));
+    card.append(h('div.stats', null, ...[['ATK', statOf(u, 'atk') + b.flatAtk(u)], ['DEF', statOf(u, 'def') + (u.bt.fortify ? FORTIFY_DEF : 0) + (b.grid.t(u.x, u.y) === 'FOREST' ? FOREST_DEF : 0)], ['RES', statOf(u, 'res')], ['SPD', statOf(u, 'spd')], ['MOV', moveRange(u)]].map(([k, v]) => h('div', null, h('b', null, k), String(v)))));
     const r = attackRange(u);
     card.append(h('div.line.iconline', null, icon(u.weapon ? u.weapon.type : 'SWORD', 15, u.weapon ? ITEM_KIND_COLORS.WEAPON : '#5a5058'), u.weapon ? `${weaponName(u.weapon)} · ${weaponDamage(u.weapon)} ${weaponKind(u)} · range ${r[0]}${r[1] > r[0] ? '–' + r[1] : ''}${hasSynergy(u) ? ' · +25%' : ''}` : 'Unarmed · range 1', u.offhand ? [' · ', icon(u.offhand.type, 15, ITEM_KIND_COLORS.OFFHAND), offhandName(u.offhand)] : ''));
     card.append(h('div.line.ab.iconline', null, icon(CLASSES[u.cls].ability, 15, '#c9a3ff'), h('b', null, `${a.name} (${abilityCost(u)} SP)`), ` ${a.desc}`));
@@ -3262,10 +3308,10 @@ const BattleUI = {
     const a = abilityOf(u);
     el.append(h('div.hint', null, b.phase === 'move' ? 'Click a blue tile to move, or a red enemy to attack.' : 'Choose an action.'));
     const row = h('div.btnrow');
-    row.append(h('button.btn.primary.iconbtn', { onclick: () => b.beginAbility(), disabled: !b.canUseAbility(u), title: a.desc }, icon(CLASSES[u.cls].ability, 18), `${a.name} · ${abilityCost(u)} SP`));
+    row.append(h('button.btn.primary.iconbtn', { onclick: this.guard(() => b.beginAbility()), disabled: !b.canUseAbility(u), title: a.desc }, icon(CLASSES[u.cls].ability, 18), `${a.name} · ${abilityCost(u)} SP`));
     const items = b.run.inventory.map((it, i) => ({ it, i })).filter(x => x.it.kind === 'CONSUMABLE' && ITEMS[x.it.type].inBattle);
     if (items.length) {
-      const sel = h('select.btn', { id: 'item-select', disabled: u.bt.itemUsed, title: u.bt.itemUsed ? 'One item per turn' : 'Free action' }, h('option', { value: '' }, u.bt.itemUsed ? 'Item used this turn' : `Use item (${items.length}) — free`), ...items.map(x => h('option', { value: x.i }, `${ITEMS[x.it.type].name} — ${ITEMS[x.it.type].desc.replace(' Free action in battle.', '')}`)));
+      const sel = h('select.btn', { id: 'item-select', disabled: u.bt.itemUsed, title: u.bt.itemUsed ? 'One item per turn' : 'Free action' }, h('option', { value: '' }, u.bt.itemUsed ? 'Item used this turn' : `Use item (${items.length}) — free`), ...items.map(x => { const full = ITEMS[x.it.type].heal && !ITEMS[x.it.type].sp && u.hp >= maxHp(u); return h('option', { value: x.i, disabled: full }, `${ITEMS[x.it.type].name} — ${full ? 'already at full health' : ITEMS[x.it.type].desc.replace(' Free action in battle.', '')}`); }));
       sel.addEventListener('change', () => { if (sel.value !== '') b.useItem(Number(sel.value)); });
       row.append(sel);
     }
@@ -3278,9 +3324,9 @@ const BattleUI = {
         row.append(csel);
       }
     }
-    if (b.phase === 'act') row.append(h('button.btn', { onclick: () => b.undoMove() }, 'Undo move (U)'));
-    if (b.exit && u.cls === 'KING' && u.x === b.exit.x && u.y === b.exit.y) row.append(h('button.btn.gold', { onclick: () => b.escape() }, 'Escape!'));
-    row.append(h('button.btn', { onclick: () => b.wait() }, 'Wait (W)'));
+    if (b.phase === 'act') row.append(h('button.btn', { onclick: this.guard(() => b.undoMove()) }, 'Undo move (U)'));
+    if (b.exit && u.cls === 'KING' && u.x === b.exit.x && u.y === b.exit.y) row.append(h('button.btn.gold', { onclick: this.guard(() => b.escape()) }, 'Escape!'));
+    row.append(h('button.btn', { onclick: this.guard(() => b.wait()) }, 'Wait (W)'));
     row.append(this.dangerButton());
     el.append(row);
   },
@@ -4050,7 +4096,7 @@ const WorldUI = {
      Static layer (parchment, burnt edges, per-act terrain ink, border,
      cartouche) is cached per world + size; routes and seals are redrawn. */
   parchment(W, H) {
-    const key = `${this.world.actIndex}:${this.world.seed || 0}:${W}x${H}`;
+    const key = `${this.world.actIndex}:${this.world.seed || 0}:${W}x${H}@${this.dpr}`;   // review: a monitor change alters dpr, not size
     if (this.bgCache && this.bgCache.key === key) return this.bgCache.canvas;
     const c = document.createElement('canvas'); c.width = Math.round(W * this.dpr); c.height = Math.round(H * this.dpr);
     const ctx = c.getContext('2d'); ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -4179,6 +4225,7 @@ const SAVE_KEY = 'rankfile_save_v2';
 const RECORDS_KEY = 'rankfile_records_v1';
 const ANNALS_KEY = 'rankfile_annals_v1';
 const ANNALS_MAX = 60;
+const SAVE_VERSION = 3;          // v7.2: run.inBattle / run.pending / run.afterBoss / run.bannerDeclinable
 
 const Game = {
   run: null,
@@ -4193,7 +4240,7 @@ const Game = {
       warband: [], inventory: [{ kind: 'CONSUMABLE', type: 'POTION' }, { kind: 'CONSUMABLE', type: 'POTION' }],
       fallen: [], stats: { battles: 0, kills: 0, escapes: 0, promotions: 0 }, world: null,
       lastFallen: [], perkOffers: {}, banners: [], bannerOffer: null, opening: openingCls,
-      startedAt: Date.now(),
+      startedAt: Date.now(), v: SAVE_VERSION,
     };
     const king = makeUnit('KING', 'PLAYER', (kingName || '').trim() || rng.pick(NAMES)); king.weapon = makeWeapon('BOW', 'COMMON');
     run.kingName = king.name;
@@ -4218,10 +4265,30 @@ const Game = {
     run.banners = run.banners || []; run.stats.promotions = run.stats.promotions || 0;
     this.run = run;
     this.applyRules();
-    nextUnitId = Math.max(1, ...run.warband.map(u => u.id + 1), ...run.fallen.map(u => u.id + 1));
-    if (run.bannerOffer) { Screens.bannerChoice(run, run.bannerOffer, 'Raise a banner', () => this.showOverworld()); return true; }
-    this.showOverworld();
+    /* the market's unbought recruit already holds an id */
+    nextUnitId = Math.max(1, ...run.warband.map(u => u.id + 1), ...run.fallen.map(u => u.id + 1), ...(run.shopStock && run.shopStock.recruit ? [run.shopStock.recruit.id + 1] : []));
+    /* v7.2 (review UI-1): a ≤v7.1 save made after a boss points at the boss
+       node, which has no exits. If that is where it stands, the boss is down. */
+    if (!run.v) {
+      const cur = run.world && run.world.current != null ? worldNode(run.world, run.world.current) : null;
+      if (cur && cur.type === 'BOSS' && cur.visited) run.afterBoss = true;
+      run.v = SAVE_VERSION;
+    }
+    /* Resume where the page was left. A battle is fought again from the
+       start (Help says so); a results screen is shown again (its rewards are
+       already in the save); a pending banner is offered again on its own
+       terms; after a boss, the act changes rather than the old map returning. */
+    if (run.inBattle) { const kind = run.inBattle; if (kind === 'BOSS') Screens.bossIntro(run, () => this.battle('BOSS')); else this.battle(kind); return true; }
+    if (run.pending) { this.showResults(run.pending); return true; }
+    if (run.bannerOffer) { Screens.bannerChoice(run, run.bannerOffer, 'Raise a banner', () => this.proceed(), !!run.bannerDeclinable); return true; }
+    this.proceed();
     return true;
+  },
+  /* After results and banners: the next act if a boss just fell, else the map. */
+  proceed() {
+    const run = this.run;
+    if (run.afterBoss) { run.afterBoss = false; this.nextAct(); }
+    else this.showOverworld();
   },
   /* ---------------- banners (v4) ---------------- */
   hasBanner(id) { return !!(this.run && this.run.banners.includes(id)); },
@@ -4230,7 +4297,7 @@ const Game = {
     RULES.aggroRadius = this.hasBanner('GREY_CLOAKS') ? GREY_AGGRO : AGGRO_RADIUS;
   },
   /* n banners the run does not hold yet; cursed ones only when allowed. */
-  offerBanners(n, allowCursed) {
+  offerBanners(n, allowCursed, declinable) {
     const run = this.run;
     const rng = new RNG(run.seed ^ (run.banners.length * 7331 + run.battleCount * 17 + 101));
     const pool = Object.keys(BANNERS).filter(id => !run.banners.includes(id) && (allowCursed || BANNERS[id].school !== 'curse'));
@@ -4239,19 +4306,19 @@ const Game = {
     const picks = [], seen = new Set();
     for (const id of pool) if (picks.length < n && !seen.has(BANNERS[id].school)) { picks.push(id); seen.add(BANNERS[id].school); }
     for (const id of pool) if (picks.length < n && !picks.includes(id)) picks.push(id);
-    run.bannerOffer = picks; this.save();
+    run.bannerOffer = picks; run.bannerDeclinable = !!declinable; this.save();
     return picks;
   },
   raiseBanner(id) {
     const run = this.run;
     if (!BANNERS[id] || run.banners.includes(id)) return false;
-    run.banners.push(id); run.bannerOffer = null;
+    run.banners.push(id); run.bannerOffer = null; run.bannerDeclinable = false;
     Sfx.play('banner');
     this.applyRules();
     if (id === 'TWIN_CROWNS') for (const u of run.warband) if (u.cls === 'QUEEN') { u.boosts.maxHp -= TWIN_CROWNS_HP; u.hp = Math.max(1, Math.min(u.hp, maxHp(u))); }
     this.save(); return true;
   },
-  declineBanner() { this.run.bannerOffer = null; this.save(); },
+  declineBanner() { this.run.bannerOffer = null; this.run.bannerDeclinable = false; this.save(); },
   hasSave() { return !!Store.get(SAVE_KEY); },
   save() { if (this.run) Store.set(SAVE_KEY, this.run); },
   abandon() { Store.del(SAVE_KEY); this.recordRun(false, 'Abandoned'); this.run = null; Screens.title(); },
@@ -4309,10 +4376,12 @@ const Game = {
   /* ---------------- battle & rewards ---------------- */
   async battle(kind) {
     const run = this.run;
+    run.inBattle = kind; this.save();                       // v7.2: a refresh mid-battle fights this battle again
     Screens.show('battle');
     Music.play(kind === 'BOSS' ? 'boss' + (run.act + 1) : 'battle' + (run.act + 1));
     $('#battle-act').textContent = `Act ${['I', 'II', 'III'][run.act]} · ${ACTS[run.act].name} · ${NODE_TYPES[kind].name}`;
     const result = await Battle.play(run, kind, BattleUI);
+    run.inBattle = null;
     run.battleCount++; run.stats.battles++; run.stats.kills += result.kills;
     /* bury the dead, drop transient battle state */
     for (const u of run.warband) { if (!u.alive) { u.diedIn = `Act ${run.act + 1}, battle ${run.battleCount}`; run.fallen.push(u); } delete u.bt; }
@@ -4326,15 +4395,22 @@ const Game = {
     for (const u of run.warband) if (u.perkPending > 0 && !run.perkOffers[u.id]) run.perkOffers[u.id] = offerPerks(u, prng);
     /* Battlefield Promotion banner: pawns who reached the far file choose a cape */
     run.farFile = (result.farFile || []).filter(id => run.warband.some(u => u.id === id && u.cls === 'PAWN'));
+    /* v7.2 (review UI-1/UI-6): the results screen is part of the save, so a
+       refresh on it shows it again instead of dropping its offers. */
+    run.pending = JSON.parse(JSON.stringify({ kind, result, rewards }));
     this.save();
-    const afterResults = () => {
-      const lastBoss = kind === 'BOSS' && run.act >= ACTS.length - 1;
-      const offer = kind === 'BOSS' && !lastBoss ? this.offerBanners(3, true) : kind === 'ELITE' ? this.offerBanners(2, false) : null;
-      const go = () => { if (kind === 'BOSS') this.nextAct(); else this.showOverworld(); };
-      if (offer && offer.length) Screens.bannerChoice(run, offer, kind === 'BOSS' ? 'The boss is down. Raise a banner.' : 'A hard fight. Raise a banner.', go, true);
-      else go();
-    };
-    Screens.results(run, kind, result, rewards, afterResults);
+    this.showResults(run.pending);
+  },
+  showResults(p) { Screens.results(this.run, p.kind, p.result, p.rewards, () => this.afterResults(p.kind)); },
+  afterResults(kind) {
+    const run = this.run;
+    run.pending = null;
+    if (kind === 'BOSS') run.afterBoss = true;
+    const lastBoss = kind === 'BOSS' && run.act >= ACTS.length - 1;
+    const offer = kind === 'BOSS' && !lastBoss ? this.offerBanners(3, true, true) : kind === 'ELITE' ? this.offerBanners(2, false, true) : null;
+    this.save();
+    if (offer && offer.length) Screens.bannerChoice(run, offer, kind === 'BOSS' ? 'The boss is down. Raise a banner.' : 'A hard fight. Raise a banner.', () => this.proceed(), true);
+    else this.proceed();
   },
   rollRewards(kind, result) {
     const run = this.run;
@@ -4373,6 +4449,7 @@ const Game = {
     if (recruit) run.warband.push(recruit);
     for (const u of run.warband) u.hp = Math.min(maxHp(u), u.hp + Math.round(maxHp(u) * 0.5));
     run.world = generateOverworld(new RNG(run.seed ^ (0xA5A5 + run.act * 31)), run.act);
+    run.shopStock = null;                                    // review UI-2: node ids restart every act
     this.save();
     Screens.actIntro(run, recruit, () => this.showOverworld());
   },
@@ -4481,6 +4558,7 @@ const Screens = {
   /* ---------------- title & prologue ---------------- */
   title() {
     this.show('title');
+    drawTitleBackdrop();                                   // review R3: the window may have changed size since it was last drawn
     Music.play('title');
     const r = Game.records();
     $('#seed-input').value = randomSeedString();
@@ -4562,7 +4640,7 @@ const Screens = {
   },
   bannerChips(run) {
     const box = h('div.banner-chips');
-    for (const id of run.banners) { const b = BANNERS[id]; box.append(h('span.bchip', { style: `--bc:${BANNER_SCHOOLS[b.school].color}`, title: `${b.name} — ${b.desc}` }, h('i'), b.name)); }
+    for (const id of run.banners) { const b = BANNERS[id]; if (!b) continue; box.append(h('span.bchip', { style: `--bc:${BANNER_SCHOOLS[b.school].color}`, title: `${b.name} — ${b.desc}` }, h('i'), b.name)); }
     return box;
   },
   prologue(run, done) {
@@ -4582,7 +4660,8 @@ const Screens = {
   refreshResources(run) {
     const alive = run.warband.length;
     const pending = run.warband.filter(u => u.perkPending > 0).length;
-    $('#ow-res').innerHTML = `<b>${run.gold}</b> gold · band <b>${alive}/${WARBAND_CAP}</b> · seed <code>${run.seedStr}</code>`;
+    /* review UI-3: built as nodes, never as HTML — the seed is typed by whoever shared it */
+    clear($('#ow-res')).append(h('b', null, String(run.gold)), ' gold · band ', h('b', null, `${alive}/${WARBAND_CAP}`), ' · seed ', h('code', null, String(run.seedStr)));
     const strip = clear($('#ow-band'));
     for (const u of run.warband) {
       const c = h('button.mini' + (u.perkPending > 0 ? '.alert' : ''), { onclick: () => this.warband(run, () => this.refreshResources(run)), title: `${u.name} — ${CLASSES[u.cls].name}` });
@@ -4600,9 +4679,12 @@ const Screens = {
   warband(run, onClose) {
     const ov = $('#overlay'); ov.hidden = false;
     let selected = null;                                   // inventory index being applied
+    /* review UI-4: the backdrop click closes through here too, so the screen beneath is refreshed */
+    const close = () => { ov.hidden = true; this.closeOverlay = null; if (onClose) onClose(); };
+    this.closeOverlay = close;
     const render = () => {
       const box = clear($('#overlay-body'));
-      box.append(h('div.ov-head', null, h('h2', null, 'The Warband'), h('div.muted', null, `${run.gold} gold · ${run.warband.length}/${WARBAND_CAP} units`), h('button.btn', { onclick: () => { ov.hidden = true; if (onClose) onClose(); } }, 'Close')));
+      box.append(h('div.ov-head', null, h('h2', null, 'The Warband'), h('div.muted', null, `${run.gold} gold · ${run.warband.length}/${WARBAND_CAP} units`), h('button.btn', { onclick: close }, 'Close')));
       const cols = h('div.cols');
       const left = h('div.col'), right = h('div.col');
       left.append(h('h3', null, 'Units'));
@@ -4674,7 +4756,7 @@ const Screens = {
     const others = run.warband.filter(u => u.cls !== 'KING');
     opts.append(h('button.btn.big', { disabled: !others.length, onclick: () => this.pickUnit(run, 'Who sits with the King?', u => this.confide(run, u, done), u => u.cls !== 'KING') },
       icon('CROWN', 26, '#c9a3ff'), h('b', null, 'Confide'), h('span', null, others.length ? 'Sit with one of the band. They gain +3 max HP, and you learn something.' : 'There is no one left to sit with.')));
-    opts.append(h('button.btn', { onclick: () => this.warband(run) }, 'Open warband'));
+    opts.append(h('button.btn', { onclick: () => this.warband(run, () => this.rest(run, done)) }, 'Open warband'));
     sh.append(opts);
   },
   confide(run, u, done) {
@@ -4699,7 +4781,9 @@ const Screens = {
 
   /* ---------------- market ---------------- */
   shop(run, done) {
-    run.shopStock = run.shopStock && run.shopStock.node === run.world.current ? run.shopStock : this.rollStock(run);
+    /* review UI-2: node ids restart every act, so the stock is keyed by act as well */
+    const same = run.shopStock && run.shopStock.node === run.world.current && (run.shopStock.act || 0) === run.act;
+    run.shopStock = same ? run.shopStock : this.rollStock(run);
     const stock = run.shopStock;
     const render = () => {
       const sh = this.sheet('Market', Scenes.element('market', { units: run.warband, act: run.act, seed: run.seed + run.world.current }), h('p.muted', null, `A trader who asks no questions. You carry ${run.gold} gold.`));
@@ -4717,7 +4801,7 @@ const Screens = {
       }
       if (stock.recruit) list.append(h('div.item.recruit', null, h('div.ibox', { style: '--ic:#e0b25a' }, icon('RECRUIT', 26, '#e0b25a')), h('div.itext', null, h('div.iname', null, `Recruit ${stock.recruit.name}, ${originOf(stock.recruit).name}`), h('div.idesc', null, 'A Pawn with an iron sword. Capes make them more.')),
         h('button.btn', { disabled: run.gold < RECRUIT_PRICE || run.warband.length >= WARBAND_CAP, title: run.warband.length >= WARBAND_CAP ? 'Warband is full' : '', onclick: () => { run.gold -= RECRUIT_PRICE; run.warband.push(stock.recruit); stock.recruit = null; Sfx.play('coin'); Game.save(); render(); } }, `${RECRUIT_PRICE} g`)));
-      sh.append(list, h('div.btnrow', null, h('button.btn', { onclick: () => this.warband(run) }, 'Open warband'), h('button.btn.primary', { onclick: done }, 'Leave')));
+      sh.append(list, h('div.btnrow', null, h('button.btn', { onclick: () => this.warband(run, render) }, 'Open warband'), h('button.btn.primary', { onclick: done }, 'Leave')));
     };
     render();
   },
@@ -4728,7 +4812,7 @@ const Screens = {
     const useful = usefulCapeClasses(run.warband).filter(c => run.act > 0 || c !== 'QUEEN');
     if (useful.length) items.push(makeCape(rng.pick(useful)));
     const bannerPool = Object.keys(BANNERS).filter(id => !run.banners.includes(id) && BANNERS[id].school !== 'curse');
-    return { node: run.world.current, items, recruit: makeRecruit(rng, run.warband), banner: bannerPool.length ? rng.pick(bannerPool) : null };
+    return { node: run.world.current, act: run.act, items, recruit: makeRecruit(rng, run.warband), banner: bannerPool.length ? rng.pick(bannerPool) : null };
   },
 
   /* ---------------- events ---------------- */
@@ -4760,7 +4844,10 @@ const Screens = {
         case 'weaponType': { const w = makeWeapon(args[0], args[1] || 'COMMON'); run.inventory.push(w); lines.push(`Found: ${weaponName(w)}.`); break; }
         case 'offhand': { const o = makeOffhand(args[0], args[1] || 'COMMON'); run.inventory.push(o); lines.push(`Found: ${offhandName(o)}.`); break; }
         case 'item': run.inventory.push({ kind: 'CONSUMABLE', type: args[0] }); lines.push(`Received: ${ITEMS[args[0]].name}.`); break;
-        case 'banner': if (Game.raiseBanner(args[0])) lines.push(`The band now fights under ${BANNERS[args[0]].name}: ${BANNERS[args[0]].desc}`); else lines.push('You already fight under that banner. You burn it instead and find 45 gold.') || (run.gold += 45); break;
+        case 'banner':
+          if (Game.raiseBanner(args[0])) lines.push(`The band now fights under ${BANNERS[args[0]].name}: ${BANNERS[args[0]].desc}`);
+          else { run.gold += 45; lines.push('You already fight under that banner. You burn it instead and find 45 gold.'); }   // review C1: push() is truthy, so the old `|| gold += 45` never paid
+          break;
         case 'hpAll': for (const u of run.warband) u.hp = Math.max(1, Math.min(maxHp(u), u.hp + Number(args[0]))); lines.push(`Every unit ${Number(args[0]) < 0 ? 'loses' : 'gains'} ${Math.abs(Number(args[0]))} HP.`); break;
         case 'hpAllPct': for (const u of run.warband) u.hp = Math.max(1, Math.min(maxHp(u), u.hp + Math.round(maxHp(u) * Number(args[0])))); lines.push(`Every unit loses ${Math.round(-Number(args[0]) * 100)}% HP.`); break;
         case 'healAllPct': for (const u of run.warband) u.hp = Math.min(maxHp(u), u.hp + Math.round(maxHp(u) * Number(args[0]))); lines.push(`Every unit recovers ${Math.round(Number(args[0]) * 100)}% HP.`); break;
@@ -4823,7 +4910,7 @@ const Screens = {
       }
       sh.append(box);
     }
-    sh.append(h('div.btnrow', null, h('button.btn', { onclick: () => this.warband(run) }, 'Open warband'), h('button.btn.primary', { onclick: done }, 'Continue')));
+    sh.append(h('div.btnrow', null, h('button.btn', { onclick: () => this.warband(run, () => this.results(run, kind, result, rewards, done)) }, 'Open warband'), h('button.btn.primary', { onclick: done }, 'Continue')));
   },
   actIntro(run, recruit, done) {
     const act = ACTS[run.act];
@@ -4997,10 +5084,12 @@ function drawTitleBackdrop() {
 }
 
 function frame(now) {
-  Anim.update(now);
-  if (BattleUI.battle && !$('#battle').hidden) BattleUI.draw(now);
-  if (!$('#overworld').hidden && WorldUI.world) WorldUI.draw();
-  requestAnimationFrame(frame);
+  requestAnimationFrame(frame);                  // review R1: scheduled first, so one bad frame cannot stop every tween after it
+  try {
+    Anim.update(now);
+    if (BattleUI.battle && !$('#battle').hidden) BattleUI.draw(now);
+    if (!$('#overworld').hidden && WorldUI.world) WorldUI.draw();
+  } catch (e) { if (!frame.reported) { frame.reported = true; console.error('frame', e); } }
 }
 
 function init() {
@@ -5059,7 +5148,7 @@ function init() {
   for (const lab of document.querySelectorAll('.openings label')) { const cls = lab.querySelector('input').value; lab.querySelector('span').prepend(icon(cls, 26, CAPE_COLORS[cls], 'opening-ico')); }
   if (!document.querySelector('link[rel="icon"]')) { const l = document.createElement('link'); l.rel = 'icon'; l.href = 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="#15121a"/><path fill="#e0b25a" d="${ICON_PATHS.KING}"/></svg>`); document.head.append(l); }
   /* overlay close on backdrop click */
-  $('#overlay').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.hidden = true; });
+  $('#overlay').addEventListener('click', e => { if (e.target !== e.currentTarget) return; if (Screens.closeOverlay) Screens.closeOverlay(); else e.currentTarget.hidden = true; });
   $('#help').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.hidden = true; });
 
   Screens.title();
