@@ -291,6 +291,13 @@ li .ibox { display: inline-grid; width: 24px; height: 24px; vertical-align: midd
 /* ---- v6 scenes ---- */
 .scene { display: block; width: 100%; height: auto; aspect-ratio: 720 / 220; border-radius: 6px; margin: 0 0 8px; box-shadow: inset 0 0 0 1px rgba(255,220,150,0.14), 0 10px 28px rgba(0,0,0,0.45); background: #0a0a0e; }
 
+/* ---- v7 story ---- */
+.banner-card .blore { grid-column: 1 / -1; font-size: 0.82rem; color: #8f8578; font-style: italic; margin-top: 4px; white-space: normal; font-weight: 400; }
+.codex-entry { margin-top: 6px; }
+.codex-entry h3 { margin-bottom: 2px; }
+.codex-entry p { max-width: none; }
+.lore { font-style: italic; }
+
 </style>
 </head>
 <body>
@@ -320,6 +327,7 @@ li .ibox { display: inline-grid; width: 24px; height: 24px; vertical-align: midd
           <button class="btn primary" id="btn-start" type="button">Make the promise</button>
           <button class="btn gold" id="btn-continue" type="button" hidden>Continue saved run</button>
           <button class="btn" id="btn-annals" type="button" hidden>The Annals</button>
+          <button class="btn" id="btn-codex" type="button">Codex</button>
           <button class="btn" id="btn-credits" type="button">Credits</button>
           <button class="btn btn-help" type="button">How to play</button>
         </div>
@@ -405,6 +413,7 @@ li .ibox { display: inline-grid; width: 24px; height: 24px; vertical-align: midd
       <p>A <b>cape</b> promotes a Pawn into a class, within chess limits: one Queen, two Rooks, two Bishops, two Knights. When a promoted unit dies its cape drops where it fell; end a unit's turn on it to recover it. If you rout the enemy, every cape still on the field is recovered. If the King escapes through an exit, they are lost.</p>
       <h3>Enemies</h3>
       <p>Packs start dormant and wake when you come within 3 tiles, or when you hit one. Wake one pack at a time. Elites carry a modifier (Armored, Swift, Brutal, Vampiric). Each boss has a signature move; read its introduction. Progress is saved whenever you are on the map; a battle you leave is fought again from the start.</p>
+      <div id="help-world"></div>
     </div>
   </div>
 </div>
@@ -593,8 +602,8 @@ const ACTS = [
       ['BISHOP', 'KNIGHT', 'PAWN'],
     ],
     bossCape: ['ROOK', 'KNIGHT', 'BISHOP'],
-    boss: { name: 'The Warden', cls: 'ROOK', hp: 60, atk: 8, def: 8, res: 1, spd: 3, weapon: 'AXE', rarity: 'COMMON', signature: 'CRUSH',
-            escort: ['PAWN', 'PAWN'], intro: 'A rook of cracked granite guards the only stair down. It has never moved. It will not need to. Its armour laughs at steel — bring magic, or bring an axe.' },
+    boss: { name: 'Ordo, the Warden', story: 'WARDEN', cls: 'ROOK', hp: 60, atk: 8, def: 8, res: 1, spd: 3, weapon: 'AXE', rarity: 'COMMON', signature: 'CRUSH',
+            escort: ['PAWN', 'PAWN'], intro: 'Ordo, a rook of cracked granite, guards the only stair down. Given the keys three hundred years ago and never relieved. He has never moved; he will not need to. His armour laughs at steel — bring magic, or bring an axe.' },
   },
   {
     name: 'The Drowned Halls',
@@ -614,8 +623,8 @@ const ACTS = [
       ['ROOK', 'ROOK', 'BISHOP', 'PAWN'],
     ],
     bossCape: ['QUEEN'],
-    boss: { name: 'The Heretic', cls: 'BISHOP', hp: 55, atk: 7, def: 5, res: 9, spd: 6, weapon: 'STAFF', rarity: 'RARE', signature: 'RAISE',
-            escort: ['KNIGHT', 'KNIGHT', 'PAWN', 'PAWN'], intro: 'A bishop who preaches to the drowned. Its congregation does not stay dead — every third bell it raises another. Kill the preacher first.' },
+    boss: { name: 'Venn, the Heretic', story: 'HERETIC', cls: 'BISHOP', hp: 55, atk: 7, def: 5, res: 9, spd: 6, weapon: 'STAFF', rarity: 'RARE', signature: 'RAISE',
+            escort: ['KNIGHT', 'KNIGHT', 'PAWN', 'PAWN'], intro: 'Mother Venn, who kept the Archive and drowned it, preaches to the drowned. Her congregation does not stay down — every third bell she raises another. Kill the preacher first.' },
   },
   {
     name: 'The Obsidian Keep',
@@ -635,7 +644,7 @@ const ACTS = [
       ['ROOK', 'ROOK', 'BISHOP', 'BISHOP', 'KNIGHT'],
     ],
     bossCape: [],
-    boss: { name: 'The Black King', cls: 'KING', hp: 90, atk: 9, def: 9, res: 7, spd: 4, weapon: 'BOW', rarity: 'RARE', signature: 'RESERVES',
+    boss: { name: 'The Black King', story: 'BLACK_KING', cls: 'KING', hp: 90, atk: 9, def: 9, res: 7, spd: 4, weapon: 'BOW', rarity: 'RARE', signature: 'RESERVES',
             escort: ['QUEEN', 'ROOK', 'BISHOP'], intro: 'The Black King does not take the field. He is already on it, and has been waiting for you since the first move. At half strength he will call his reserves. Checkmate him.' },
   },
 ];
@@ -715,7 +724,7 @@ const EVENTS = [
   },
   {
     id: 'WANDERER', title: 'A Wandering Pawn',
-    text: 'A deserter in a torn tabard asks to join. He looks hungry, but he holds his sword correctly.',
+    text: 'A deserter in a torn tabard asks to join. There is a pale band on his shoulder where black cloth sat for a night. He looks hungry, but he holds his sword correctly.',
     options: [
       { label: 'Take him in (free)', effect: 'recruit' },
       { label: 'Pay him 30 gold for a tip instead', effect: 'gold:-30;weapon:COMMON', requires: 'gold:30' },
@@ -724,7 +733,7 @@ const EVENTS = [
   },
   {
     id: 'SHRINE', title: 'Shrine of the Bishop',
-    text: 'A candle still burns before a cracked statue. The air is warm.',
+    text: 'A candle still burns before a cracked statue of a bishop. Someone has been saying names here; the air is warm with them.',
     options: [
       { label: 'Rest here (heal 50% all)', effect: 'healAllPct:0.5' },
       { label: 'Take the candle (random cape, every unit loses 20% HP)', effect: 'cape;hpAllPct:-0.2' },
@@ -732,7 +741,7 @@ const EVENTS = [
   },
   {
     id: 'ALTAR', title: 'The Cursed Altar',
-    text: 'Blood channels run into a basin. Whoever bleeds here grows stronger. The altar is not lying.',
+    text: 'Blood channels run into a basin cut with the Court\'s letters. Whoever bleeds here grows stronger, and a little less their own. The altar is not lying.',
     options: [
       { label: 'A unit bleeds (-8 max HP, +3 ATK, permanent)', effect: 'pickUnit:maxHp:-8:atk:3' },
       { label: 'Walk away', effect: 'nothing' },
@@ -756,7 +765,7 @@ const EVENTS = [
   },
   {
     id: 'TOMB', title: 'The Forgotten Tomb',
-    text: 'A knight lies on a stone slab, cape folded over his chest. The cape is in better shape than the knight.',
+    text: 'A knight lies on a stone slab, cape folded over his chest, still the right colour: nobody took it, so it was never turned. The cape is in better shape than the knight.',
     options: [
       { label: 'Take the cape', effect: 'cape' },
       { label: 'Leave him be (find 40 gold on the way out)', effect: 'gold:40' },
@@ -772,7 +781,7 @@ const EVENTS = [
   },
   {
     id: 'SMITHY', title: 'The Cold Forge',
-    text: 'An abandoned smithy. The anvil is still warm, which is impossible. A shield and a ward hang finished on the wall.',
+    text: 'An abandoned smithy. The anvil is still warm, which is impossible. A shield and a ward hang finished on the wall, and someone\'s name is scratched on the ward in a hand that shakes.',
     options: [
       { label: 'Take the shield', effect: 'offhand:SHIELD:UNCOMMON' },
       { label: 'Take the ward', effect: 'offhand:WARD:UNCOMMON' },
@@ -781,7 +790,7 @@ const EVENTS = [
   },
   {
     id: 'STANDARD', title: 'The Torn Standard',
-    text: 'A banner of the old court, half burned, still on its pole. Whoever raised it last did not survive the raising. It hums with something.',
+    text: 'A page of the Court\'s own oath, half burned, still on its pole. Whoever raised it last did not survive the raising. It hums. It is hungry.',
     options: [
       { label: 'Raise Warhorns (every pack starts awake; gold doubled)', effect: 'banner:WARHORNS' },
       { label: 'Raise Blood Tithe (+3 ATK for all; battles start at 80% HP)', effect: 'banner:BLOOD_TITHE' },
@@ -790,7 +799,7 @@ const EVENTS = [
   },
   {
     id: 'LIBRARY', title: 'The Sunken Library',
-    text: 'Books float face-down in black water. One is dry, and humming.',
+    text: 'An outer room of the Archive. Books float face-down in black water, their names bleeding out of them. One is dry, and humming, and knows yours.',
     options: [
       { label: 'Take the tome', effect: 'weaponType:TOME:UNCOMMON' },
       { label: 'Read it here (one unit gains +1 RES, permanent)', effect: 'pickUnit:res:1' },
@@ -800,76 +809,111 @@ const EVENTS = [
 
 
 /* =====================================================================
-   Module 00b: story — the narrative layer, kept as data.
+   Module 00b: story — the narrative layer, kept as data. v7.
 
-   Premise: the realm of Caissa has fallen to the Black Court. The
-   White King has no army left, only the common folk who still answer
-   him. He swears that anyone who stands in the line will be raised,
-   rank by rank, as far as they can go. Every pawn can become a queen.
+   The world (see STORY-BIBLE.md): in Caissa rank is cloth. Only cloth
+   cut from the King's Mantle carries an office, and whoever wears it
+   IS the office. The Mantle has seven panels beyond the King's own,
+   which is why a court is the size it is. The Black Court did not burn
+   the cloth when it took the realm; it struck the names. A struck
+   person is a shade: an office with no one inside. The Black King made
+   the same promise the player's King makes, and kept it with other
+   people's names.
 
    Everything here is short on purpose (Hades-style): two lines at a
    time, reacting to what just happened. Voice: the King speaks in the
    first person, plain and tired and warm; recruits answer in their
-   own. `{name}`, `{king}`, `{cls}`, `{origin}`, `{fallen}` are filled
-   by storyLine().
+   trade's words. Placeholders: {name} {king} {cls} {origin} {fallen}
+   {survivor} {kills} {survivors} {originLine} {lastKing}.
    ===================================================================== */
 
 const STORY = {
   prologue: [
-    'The Black Court took Caissa in a single season. The knights are dead, the bishops have gone quiet, and the queen was never found.',
-    'What is left to me is the rank and file: millers, poachers, a deserter or two. People who stayed when staying was foolish.',
-    'So I make the old promise, the one every king makes and no king keeps. Stand in the line, and I will raise you. Rank by rank, as far as you can go.',
+    'The Black Court took Caissa in a single season. It did not need an army. It walked into the Archive and began reading our names aloud, backwards. The knights are shades now. The bishops have gone quiet. The queen was never found.',
+    'What is left to me is the rank and file: a miller\'s boy, a poacher, a deserter or two. People who stayed when staying was foolish. And a mantle with seven panels, which is all the court any king has ever had.',
+    'So I make the old promise, the one every king makes and no king keeps. Stand in the line, and I will cut you a cape with my own hands. Rank by rank, as far as you can go. Every pawn can become a queen.',
   ],
   actIntro: [
-    'The ruins first. The Court left the old city to the moss and a granite warden that has not moved in a hundred years. It will move for us.',
-    'Below the ruins the halls are flooded. Something down there preaches to the drowned, and the drowned listen. We go in with torches held high.',
-    'The Keep. Black glass walls and a heat that never fades. The Black King has been waiting for us since the first move. Let us not keep him.',
+    'Scacchia first, the old capital, left to the moss a hundred years before any of this. The stair down to the Archive is there, and the Warden on it. Ordo has not moved in three hundred years. He was given the keys and never relieved. He will not need to move. Bring magic, or bring an axe.',
+    'Below the ruins the Archive is drowned. Every name in Caissa was written down there, and when the Court came for the book, Mother Venn sank it herself and stayed with it. She preaches to the drowned now, and the drowned listen. She knows more names than anyone alive. We go in with torches held high and our own names held tighter.',
+    'The Keep. Black glass walls and a heat that never fades. The Black King has been waiting for us since the first move. I know what he is now, and I would rather not say it in front of the band. Let us not keep him.',
   ],
   epilogue: [
     'The Black King is broken, and the board is quiet. I will not pretend it was my hand that did it.',
-    'It was {survivors}. Commoners, every one, when they came to me. Not one of them is common now.',
-    'Caissa will need a court again. I know where to find one.',
+    'It was {survivors}. Commoners, every one, when they came to me. Not one of them is common now, and not one of them is a shade. That is the whole of what a mantle is for.',
+    'Caissa will need a court again. I know where to find one. I took the mantle off tonight and laid it by the fire, and in the morning it will be theirs.',
   ],
-  /* Camp confidences: the King sits with one unit. Keyed by situation,
-     first match wins. tier = how many times you have confided with them. */
+  /* Boss lines: spoken on the field. {lastKing} is the name of the last
+     fallen King in the Annals — the Black King's name is whatever name
+     the last King who failed had. */
+  boss: {
+    WARDEN: {
+      title: 'Ordo, the Warden',
+      intro: ['Ordo: "The gate is closed. By order."', '{king}: "Whose order? Your king has been dust for three hundred years."', 'Ordo: "The order stands."'],
+      half: 'Ordo: "The order stands."',
+      death: 'Ordo: "…relieved."',
+      lesson: 'An office with no one inside is a wall. Walls are gone around, or spoken through.',
+    },
+    HERETIC: {
+      title: 'Venn, the Heretic',
+      intro: ['Venn: "You come with a mantle and a list. I have seen that before. Sit. I will tell you what happens to the list."', '{king}: "I did not come to sit, Mother."', 'Venn: "No. You came to spend them. You call it raising. The drowned are free of all that. Let me show you."'],
+      half: 'Venn: "Say one of their names, King. Say it without the cloth on them. You cannot."',
+      death: 'Venn: "Say mine, then. If you know it." — {king}: "Venn." — Venn: "…oh."',
+      lesson: 'The Word against the Word. A name remembered by someone living ends her.',
+    },
+    BLACK_KING: {
+      title: 'The Black King',
+      intro: ['The Black King: "I made the promise too. Stand in the line, I said, and I will raise you."', '{king}: "And you kept it."', 'The Black King: "I kept it. The cloth ran out and the line did not, and I could not say no to them. So I used what the Court used. You will see how. You have the look of someone who will see how."'],
+      introNamed: ['The Black King: "I made the promise too. You know that. You know my name."', '{king}: "{lastKing}."', 'The Black King: "That was it. I kept the promise, {king}. The cloth ran out and the line did not. I could not say no to them, so I kept it the way the Court keeps things. You have the look of someone who will understand that soon."'],
+      half: 'The Black King: "Every one of them stood in the line. I raised every one. Reserves — to me."',
+      decree: 'The Black King: "By my name, hold."',
+      death: 'The Black King: "…was that my name? Say it again." — {king}: "No. You had your turn with it."',
+      lesson: 'The Mantle is for giving away.',
+    },
+  },
+  /* Camp confidences: the King sits with one unit. Situational overrides
+     first; then the origin's own three tiers (why I stayed, the wound,
+     what changed); then class lines as a fallback. */
   confide: [
     { when: c => c.fallenLast, lines: ['{king}: "We lost {fallen} today. I keep counting the places by the fire and coming up one short."', '{name}: "Count again tomorrow, my lord. You will come up one short again. That is how we carry them."'] },
-    { when: c => c.cls === 'QUEEN', lines: ['{king}: "You wear the queen\'s cape. I have no idea what became of the last one who wore it."', '{name}: "Then I will not ask. I will just try to be worth the cloth."'] },
+    { when: c => c.cls === 'QUEEN', lines: ['{king}: "You wear the queen\'s cape. It is the youngest cloth on the mantle, and nobody agrees what it is. The last one who wore it was never found."', '{name}: "Then I will not ask what it is. I will just try to be what it is for."'] },
     { when: c => c.cls === 'KING', lines: [] },
-    { when: c => c.tier >= 2 && c.cls !== 'PAWN', lines: ['{king}: "Do you remember the day you came to me, {name}? {originLine}"', '{name}: "I remember thinking you would not last a week. I was wrong, and so were you."'] },
-    { when: c => c.tier >= 1 && c.kills >= 5, lines: ['{king}: "{kills} of them, by my count. Does it get easier?"', '{name}: "No. It gets quicker. I am not sure that is better, but it keeps the others alive."'] },
-    { when: c => c.cls === 'PAWN' && c.level >= 3, lines: ['{king}: "You have outgrown the sword I gave you, {name}. The capes are earned, not given. You are close."', '{name}: "Then let me earn it. The ones in front die first — I want to be in front."'] },
+    { when: c => c.tier === 0 && c.originStory, lines: c => c.originStory.why },
+    { when: c => c.tier === 1 && c.originStory, lines: c => c.originStory.wound },
+    { when: c => c.tier === 2 && c.originStory, lines: c => c.originStory.want },
+    { when: c => c.tier >= 3 && c.kills >= 5, lines: ['{king}: "{kills} of them, by my count. Does it get easier?"', '{name}: "No. It gets quicker. I am not sure that is better, but it keeps the others alive."'] },
+    { when: c => c.cls === 'PAWN' && c.level >= 3, lines: ['{king}: "You have outgrown the sword I gave you, {name}. The capes are earned, not given. You are close."', '{name}: "Then let me earn it. The ones in front die first. I want to be in front."'] },
     { when: c => c.cls === 'ROOK', lines: ['{king}: "The others stand behind you now, {name}. They do not say so, but they do."', '{name}: "I know. I feel it in my back. It is a good weight. Heavier than the shield."'] },
     { when: c => c.cls === 'KNIGHT', lines: ['{king}: "You jump into the middle of them, every time. I have not decided whether that is courage."', '{name}: "It is arithmetic, my lord. If I am in the middle, they are not in the middle of you."'] },
-    { when: c => c.cls === 'BISHOP', lines: ['{king}: "You put them back together after I take them apart, {name}. That is the worse job."', '{name}: "Not worse. Later. Someone has to do the later part."'] },
-    { when: c => c.tier === 0 && c.cls === 'PAWN', lines: ['{king}: "Why did you stay, {name}? When the Court came. Most people ran."', '{name}: "{originLine} There was nowhere to run to that they had not already taken."'] },
+    { when: c => c.cls === 'BISHOP', lines: ['{king}: "You put them back together after I take them apart, {name}. That is the worse job."', '{name}: "Not worse. Later. Someone has to do the later part. And it is only saying their names, my lord. You could do it too, if you let yourself."'] },
     { when: () => true, lines: ['{king}: "Sit. The fire is for everyone, not just the ones who are hurt."', '{name}: "Then I will sit. Pass the bread, my lord. We are all hurt."'] },
   ],
   /* Promotion ceremony: the King speaks, the new officer answers. */
   promotion: {
-    ROOK:   ['{king}: "Kneel, {name}. You have held the line when it bent. Rise a Rook, and be the wall."', '{name}: "I was a wall before, my lord. Now I have a cape for it."'],
-    KNIGHT: ['{king}: "Kneel, {name}. You go where the fighting is thickest. Rise a Knight, and go there first."', '{name}: "First in, my lord. I like the sound of that better than last out."'],
-    BISHOP: ['{king}: "Kneel, {name}. Steel has failed us more than once. Rise a Bishop, and carry what steel cannot."', '{name}: "I read the words on the cape, my lord. I do not know what they mean yet. I will."'],
-    QUEEN:  ['{king}: "Kneel, {name}. The last queen was never found. Rise, and let the Court find out what one looks like."', '{name}: "{originLine} And now this. Caissa is a strange country, my lord."'],
+    ROOK:   ['{king}: "Kneel, {name}. You have held the line when it bent. This is the Rook\'s panel. Put it on, and be the wall."', '{name}: "I was a wall before, my lord. Now I have a cape for it. It is heavier than it looks."'],
+    KNIGHT: ['{king}: "Kneel, {name}. You go where the fighting is thickest. This is the Knight\'s panel. Put it on, and go there first."', '{name}: "First in, my lord. I like the sound of that better than last out."'],
+    BISHOP: ['{king}: "Kneel, {name}. Steel has failed us more than once. This is the Bishop\'s panel. Put it on, and carry what steel cannot."', '{name}: "There are words sewn into the lining, my lord. I do not know them yet. I will."'],
+    QUEEN:  ['{king}: "Kneel, {name}. This is the youngest cloth on the mantle, and the last queen was never found. Put it on, and let the Court find out what one looks like."', '{name}: "{originLine} And now this. Caissa is a strange country, my lord."'],
   },
   /* One-line reactions on the results screen. */
   reactions: {
-    fallen: ['{king}: "{fallen} stood in the line. That is the whole of the epitaph, and it is enough."', '{survivor}: "They would have hated the speech, my lord. Save it. Keep walking."'],
-    bossDown: ['{king}: "Look at it. A hundred years it stood, and a miller\'s child put it down."', '{king}: "The preacher is silent. Let the drowned keep their rest now."', '{king}: "Checkmate. I have waited my whole life to say it and it tastes like ash. Let us go home."'],
+    fallen: ['{king}: "{fallen} stood in the line. That is the whole of the epitaph, and it is enough."', '{survivor}: "They would have hated the speech, my lord. Save it. Keep walking."', '{king}: "I said {fallen}\'s name over the body. Twice. I am told it matters, and I am not sure I believe it, and I did it anyway."'],
+    bossDown: ['{king}: "Relieved. Three hundred years on one stair, and a miller\'s child relieved him. Someone should write that down."', '{king}: "I said her name and she stopped. I have been a king for forty years and that is the first time a name has done anything when I said it."', '{king}: "Checkmate. I have waited my whole life to say it and it tastes like ash. Let us go home."'],
     clean: ['{king}: "No one lost. Say it again, quietly, before the luck hears you."', '{survivor}: "We are getting good at this, my lord. I hate how that sounds."'],
-    escaped: ['{king}: "We ran. There is no shame in it. There is a cape on that floor with a shame on it, though."'],
-    firstPromotion: ['{king}: "The first cape. The promise is no longer only words."'],
+    escaped: ['{king}: "We ran. There is no shame in it. There is a cape on that floor, though, and by morning it will be black."'],
+    firstPromotion: ['{king}: "The first cape. One panel off the mantle, and the promise is no longer only words."'],
   },
   lastStand: [
     '{king}: "So. It is only me now. Good: I have been carried long enough."',
     '{king}: "{fallen} was the last of them. Come, then. A king still moves."',
     '{king}: "Every one of them stood. I will not be the one who kneels."',
   ],
-  epitaphs: ['stood in the line', 'went in first', 'held the wall', 'kept the others standing', 'did not run', 'fell facing them'],
+  epitaphs: ['stood in the line', 'went in first', 'held the wall', 'kept the others standing', 'did not run', 'fell facing them', 'kept their name to the end'],
 };
 
-/* Recruit origins: where a pawn comes from, with a small stat lean and
-   a line the King remembers about them. */
+/* Recruit origins: a Cessolis pawn is a trade, and the trade is how
+   they see the war. Each has a stat lean, the line the King remembers
+   about them, and three fireside tiers (ORIGIN_STORIES). */
 const ORIGINS = [
   { id: 'MILLER',   name: "miller's son",      boost: { maxHp: 2 }, line: 'You came in flour to the elbows and asked whether the Court paid better than the mill.' },
   { id: 'POACHER',  name: 'poacher',           boost: { spd: 1 },   line: 'You had been stealing my deer for ten years. I made you keep the bow.' },
@@ -885,7 +929,139 @@ const ORIGINS = [
   { id: 'HUNTSMAN', name: 'huntsman',          boost: { spd: 1 },   line: 'You tracked us for three days to join. You could have had us in one.' },
 ];
 
-/* Fill a line's placeholders. ctx: {name, king, cls, origin, fallen, survivor, kills, survivors} */
+/* Three fireside exchanges per origin: why I stayed; the wound; what
+   changed. Two lines each, the King first. */
+const ORIGIN_STORIES = {
+  MILLER: {
+    why:   ['{king}: "Why did you stay, {name}? The mill would have gone on grinding for whoever held the city."', '{name}: "It would. That was the trouble, my lord. A mill does not care who it feeds. I wanted to be something that cares."'],
+    wound: ['{king}: "You never talk about the mill itself. Only the flour."', '{name}: "The mill burned the first night. My father was inside, oiling the stones, because that is what you do before a market day. I was at the market. I had the good flour with me. I still have the sack."'],
+    want:  ['{king}: "The band eats because you know what a sack of grain weighs to the ounce. I had not thought of that as a skill."', '{name}: "It is the only one I had, my lord. Then you put a sword in my hand, and now I have two. Nobody has called me the miller\'s boy in a month. I have not decided whether I miss it."'],
+  },
+  POACHER: {
+    why:   ['{king}: "Ten years you took my deer, and then you walked into my camp with the bow still on your back."', '{name}: "You knew it was me, my lord. The whole time. You never sent the warden. I figured a king who looks the other way for ten years is a king worth a few arrows."'],
+    wound: ['{king}: "The deer. It was never for the table, was it."', '{name}: "The village had the coughing sickness two winters. Broth is what you give for that. There is no broth without meat, and there was no meat but yours. I am not asking you to pardon it. I am telling you why I did not stop."'],
+    want:  ['{king}: "I could write you a pardon tonight. I have the ink."', '{name}: "Keep it. A pardon from a king with one mantle and no country is a piece of paper. Win first. Then write it, and I will frame it over the broth pot."'],
+  },
+  DESERTER: {
+    why:   ['{king}: "You came from their side of the gate the night it fell, and nobody stopped you. I have wondered why."', '{name}: "Because they did not care if I left, my lord. That is what the Court is. You are not a deserter to them. You are a sleeve that walked off."'],
+    wound: ['{king}: "You hit harder than a man your size should. The others have noticed."', '{name}: "I wore the black cloth for one night. They put it on me and I tore it off before dawn and ran. Some of the office stayed. I feel it when I swing. I would give it back if I knew how."'],
+    want:  ['{king}: "I trust you in the line. I thought you should hear it said plainly."', '{name}: "That is the first time anyone has said it since the gate. You could have waited until the Keep, my lord. I would have earned it there. I am glad you did not wait."'],
+  },
+  MASON: {
+    why:   ['{king}: "A stonemason in a war. I keep expecting you to measure the enemy."', '{name}: "I do, my lord. A shade is five feet nine on average. A wall is as high as the man you want to stop plus a hand. I stayed because every wall in Caissa is mine or my master\'s, and they are using them."'],
+    wound: ['{king}: "You went quiet on the stair in Scacchia. Under the Warden."', '{name}: "I cut that stair. Apprentice work: the third landing is a quarter inch out, and my master\'s mark is on the fourth riser. He was proud of it. He is a shade now, somewhere, and his stair is holding up the thing that struck him."'],
+    want:  ['{king}: "When this is over, what do you build first?"', '{name}: "Nothing. I take down the gate on the Archive stair, stone by stone, and I number them, and I put them back the right way round. Then Scacchia. Then a house. In that order, my lord. Measure twice."'],
+  },
+  ACOLYTE: {
+    why:   ['{king}: "The candle. You still will not say whose."', '{name}: "It is from the Archive, my lord. The lamp by the reading desk. I was a student there. I took it the night the water came in. I stayed with you because you were walking toward the Archive and everyone else was walking away."'],
+    wound: ['{king}: "You knew her. Venn."', '{name}: "She taught me the first hundred names. She was kind, which is the part nobody will believe. When the Court came she looked at the book and at us and she chose the book. I would like to ask her why, and I am afraid she will tell me."'],
+    want:  ['{king}: "You say the names over the wounded before you touch them. I thought it was prayer."', '{name}: "It is the first thing she taught me. The Word is just a name said by someone who means it. She stopped meaning it, my lord. I have decided I will not. That is the whole of my heresy."'],
+  },
+  SHEPHERD: {
+    why:   ['{king}: "You count us at every fire. I have seen you do it."', '{name}: "Habit, my lord. You count the flock at dusk or you lose one and never know when. I stayed because a band is a flock that talks back, and I was not ready to stop counting."'],
+    wound: ['{king}: "What happened to the flock?"', '{name}: "The Court came through the pasture the first night. They did not kill them. They walked through, and in the morning the sheep stood where they were and would not eat and would not move, and their eyes had gone dark. I do not know if sheep have names. I think they had enough of one to lose."'],
+    want:  ['{king}: "You have stopped counting at dusk. Last three fires."', '{name}: "I count at dawn now. Dusk tells you what you lost. Dawn tells you what you still have to work with. You taught me that, my lord, though you did not mean to."'],
+  },
+  SMITH: {
+    why:   ['{king}: "The sword you came with. You made it yourself."', '{name}: "I did, my lord, and it is bad. The balance is forward and the edge will not hold. I stayed because my master always said you learn a blade by watching what it does to a man, and I had never watched."'],
+    wound: ['{king}: "You will not use your master\'s blades. There were three on the wall when we found the forge."', '{name}: "The Court took him with one of them, my lord. His own. A shade picked it off the rack and he looked at it like he was proud of the edge even then. I will make my own. It will be worse and it will be mine."'],
+    want:  ['{king}: "You left something on my bow last night."', '{name}: "A new string, my lord. Waxed, with the twist the right way. It is the first thing I have made that I am not ashamed of. It is not a sword. I have decided that is all right. The bow is what keeps you alive, and keeping you alive is the job."'],
+  },
+  ORPHAN: {
+    why:   ['{king}: "The dark does not trouble you. The others light two torches for every one you need."', '{name}: "I grew up in the crypts under Scacchia, my lord. The keeper raised me on a diet of candle ends and other people\'s epitaphs. I stayed because the Court is just the dead walking, and I have been walking among the dead my whole life. They were never rude to me before."'],
+    wound: ['{king}: "You talk to the shades. Before you strike."', '{name}: "I tell them they will get a stone. The keeper said everyone gets a stone, even the ones nobody comes for. The shades are the ones who did not get one. Someone struck their name before it could be cut. I cut it for them, my lord. In my head. It is the least a crypt child can do."'],
+    want:  ['{king}: "What do you want, when it is over? Everyone else wants something."', '{name}: "A chisel. A good one. There are going to be a great many stones to cut when this is over, my lord, and I know all the names. I wrote them on the inside of my arm. There is not much arm left."'],
+  },
+  FERRYMAN: {
+    why:   ['{king}: "The harbour was burning and you rowed toward it. I have never understood that."', '{name}: "The current runs to the sea, my lord. Everyone who was running was running with it. A king is a heavy fare and worth the pull. I stayed because nobody has paid me yet."'],
+    wound: ['{king}: "The fare. Name it."', '{name}: "Not gold. The night you got in my boat you did not give your name, and I did not ask, because the harbour was on fire. A ferryman always gets the name. That is the fare, my lord. When it is over, you say it to me properly, on dry land, like a man and not a king."'],
+    want:  ['{king}: "You will have it. On dry land. I will even take the crown off."', '{name}: "Leave the crown. I want to see it come off your own head when you say it. The river has a saying for that, my lord, but it is rude, and you have had a long day."'],
+  },
+  CHANDLER: {
+    why:   ['{king}: "A king in the dark is bad for business. You actually said that."', '{name}: "I meant it, my lord. Half my trade was the court and the court is gone. I stayed because a king who wins needs candles for the coronation, and a king who loses does not need anything, and either way I am not going back to selling to the Court."'],
+    wound: ['{king}: "You sold to the Court."', '{name}: "For a week, my lord. They paid in good coin. Then I noticed what they were doing with the light. They were reading. The Archive, out loud, by my candles. I put the shop lanterns out myself and I have not lit one since that was not for us."'],
+    want:  ['{king}: "What does Caissa look like, when you have your way?"', '{name}: "Lit, my lord. Every window. I have a ledger of what that costs in tallow and it is a frightening number and I intend to be the man who sells it. Then I will retire somewhere dark, for the contrast."'],
+  },
+  SCRIBE: {
+    why:   ['{king}: "You kept records for the Court. You said so the first night and then never again."', '{name}: "They needed someone to write the names down as they struck them, my lord. In order. I wrote. It was that or be written. I stayed with you because I have the order memorised, and somebody should who is not them."'],
+    wound: ['{king}: "The order they were struck in. Does it matter?"', '{name}: "The Word has a seam, my lord. A struck name can be spoken back by someone who knew it, and the Court knows that, which is why they strike the ones who remember first. I know who remembers whom. I wrote it in the margins. They did not check the margins."'],
+    want:  ['{king}: "The Annals. The book of kings who made the promise. That is yours, isn\'t it."', '{name}: "Every page, my lord. Including the ones where the king fell. Especially those. I will write yours too, whichever way it goes, and for the record I would prefer the short version."'],
+  },
+  HUNTSMAN: {
+    why:   ['{king}: "Three days you followed us before you walked in. A huntsman could have had us in one."', '{name}: "A huntsman could, my lord. I was deciding what you were. Prey runs the same way every time. You did not run the same way. You doubled back for the ferryman. That is not prey."'],
+    wound: ['{king}: "You were not deciding what I was. You were being paid to decide."', '{name}: "The Court set a bounty on the mantle, my lord. Not on you. On the cloth. I took the first half. I was on the ridge above your camp with an arrow nocked when you cut the first cape for the miller\'s boy. I have hunted my whole life and I had never seen anyone give anything away. I came down the hill."'],
+    want:  ['{king}: "What are you hunting now?"', '{name}: "Him. The one in the Keep. A thing that eats names has a smell, my lord, and I have it now. When we get there, let me go first. I want to see his face when the arrow comes from the dark. It is a huntsman\'s vanity. Allow me one."'],
+  },
+};
+
+/* Item lore: one line each, in the world's voice. Shown as a tooltip on
+   inventory rows, under banner cards, and collected in the Codex. */
+const LORE = {
+  capes: {
+    ROOK: 'The Rook\'s panel. The oldest cloth on the mantle: a chariot once, then a tower. Put it on and steel forgets you; the Word does not.',
+    KNIGHT: 'The Knight\'s panel. Cut on the bias so the bearer can leap. Cessolis said the knight protects the commons from harm. It still does.',
+    BISHOP: 'The Bishop\'s panel. There are names sewn into the lining in a thread nobody can read until they wear it.',
+    QUEEN: 'The Queen\'s panel. The youngest cloth on the mantle, cut within living memory, and nobody agrees what it is. One. The last to wear it was never found.',
+  },
+  weapons: {
+    SWORD: 'Steel. It harms a ranked body in proportion to how light the office is.',
+    LANCE: 'Reach over a friend\'s shoulder. The Knight\'s weapon since the chariot became a horse.',
+    AXE: 'Steel that does not argue with armour. The Warden hated it, which is how Scacchia learned to carry one.',
+    DAGGER: 'Two strikes. The Queen\'s weapon, because the Queen was a vizier once and viziers do not fight fair.',
+    BOW: 'The King\'s weapon. A king who stands in the line is a king the Court can reach.',
+    STAFF: 'The Word spoken for someone. A name said by someone who means it closes wounds.',
+    TOME: 'The Word spoken against. It goes through a Rook like wind through a tower.',
+  },
+  offhands: {
+    SHIELD: 'A small wall, the mason says.',
+    WARD: 'Your own name, written and worn. The Word finds less of you to speak against.',
+    BOOTS: 'Oiled and resoled. Nothing magical about them, which in Caissa is a relief.',
+    AMULET: 'A little more of you to lose.',
+  },
+  items: {
+    POTION: 'Broth, mostly. The poacher\'s recipe.',
+    ELIXIR: 'The Archive\'s brewers called this "the whole name".',
+    TONIC: 'Bitter. Clears the head for the Word.',
+    WHETSTONE: 'The smith\'s apprentice keeps one in each boot.',
+    PLATE: 'A second skin for an office that has none.',
+    SIGIL: 'A name stitched into the lining. Permanent, and private.',
+    CHARM: 'The chandler sells these. He will not say what is in them. Wax, probably.',
+  },
+  banners: {
+    PHALANX: 'The oldest field oath of Caissa: shoulder to shoulder, and no one is struck alone.',
+    ANVIL: 'The Rook is the anvil. The oath says: what stands beside the wall does not leave it.',
+    ROYAL_GUARD: 'Sworn by every court Caissa ever had. The one beside the King takes the King\'s wound.',
+    ZUGZWANG: 'The Shield Wall\'s cruelest oath. A thing that will not strike is made to pay for its patience.',
+    GREY_CLOAKS: 'The poachers\' oath, never spoken in a hall. We go unnamed into their sleep.',
+    EMBER_EDGE: 'A huntsman\'s trick, sworn: the blade carries a coal, and the coal keeps burning.',
+    TEMPO: 'The oath of the quick: a kill is not an ending but a turn.',
+    VANGUARD: 'Whoever goes first goes furthest. Sworn by people who had never been first before.',
+    BATTLEFIELD: 'The oldest rule of the board, sworn as an oath: a pawn that crosses the whole field is raised, cloth or no cloth.',
+    HEIRLOOM: 'The cloth remembers. Sworn, it remembers out loud.',
+    COMMISSION: 'The King\'s hands are quick enough to cut a cape with the enemy watching. Sworn, they are.',
+    TWIN_CROWNS: 'A second Queen\'s panel, cut not from the mantle but from the queens themselves. The Law of the Board does not forbid it. It only charges for it.',
+    WARHORNS: 'A page of the Court\'s oath. The horn calls every name on the field, theirs and yours.',
+    BLOOD_TITHE: 'A page of the Court\'s oath. It drinks first, and then it fights for you.',
+  },
+};
+
+/* The Codex: what the band knows about the world. Short entries, each a
+   thing the player has already met in the mechanics. */
+const CODEX = [
+  { title: 'The Cloth', text: 'In Caissa rank is cloth. Only cloth cut from the King\'s Mantle carries an office, and whoever wears it is the office: a Rook\'s stone skin, a Knight\'s leap, a Bishop\'s sight. Take it off and you are what you were. Only an unranked person, a Pawn, can take a cape; two offices in one body tear it.' },
+  { title: 'The Mantle', text: 'The King\'s garment has seven panels beyond his own: two for Rooks, two for Knights, two for Bishops, one for a Queen. No mantle has ever held more. This is the Law of the Board, and it is why every court Caissa ever had was the size of a chess set. A king who has cut all seven is a man with a bow and a crown.' },
+  { title: 'Given, never taken', text: 'A cape placed on someone by the King\'s hand, or passed willingly, keeps its colour. A cape taken from the fallen by an enemy, worn by force, or left on a field overnight turns black. Black cloth still carries the office. It no longer carries a person.' },
+  { title: 'The Word', text: 'Every person has a name, and the name is most of what they are. A name spoken with authority is the Word. Spoken for someone it closes wounds; that is a staff, and the King\'s Inspire. Spoken against someone it harms them in proportion to how little of their body is their own: a tome goes through a Rook, who is almost all office, and barely touches a Bishop, who is a name that has learned to speak.' },
+  { title: 'The struck', text: 'The Court\'s magic is the Word spoken to strike a name. The struck forget themselves and keep only their office; their eyes are embers, a name burning down. A shade waits rather than sleeps, and wakes when a living name comes within three paces. It can be spoken back by someone who knew it. The Court knows this, and strikes the ones who remember first.' },
+  { title: 'By the fire', text: 'When the King sits with someone and learns where they came from, their name is held by one more person, and more of them exists. It is the one magic the King is good at. He is not a Bishop. He knows people.' },
+  { title: 'Oaths', text: 'A banner is an oath sworn over the Mantle, binding everyone under it for the whole campaign. There is no unswearing. The Shield Wall oaths are the army\'s; the Grey Cloaks are the poachers\'; the Rising Rank oaths are the promise itself, said four ways. The Torn Standards are pages of the Court\'s own oath. They work. They drink.' },
+  { title: 'The Black Court', text: 'Not an invader. The Court is what remains of Caissa\'s own court after a king kept the promise the wrong way: he raised seven, the cloth ran out, the line did not, and he could not say no. So he struck the court he had and raised the next seven from their cloth. The Mantle turned black on his back and he did not notice for a year. He is still raising people.' },
+  { title: 'Scacchia, the Archive, the Keep', text: 'Scacchia is the old capital, left to the moss a hundred years before the war; Ordo guards its only stair. Beneath it the Archive of Names, which Mother Venn drowned rather than let the Court read, and stayed with. Across the burned march, the Obsidian Keep, once the kings\' summer seat, now the Court\'s.' },
+  { title: 'Caïssa', text: 'The realm is named for a dryad who refused the god of war until a game was invented to court her with. The Heretic likes to point out that the game was made to win someone who had said no.' },
+  { title: 'The Annals', text: 'The Scribe\'s book: an account of every King who made the promise, and how it went. A fallen King\'s page does not end there. The Court reads the Annals too.' },
+];
+
+/* Fill a line's placeholders. ctx: {name, king, cls, origin, fallen, survivor, kills, survivors, lastKing} */
 function fillLine(line, ctx) {
   return line.replace(/\{(\w+)\}/g, (m, k) => {
     if (k === 'originLine') return ctx.origin ? ctx.origin.line : '';
@@ -894,8 +1070,20 @@ function fillLine(line, ctx) {
   });
 }
 function confideLines(ctx) {
-  const entry = STORY.confide.find(e => e.when(ctx) && e.lines.length) || STORY.confide[STORY.confide.length - 1];
-  return entry.lines.map(l => fillLine(l, ctx));
+  ctx.originStory = ctx.origin ? ORIGIN_STORIES[ctx.origin.id] || null : null;
+  const entry = STORY.confide.find(e => e.when(ctx) && (typeof e.lines === 'function' ? e.lines(ctx) : e.lines).length) || STORY.confide[STORY.confide.length - 1];
+  const lines = typeof entry.lines === 'function' ? entry.lines(ctx) : entry.lines;
+  return lines.map(l => fillLine(l, ctx));
+}
+/* Lore for an inventory item, or null. */
+function loreOf(it) {
+  if (!it) return null;
+  if (it.kind === 'CAPE') return LORE.capes[it.cls] || null;
+  if (it.kind === 'WEAPON') return LORE.weapons[it.type] || null;
+  if (it.kind === 'OFFHAND') return LORE.offhands[it.type] || null;
+  if (it.kind === 'CONSUMABLE') return LORE.items[it.type] || null;
+  if (it.kind === 'BANNER') return LORE.banners[it.id] || null;
+  return null;
 }
 
 
@@ -2054,7 +2242,7 @@ class Battle {
     this.grid.remove(u);
     this.queue = this.queue.filter(q => q !== u);
     if (isPlayer(u) && u.cls === 'KING') { this.finish({ victory: false }); return; }
-    if (u.boss) { this.log(`${u.name} is destroyed. The rest scatter.`); this.finish({ victory: true, escaped: false }); }
+    if (u.boss) { const b = this.act.boss.story && STORY.boss[this.act.boss.story]; this.log(b && b.death ? fillLine(b.death, { king: this.run.kingName }) : `${u.name} is destroyed.`); this.log('The rest scatter.'); this.finish({ victory: true, escaped: false }); }
   }
 
   awardXp(u, amount) {
@@ -2282,6 +2470,7 @@ class Battle {
   async enemyTurn(u) {
     this.phase = 'busy'; this.ui.refresh();
     await Anim.wait(260);
+    if (u.boss && !u.bt.halfSaid && u.hp <= maxHp(u) / 2 && this.act.boss.story) { u.bt.halfSaid = true; const b = STORY.boss[this.act.boss.story]; if (b && b.half && u.signature !== 'RESERVES') this.log(fillLine(b.half, { king: this.run.kingName })); }
     if (u.boss && await this.bossSignature(u)) return;
     const plan = this.planFor(u);
     if (!plan) return;
@@ -2326,7 +2515,7 @@ class Battle {
       case 'RESERVES': {     // the Black King: reserves at half health; a decree every fourth round
         if (!u.bt.reservesCalled && u.hp <= maxHp(u) / 2) {
           u.bt.reservesCalled = true;
-          this.log(`${u.name} raises a hand. The reserves answer.`);
+          this.log(STORY.boss.BLACK_KING.half);
           for (let i = 0; i < 2; i++) { const s = this.spawnEnemy('KNIGHT', { x: GRID_W - 1, y: 2 + i * 5 }); if (s) this.summons++; }
           Sfx.play('alert'); await Anim.wait(350);
           return true;
@@ -2335,7 +2524,7 @@ class Battle {
           u.bt.decreeRound = this.round; u.bt.sp -= 3;
           this.teamBuff.ENEMY = { atk: DECREE_ATK, rounds: 2 };
           this.floater(u, 'DECREE OF SHADOW', '#c9a3ff'); this.effect('rune', u, null, '#c9a3ff');
-          this.log(`${u.name} decrees: every shade strikes harder for 2 rounds.`); await Anim.wait(300);
+          this.log(`${STORY.boss.BLACK_KING.decree} Every shade strikes harder for 2 rounds.`); await Anim.wait(300);
           return true;
         }
         return false;
@@ -4060,6 +4249,8 @@ const Game = {
 
   records() { return Store.get(RECORDS_KEY) || { runs: 0, wins: 0, bestAct: 0, kills: 0, lastSeed: null }; },
   annals() { return Store.get(ANNALS_KEY) || []; },
+  /* The last fallen King in the Annals: the Black King's current name. */
+  lastFallenKing() { const a = this.annals().find(r => !r.won && r.king); return a ? a.king : null; },
   recordRun(won, cause) {
     const r = this.records(); const run = this.run; if (!run) return;
     r.runs++; if (won) r.wins++;
@@ -4089,7 +4280,8 @@ const Game = {
     const run = this.run;
     node.visited = true; run.world.current = node.id;
     switch (node.type) {
-      case 'COMBAT': case 'ELITE': case 'BOSS': await this.battle(node.type); break;
+      case 'COMBAT': case 'ELITE': await this.battle(node.type); break;
+      case 'BOSS': Screens.bossIntro(run, () => this.battle('BOSS')); break;
       case 'REST': Screens.rest(run, () => this.showOverworld()); break;
       case 'SHOP': Screens.shop(run, () => this.showOverworld()); break;
       case 'EVENT': Screens.event(run, this.pickEvent(), () => this.showOverworld()); break;
@@ -4289,6 +4481,22 @@ const Screens = {
     if (last) rec.append(h('div.last-run', null, icon(last.won ? 'CROWN' : 'FALLEN', 14, last.won ? '#e0b25a' : '#9a8a90'), ` Last run: ${last.king}${last.won ? ' was crowned' : ` fell in Act ${last.act}`}${last.banners && last.banners.length ? ', under ' + last.banners.map(id => BANNERS[id] ? BANNERS[id].name : id).join(', ') : ''} · ${last.battles} battles, ${last.kills} slain.`));
     $('#btn-annals').hidden = !Game.annals().length;
   },
+  /* ---------------- story screens (v7) ---------------- */
+  bossIntro(run, done) {
+    const act = ACTS[run.act], key = act.boss.story, b = STORY.boss[key];
+    const lastKing = key === 'BLACK_KING' ? Game.lastFallenKing() : null;
+    const lines = (lastKing && b.introNamed ? b.introNamed : b.intro).map(l => fillLine(l, { king: run.kingName, lastKing }));
+    const sh = this.sheet(b.title, Scenes.element('act', { units: run.warband, act: run.act, seed: run.seed + 77 }), this.story(lines, 'dialogue'));
+    sh.append(h('p.muted', null, act.boss.intro));
+    sh.append(h('div.btnrow', null, h('button.btn.primary', { onclick: done }, 'Take the field')));
+  },
+  codex() {
+    const sh = this.sheet('Codex', h('p.muted', null, 'What the band knows about Caissa. None of it is hidden from you; all of it is already in the rules.'));
+    for (const e of CODEX) sh.append(h('div.codex-entry', null, h('h3', null, e.title), h('p', null, e.text)));
+    sh.append(h('div.codex-entry', null, h('h3', null, 'The three on the road'), ...ACTS.map(a => { const b = STORY.boss[a.boss.story]; return h('p', null, h('b', null, b.title), ` — ${a.name}. `, h('span.muted', null, b.lesson)); })));
+    sh.append(h('div.codex-entry', null, h('h3', null, 'Oaths'), ...Object.keys(BANNERS).map(id => h('p', null, h('b', null, BANNERS[id].name), ' — ', LORE.banners[id]))));
+    sh.append(h('div.btnrow', null, h('button.btn.primary', { onclick: () => this.title() }, 'Back to title')));
+  },
   /* ---------------- banners (v4) ---------------- */
   /* A drawn banner: a hanging cloth in the school's colour with its sigil
      (tower / crescent / crown / torn edge). Used on cards and in the Annals. */
@@ -4327,7 +4535,7 @@ const Screens = {
   bannerCard(id, onPick) {
     const b = BANNERS[id], sc = BANNER_SCHOOLS[b.school];
     const card = h('button.btn.banner-card', { style: `--bc:${sc.color}`, onclick: onPick ? () => onPick(id) : null, disabled: !onPick });
-    card.append(this.bannerCanvas(id, 44), h('span.bname', null, b.name), h('span.bschool', null, sc.name), h('span.bdesc', null, b.desc));
+    card.append(this.bannerCanvas(id, 44), h('span.bname', null, b.name), h('span.bschool', null, sc.name), h('span.bdesc', null, b.desc), h('span.blore', null, LORE.banners[id] || ''));
     return card;
   },
   bannerChoice(run, offers, title, done, canDecline) {
@@ -4410,7 +4618,7 @@ const Screens = {
       right.append(h('h3', null, 'Inventory'));
       if (!run.inventory.length) right.append(h('div.muted', null, 'Nothing carried.'));
       run.inventory.forEach((it, i) => {
-        const row = h('div.item' + (selected === i ? '.sel' : '') + '.' + it.kind.toLowerCase(), { onclick: () => { selected = selected === i ? null : i; render(); } });
+        const row = h('div.item' + (selected === i ? '.sel' : '') + '.' + it.kind.toLowerCase(), { onclick: () => { selected = selected === i ? null : i; render(); }, title: loreOf(it) || '' });
         const text = h('div.itext', null, h('div.iname', null, itemName(it)), h('div.idesc', null, describeItem(it)));
         if (it.kind === 'CAPE' && !run.warband.some(u => canPromote(run.warband, u, it.cls))) text.append(h('div.idesc.warn', null, countClass(run.warband, it.cls) >= classLimit(it.cls) ? `Roster full: you may field ${classLimit(it.cls)} ${CLASSES[it.cls].name}${classLimit(it.cls) > 1 ? 's' : ''}.` : 'No Pawn to promote.'));
         row.append(this.itemBox(it), text);
@@ -4440,6 +4648,7 @@ const Screens = {
     if (wasFirst) lines.push(fillLine(STORY.reactions.firstPromotion[0], ctx));
     box.append(h('div.ov-head', null, h('h2', null, `${unit.name} rises a ${CLASSES[cls].name}`)));
     box.append(h('div.ceremony', null, this.pieceCanvas(unit, 96), this.story(lines, 'dialogue')));
+    box.append(h('p.muted.lore', null, LORE.capes[cls]));
     box.append(h('div.btnrow', null, h('button.btn.primary', { onclick: () => { if (!$('#overworld').hidden) this.refreshResources(run); back(); } }, 'Continue')));
   },
 
@@ -4488,7 +4697,7 @@ const Screens = {
       stock.items.forEach((it, i) => {
         if (!it) return;
         const price = itemPrice(it);
-        list.append(h('div.item.' + it.kind.toLowerCase(), null, this.itemBox(it), h('div.itext', null, h('div.iname', null, itemName(it)), h('div.idesc', null, describeItem(it))),
+        list.append(h('div.item.' + it.kind.toLowerCase(), { title: loreOf(it) || '' }, this.itemBox(it), h('div.itext', null, h('div.iname', null, itemName(it)), h('div.idesc', null, describeItem(it))),
           h('button.btn', { disabled: run.gold < price, onclick: () => { run.gold -= price; run.inventory.push(it); stock.items[i] = null; Sfx.play('coin'); Game.save(); render(); } }, `${price} g`)));
       });
       if (stock.banner && !run.banners.includes(stock.banner)) {
@@ -4807,6 +5016,14 @@ function init() {
   $('#btn-continue').addEventListener('click', () => Game.continueRun());
   $('#btn-annals').addEventListener('click', () => Screens.annals());
   $('#btn-credits').addEventListener('click', () => Screens.credits());
+  /* v7: the Codex lives at the end of Help, so it is reachable mid-run too */
+  const world = $('#help-world');
+  world.append(h('h2', { style: 'margin-top:24px' }, 'Codex — what the band knows'));
+  for (const e of CODEX) world.append(h('h3', null, e.title), h('p', null, e.text));
+  world.append(h('h3', null, 'The three on the road'), ...ACTS.map(a => { const b = STORY.boss[a.boss.story]; return h('p', null, h('b', null, b.title), ` — ${a.name}. `, h('span.muted', null, b.lesson)); }));
+  world.append(h('h3', null, 'Oaths'), ...Object.keys(BANNERS).map(id => h('p', null, h('b', null, BANNERS[id].name), ' — ', LORE.banners[id])));
+  $('#btn-codex').addEventListener('click', () => { Screens.help(); setTimeout(() => world.scrollIntoView({ block: 'start' }), 30); });
+  $('#btn-codex').prepend(icon('ANNALS', 16));
   $('#btn-reroll').addEventListener('click', () => { $('#seed-input').value = randomSeedString(); });
   for (const b of document.querySelectorAll('.btn-help')) b.addEventListener('click', () => Screens.help());
   const mv = $('#music-volume'); mv.value = Math.round(Music.volume * 100);
@@ -4840,7 +5057,7 @@ function init() {
 }
 
 /* Debug / test handle. Not used by the UI. */
-window.RF = { Game, Battle, BattleUI, Screens, WorldUI, Anim, CLASSES, WEAPONS, ABILITIES, ACTS, PERKS, OFFHANDS, STORY, ORIGINS, BANNERS, RULES, generateMap, generateOverworld, RNG, makeUnit, makeEnemy, makeOffhand, makeWeapon, makeCape, promote, canPromote, drawIcon, icon, ICON_PATHS, ICON_CREDITS, Sfx, Music, ITEMS, statOf, maxHp, moveRange, Store, SAVE_KEY, ANNALS_KEY };
+window.RF = { Game, Battle, BattleUI, Screens, WorldUI, Anim, CLASSES, WEAPONS, ABILITIES, ACTS, PERKS, OFFHANDS, STORY, ORIGINS, BANNERS, RULES, generateMap, generateOverworld, RNG, makeUnit, makeEnemy, makeOffhand, makeWeapon, makeCape, promote, canPromote, drawIcon, icon, ICON_PATHS, ICON_CREDITS, Sfx, Music, ITEMS, ORIGINS, ORIGIN_STORIES, LORE, CODEX, confideLines, fillLine, loreOf, statOf, maxHp, moveRange, Store, SAVE_KEY, ANNALS_KEY };
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 
