@@ -52,13 +52,20 @@ const jsonLd = {
     <div class="qbar" aria-hidden="true">{[9,12,14,11,13,14,10,14,13,12,8,14,13,11,14,12,9,13].map((h) => <span style={`height:${h}px`} />)}</div>
     <h2>Right now</h2>
     <div class="bento">
-      <a class="card feature size-wide" href="/nika/maker">
+      <a class="card feature size-wide game" href="/nika/games/rank-and-file">
+        <img class="cover" src="/rank-and-file/cover.jpg" alt="Rank & File title screen" width="1200" height="675" />
+        <span class="chip chip--accent">Game</span>
+        <h3>Rank &amp; File</h3>
+        <p class="muted">A chess roguelite. Lead a king and the commoners who stayed through three acts; raise pawns rank by rank.</p>
+        <span class="go">Play it →</span>
+      </a>
+      <a class="card feature" href="/nika/maker">
         <span class="chip chip--accent">Maker</span>
         <h3>Printers, robots and a smart-ish home</h3>
         <p class="muted">A Bambu P1P 3D printer, an Opentrons OT-2 looking for a non-lab job, Home Assistant and a Raspberry Pi server.</p>
         <span class="go">Open the workbench →</span>
       </a>
-      <a class="card feature size-tall winery" href="/nika/winery">
+      <a class="card feature winery" href="/nika/winery">
         <span class="chip chip--accent">Family</span>
         <h3>Akido-Iremadze Winery</h3>
         <p class="muted">Our family's qvevri winery in Ikalto, Kakheti, Georgia, making wine the 8,000-year-old way.</p>
@@ -132,6 +139,7 @@ const jsonLd = {
   .feature h3 { margin: 4px 0 0; font-size: 1.5rem; }
   .feature .chip { align-self: flex-start; }
   .feature .go { margin-top: auto; font-weight: 700; color: var(--accent); }
+  .game .cover { width: 100%; height: auto; aspect-ratio: 21 / 9; object-fit: cover; object-position: center top; border-radius: calc(var(--radius) - 4px); border: 2px solid var(--line); margin-bottom: 4px; }
   .winery { background: var(--gio-soft); }
   .winery .big { font-size: 4.5rem; margin: 8px 0; }
   .science { background: var(--accent-soft); }

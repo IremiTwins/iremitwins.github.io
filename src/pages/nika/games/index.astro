@@ -9,6 +9,7 @@ const games = [
     tools: ['HTML5 canvas', 'JavaScript', 'built with Claude'],
     cover: '/rank-and-file/cover.jpg',
     chip: 'new',
+    credit: 'IremiBros',
   },
   {
     slug: 'flappy-bird',
@@ -35,6 +36,7 @@ const games = [
             <h2 class="h3"><a href={`/nika/games/${g.slug}`}>{g.title}</a></h2>
             <span class={`chip chip--${g.chip}`}>{g.chip}</span>
           </div>
+          {g.credit && <p class="credit">by {g.credit}</p>}
           <p class="muted">{g.summary}</p>
           <ul class="chips">{g.tools.map((t) => <li class="chip">{t}</li>)}</ul>
         </article>
@@ -49,6 +51,7 @@ const games = [
   .cover--emoji { display: grid; place-items: center; font-size: 5rem; background: var(--accent-soft); }
   .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
   .h3 { font-size: 1.45rem; margin: 0; }
+  .credit { font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-2); margin: -6px 0 0; }
   .game .chips { margin-top: auto; }
   .chip--new { background: var(--accent-soft); border-color: var(--accent); }
 </style>
