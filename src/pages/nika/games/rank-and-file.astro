@@ -7,6 +7,7 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
   <section class="container section--tight">
     <p class="eyebrow">Games</p>
     <h1 class="title">Rank &amp; File</h1>
+    <p class="credit">A game by IremiBros (Nika and Gio)</p>
     <p class="lede">A chess roguelite. The realm has fallen and only the commoners stayed. You are the King; your army is a miller's son, a poacher, a deserter or two. Stand them in the line and raise them, rank by rank. If the King dies, the run ends.</p>
     <div class="btn-row">
       <a class="btn btn--accent play" href="/rank-and-file/">▶ Play in the browser</a>
@@ -34,6 +35,7 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
 </BaseLayout>
 <style>
   .title { font-size: clamp(2.2rem, 5vw, 3.2rem); }
+  .credit { font-family: var(--font-mono); font-size: 0.9rem; color: var(--ink-2); margin: -4px 0 16px; }
   .play { font-size: 1.15rem; min-height: 52px; padding-inline: 24px; }
   .small { font-size: 0.95rem; }
   .shot { width: 100%; height: auto; margin-top: 20px; padding: 0; overflow: hidden; }

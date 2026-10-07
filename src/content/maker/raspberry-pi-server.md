@@ -11,5 +11,3 @@ I wanted a home file and media server that sips power and didn't cost much, so I
 
 - **File and media serving** at home.
 - **Pi-hole** runs as the network's DNS server and blocks ads for every device.
-
-*Setup notes coming soon.*
