@@ -291,6 +291,7 @@ li .ibox { display: inline-grid; width: 24px; height: 24px; vertical-align: midd
 /* v7.3: one tap to play; the custom run folds away */
 .play-row { margin: 18px 0 6px; justify-content: center; }
 /* v7.3: rank ladder, locks, the daily, milestones */
+.rank-row[hidden] { display: none; }
 .rank-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin: 4px 0 10px; }
 .rank-row label { font-family: var(--display); color: var(--accent); }
 .rank-row #rank-desc { flex-basis: 100%; text-align: center; font-size: 0.88rem; }
@@ -541,7 +542,7 @@ const CHARGE_DAMAGE_MULT = 0.75;
 const DECREE_ATK = 3;
 const FORTIFY_DEF = 5;
 const INSPIRE_PCT = 0.20;
-const BUILD = 'v7.3';            // shown in Help and stamped on every Annals entry and bug report
+const BUILD = 'v8.0';            // shown in Help and stamped on every Annals entry and bug report
 const INSPIRE_ATK = 2;
 const SKIP_GOLD = { COMBAT: 10, ELITE: 15, BOSS: 25 };   // v7.3: taking gold instead of a reward pick
 const BANNER_SKIP_GOLD = 15;   // v7.3: raising none of an offered banner
@@ -3819,7 +3820,7 @@ const BattleUI = {
     const size = u.boss ? TILE * 1.32 : TILE * 1.12;
     const pose = this.poseOf(u, now);
     if (u.cls === 'KING' && isPlayer(u) && u.alive && !bt.fall && this.battle.run.banners && this.battle.run.banners.length) this.drawStandard(ctx, u, cx, cy, pose.facing || 1, now);
-    drawCharacter(ctx, charSpec(u), cx - size / 2, cy + 18 - size * CHAR.footY, size, pose);
+    MapSprites.drawUnit(ctx, u, cx, cy, now);                 // v8: Direction A pixel sprites
     if (bt.flash > 0) bt.flash = Math.max(0, bt.flash - 0.08);
     if (bt.dormant) { ctx.fillStyle = '#cbb'; ctx.font = 'bold 13px "Alegreya Sans", sans-serif'; ctx.textAlign = 'center'; ctx.fillText('z', cx + 20, cy - 24); }
     if (bt.brace) this.badge(ctx, cx - 24, cy - 24, '#7fb2ff', 'B');
@@ -3960,10 +3961,7 @@ const BattleUI = {
     return el;
   },
   pieceCanvas(u, size) {
-    const c = h('canvas', { width: size, height: size });
-    const S = size * 1.25;                           // the figure fills the portrait
-    drawCharacter(c.getContext('2d'), charSpec(u), (size - S) / 2, -S * 0.19, S, { facing: 1 });
-    return c;
+    return MapSprites.portrait(u, size);             // v8: a head-and-shoulders crop of the map sprite
   },
   unitCard(u, extra) {
     const a = abilityOf(u);
@@ -4540,7 +4538,7 @@ const Scenes = {
     for (const [a, l, hy] of [[-0.9, 0.35, 0.35], [0.7, 0.3, 0.45], [-0.5, 0.25, 0.55], [1.1, 0.22, 0.58]]) { ctx.beginPath(); ctx.moveTo(x + s * 0.03, y - s * hy); ctx.lineTo(x + Math.sin(a) * s * l, y - s * hy - Math.cos(a) * s * l); ctx.stroke(); }
   },
   band(ctx, units, x, y, size, facing, spacing) {
-    (units || []).slice(0, 7).forEach((u, i) => drawCharacter(ctx, charSpec(u), x + i * (spacing || size * 0.7), y - size * CHAR.footY, size, { facing: facing || 1 }));
+    (units || []).slice(0, 7).forEach((u, i) => MapSprites.drawBox(ctx, charSpec(u), x + i * (spacing || size * 0.7), y - size * CHAR.footY, size, { facing: facing || 1 }));
   },
   /* ---- the scenes ---- */
   prologue(ctx, W, H, rng, P, opts) {
@@ -4582,7 +4580,7 @@ const Scenes = {
     for (let i = 0; i < 18; i++) { ctx.beginPath(); ctx.arc(fx + (rng.next() - 0.5) * 60, fy - 20 - rng.next() * 90, 0.8 + rng.next(), 0, Math.PI * 2); ctx.fill(); }
     /* the band around the fire, facing it */
     const units = (opts.units || []).slice(0, 7), size = 48;
-    units.forEach((u, i) => { const left = i % 2 === 0; const k = Math.floor(i / 2); const x = left ? fx - 70 - k * 52 : fx + 36 + k * 52; drawCharacter(ctx, charSpec(u), x, 196 - size * CHAR.footY, size, { facing: left ? 1 : -1 }); });
+    units.forEach((u, i) => { const left = i % 2 === 0; const k = Math.floor(i / 2); const x = left ? fx - 70 - k * 52 : fx + 36 + k * 52; MapSprites.drawBox(ctx, charSpec(u), x, 196 - size * CHAR.footY, size, { facing: left ? 1 : -1 }); });
     /* tent */
     ctx.fillStyle = '#2a211c'; ctx.beginPath(); ctx.moveTo(W - 150, 150); ctx.lineTo(W - 92, 100); ctx.lineTo(W - 34, 150); ctx.closePath(); ctx.fill();
     ctx.fillStyle = '#1a1411'; ctx.beginPath(); ctx.moveTo(W - 108, 150); ctx.lineTo(W - 92, 118); ctx.lineTo(W - 76, 150); ctx.closePath(); ctx.fill();
@@ -4762,6 +4760,12 @@ const BattleScene = {
     this.scale = this.canvas.width / SCENE_W;
     this.k = cw < 520 ? 1.4 : 1;                              // phones: the frame's text is drawn larger
     this.spec = this.timeline(spec);
+    /* v8: paint the battle-art frames this scene will need before it starts (each is a few ms, once) */
+    try {
+      const sp = u => ({ cls: u.cls, enemy: !isPlayer(u), boss: !!u.boss, weapon: u.weapon ? u.weapon.type : null, shield: !!(u.offhand && u.offhand.type === 'SHIELD') });
+      for (const key of ['ready', 'windup', 'strike', spec.kind === 'arcane' ? 'cast' : 'shoot']) BattleArt.canvasFor(sp(spec.att), key);
+      for (const d of spec.defs) { BattleArt.canvasFor(sp(d.u), 'ready'); BattleArt.canvasFor(sp(d.u), 'hurt'); BattleArt.canvasFor(sp(d.u), 'hurt', true); }
+    } catch (e) { /* drawn lazily instead */ }
     this.active = true; this.skipping = false; this.fired = new Set(); this.sparks = []; this.t = 0;
     this.speed = (this.mode === 'fast' ? 2.2 : 1) * Math.max(1, Anim.rate ? Anim.rate() : Anim.speed || 1);
     return new Promise(resolve => {
@@ -4813,7 +4817,7 @@ const BattleScene = {
 
     /* ---- the attacker's motion ---- */
     const a = { x: homeA, y: FLOOR, pose: { facing: toward }, alpha: 1 };
-    const reach = homeD - toward * 205;                         // where a melee attacker stops
+    const reach = homeD - toward * ({ LANCE: 285, AXE: 215 }[S.att.weapon && S.att.weapon.type] || 205);   // where a melee attacker stops (v8: a lance stops further off)
     const lerpT = (t0, t1) => clamp((t - t0) / (t1 - t0), 0, 1);
     const wt = S.att.weapon ? S.att.weapon.type : 'SWORD', rest = WEAPON_REST[wt] || 0.5;
     a.pose.bob = Math.sin(t / 260) * 0.008;
@@ -4830,7 +4834,7 @@ const BattleScene = {
       a.pose.raise = easeOut(k) * (1 - rel); a.pose.swingGlow = a.pose.raise;
     } else if (S.kind === 'charge') {
       const crouch = lerpT(480, 560), leap = lerpT(560, 840), back = easeInOut(lerpT(S.last + 300, S.last + 620));
-      const land = homeD - toward * 120;
+      const land = homeD - toward * ({ LANCE: 240, AXE: 160 }[S.att.weapon && S.att.weapon.type] || 140);   // v8: where the leap lands, by reach
       a.x = lerp(homeA, land, easeInOut(leap) * (1 - back));
       a.y = FLOOR - Math.sin(leap * Math.PI) * 150 * (1 - back) + crouch * (1 - leap) * 8;
       a.pose.legSwing = leap > 0 && leap < 1 ? 0.5 : 0;
@@ -4855,10 +4859,29 @@ const BattleScene = {
     /* ---- draw back to front: shadows, defenders, attacker ---- */
     const size = u => u.boss ? 330 : 290;
     const shadow = (x, y, s, alpha) => { ctx.save(); ctx.globalAlpha *= alpha; ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.ellipse(x, y + 2, s * 0.24, s * 0.05, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore(); };
-    const figure = (u, x, y, s, pose, alpha) => { ctx.save(); ctx.globalAlpha *= alpha; drawCharacter(ctx, charSpec(u), x - s / 2, y - s * CHAR.footY, s, pose); ctx.restore(); };
-    for (const D of [...defs].reverse()) { const s = size(D.d.u) * D.sc; shadow(D.x + D.kx, D.y, s, D.alpha); figure(D.d.u, D.x + D.kx, D.y, s, D.pose, D.alpha); }
+    /* v8: the large pixel battle art, keyframed like a 16-bit close-up */
+    const specOf = u => ({ cls: u.cls, enemy: !isPlayer(u), boss: !!u.boss, weapon: u.weapon ? u.weapon.type : null, shield: !!(u.offhand && u.offhand.type === 'SHIELD') });
+    const hitsN = Math.max(1, S.defs[0] ? S.defs[0].hits.length : 1);
+    const keyA = (() => {
+      if (S.kind === 'arcane') return t > 440 && t < S.last + 260 ? 'cast' : 'ready';
+      if (S.kind === 'ranged' && wt === 'BOW') return t > 420 && t < S.impact - 20 ? 'shoot' : 'ready';
+      if (S.kind === 'crush') return t > 480 && t < 780 ? 'windup' : t >= 780 && t < S.last + 260 ? 'strike' : 'ready';
+      for (let i = 0; i < hitsN; i++) { const d = t - (S.impact + i * 240); if (d >= -230 && d < -50) return 'windup'; if (d >= -50 && d < 200) return 'strike'; }
+      if (S.kind === 'charge' && t > 560 && t < S.impact - 230) return 'windup';
+      return 'ready';
+    })();
+    const kOf = u => (u.boss ? 4 : 3);
+    const figure = (u, x, y, k, key, flash, facing, fall, alpha) => { ctx.save(); ctx.globalAlpha *= alpha; BattleArt.blit(ctx, BattleArt.canvasFor(specOf(u), key, flash), Math.round(x), Math.round(y), k, facing, { fall }); ctx.restore(); };
+    for (const D of [...defs].reverse()) {
+      const k = D.i === 0 ? kOf(D.d.u) : 2, s = size(D.d.u) * D.sc;
+      let hurt = false, flash = false;
+      D.d.hits.forEach((dmg, j) => { const since = t - (S.impact + j * 240); if (since >= 0 && since < 300) { hurt = true; if (since < 90) flash = true; } });
+      if (D.d.killed && t > S.last) hurt = true;
+      shadow(D.x + D.kx, D.y, s, D.alpha);
+      figure(D.d.u, D.x + D.kx, D.y, k, hurt ? 'hurt' : 'ready', flash, -toward, D.pose.fall || 0, D.alpha);
+    }
     shadow(a.x, FLOOR, size(S.att) * (1 - (FLOOR - a.y) / 600), 1);
-    figure(S.att, a.x, a.y, size(S.att), a.pose, 1);
+    figure(S.att, a.x, a.y, kOf(S.att), keyA, false, toward, 0, 1);
 
     /* ---- effects ---- */
     this.effects(ctx, S, t, a, defs, toward);
@@ -5054,6 +5077,814 @@ const BattleScene = {
     if (t < S.last + 200) { ctx.font = `${Math.round(13 * k)}px "Alegreya Sans", sans-serif`; ctx.fillStyle = 'rgba(232,220,200,0.45)'; ctx.textAlign = 'right'; ctx.fillText('tap to skip', W - 12, TOP - 12); }
   },
 };
+
+
+/* =====================================================================
+   Module 05d (v8): the map sprites — Direction A, chosen by Nika.
+   16 x 20 pixel figures, drawn x4 on the 64-px board (x5 for bosses).
+   Each class is its gear: a kettle helm and tunic for the Pawn, plate,
+   a crenellated helm and a shield for the Rook, a horse crest for the
+   Knight, a mitre for the Bishop, a gown and tiara for the Queen, robes
+   and a crown for the King. Shades are the same figures in ash, with
+   ember eyes. Sprites are painted once from text grids into tiny
+   canvases and cached; the board draws them with smoothing off.
+   ===================================================================== */
+const MapSprites = (() => {
+  const g = s => { const rows = s.replace(/^\n+|\n+$/g, '').split('\n').map(r => r.trim()); const w = Math.max(...rows.map(r => r.length)); return rows.map(r => r.padEnd(w, '.')); };
+  const BASE = {
+    O: '#1c1424', E: '#1c1424', W: '#fff6e8',
+    S: '#f4c9a0', s: '#dd9a72', k: '#b06a52', H: '#7a4a30', h: '#4a2c1e',
+    T: '#efe4cc', t: '#c9b591', u: '#8c7a5e', R: '#7a4f2e', r: '#4e301c', B: '#5e3d2c', b: '#3a251a',
+    M: '#eef2f6', m: '#a9b5c4', n: '#6a7486', N: '#3e4454', G: '#ffe38f', g: '#e0ad4f', y: '#a6702a', L: '#c08a55', l: '#7d5232',
+    P: '#b48ae8', p: '#5c3596',
+  };
+  const CAPES = {
+    ROOK: ['#7fa8d8', '#4f7fb5', '#2f5585'], KNIGHT: ['#6cc486', '#3f9a5a', '#25693a'], BISHOP: ['#b48ae8', '#8a5ad6', '#5c3596'],
+    QUEEN: ['#ea6c86', '#c43a5a', '#86203a'], KING: ['#f0c870', '#d9a441', '#9c6e22'], PAWN: ['#efe4cc', '#c9b591', '#8c7a5e'],
+  };
+  const SHADE = {
+    E: '#ff6a3d', W: '#ffb36b', S: '#6f6478', s: '#51475c', k: '#3a3245', H: '#2c2534', h: '#1d1824',
+    T: '#4c3a4a', t: '#382a37', u: '#251b25', B: '#2a2230', b: '#1a1520',
+    M: '#9a8ea6', m: '#6e6380', n: '#4b4258', N: '#2e2838', G: '#c9a46a', g: '#9a7440', y: '#62461f',
+  };
+  const SHADE_CAPE = ['#c4485a', '#8e2436', '#5a1222'];
+  /* the three bosses keep their colours: granite, drowned teal, black and gold */
+  const BOSS = {
+    ROOK: { cape: ['#a8a294', '#7a7568', '#4e4a40'], over: { M: '#b9b3a4', m: '#8a8577', n: '#5e5a50', N: '#3a372f' } },
+    BISHOP: { cape: ['#5fb0a4', '#2f7a70', '#1a4a44'], over: { T: '#3e5a58', t: '#2c4442', u: '#1c2e2c' } },
+    KING: { cape: ['#e0c070', '#a07a2a', '#5e4412'], over: { T: '#2a2232', t: '#1e1826', u: '#120e18', G: '#ffe38f', g: '#e0ad4f', y: '#a6702a' } },
+  };
+
+  const FACE = g(`
+................
+................
+................
+.....OOOOOO.....
+....OHHHHHHO....
+...OHHHHHHHhO...
+...OHSSSSSShO...
+...OHSSSSSSShO..
+...OSSESSSESsO..
+...OSSESSSESsO..
+...OkSSSSSSSkO..
+....OksSSSskO...
+....OOkkkkkOO...`);
+  const PAD = Array(13).fill('................');
+  const BODIES = {
+    PAWN: g(`
+...OTTTTTTTtO...
+..OSOTTTTTtuOSO.
+..OSOTTTTTtuOSO.
+...OORRRRRrOO...
+....OTtOOtuO....
+....OBBO.OBbO...
+....OOOO.OOOO...`),
+    ROOK: g(`
+..OCCMMMMMmcdO..
+.OCOMMMMMMmnOdO.
+.OSOmMMMMmnnOSO.
+..OOnRRRRRrnOO..
+...OCmmOOmnCO...
+...OCNNO.ONNdO..
+...OOOOO.OOOOO..`),
+    KNIGHT: g(`
+..OCCmmmmmmcdO..
+.OCOmmCCCmnnOdO.
+.OSOnmCCcmnnOSO.
+..OOORRRRRrOOO..
+...OCmmOOmnCO...
+....OBBO.OBbO...
+....OOOO.OOOO...`),
+    BISHOP: g(`
+..OCCTTTTTTcdO..
+.OSOTTTCCTtuOSO.
+.OSOTTTCCTtuOSO.
+...OTTTCCttuO...
+...OTTTCCttuO...
+...OTTTCcttuO...
+...OOOOOOOOOO...`),
+    QUEEN: g(`
+...OCCGCCCcO....
+..OSOCCCCcdOSO..
+..OSOCCCCcdOSO..
+...OOGgGgGyOO...
+...OCCCCCccdO...
+..OCCCCCCcccdO..
+..OOOOOOOOOOOO..`),
+    KING: g(`
+..OWWGGGGGGWWO..
+.OCOCCCGCCcdOdO.
+.OSOCCCGCccdOSO.
+..OOOGgGgGyOOO..
+...OCCCGCccdO...
+...OWWWWWWWWO...
+...OOOOOOOOOO...`),
+  };
+  const HEAD = {
+    PAWN: g(`
+................
+................
+................
+.....OOOOOO.....
+....OmMMMmnO....
+...OmMMMMmmnO...
+...ONnnnnnnNO...`),
+    ROOK: g(`
+................
+...OOO.OO.OOO...
+...OmO.Om.OnO...
+...OmMMMMMmmnO..
+...OmMMMMMmnnO..
+...OmMmmmmmnnO..
+...ONnnnnnnnNO..
+...OnO.....OnO..`),
+    KNIGHT: g(`
+.......OOO......
+......OCCcOO....
+.....OCOCCccO...
+......OCCCCcdO..
+.....OOOOCCdO...
+....OmMMOCcdnO..
+...OmMMMMMmmnO..
+...ONNNNNNNNNO..`),
+    BISHOP: g(`
+.......OO.......
+......OCCO......
+.....OCWCcO.....
+....OCCWCccO....
+....OCCWCccO....
+....OGgGgGyO....
+...OHHHHHHHhO...`),
+    QUEEN: g(`
+................
+....O..O..O.....
+...OGO.OG.OGO...
+...OGgOGgOGyO...
+....OGGGGGgyO...
+...OHHHHHHHhO...
+..OHHHHHHHHHhO..`),
+    KING: g(`
+.......OO.......
+......OGGO......
+.....OOGGOO.....
+....OGOGGOGO....
+....OGGGGGgyO...
+....OGgGgGgyO...
+...OHHHHHHHhO...`),
+  };
+  const QUEEN_HAIR = g(`
+................
+................
+................
+................
+................
+................
+...OH.......hO..
+...OH........hO.
+...OH........hO.
+...OH........hO.
+...OHO......OhO.
+...OO........OO.`);
+  /* weapons, upright; [grid, grip column, grip row] — the grip goes in the right hand */
+  const WEAPONS = {
+    SWORD: [g(`
+.O.
+OMO
+OMO
+OMO
+OMO
+OGO
+OlO
+.O.`), 1, 6],
+    AXE: [g(`
+OOO..
+OMMO.
+OMmnO
+OOlOO
+.OlO.
+.OlO.
+.OlO.
+.OOO.`), 2, 5],
+    LANCE: [g(`
+.O.
+OMO
+OmO
+OlO
+OlO
+OlO
+OlO
+OlO
+OlO
+OlO
+OlO
+OlO
+OlO
+.O.`), 1, 11],
+    STAFF: [g(`
+.OO.
+OPPO
+OPpO
+.OO.
+.OlO
+.OlO
+.OlO
+.OlO
+.OlO
+.OlO
+.OlO
+.OlO
+.OO.`), 2, 10],
+    DAGGER: [g(`
+.O.
+OMO
+OMO
+OGO
+.O.`), 1, 3],
+    BOW: [g(`
+..OO
+.OLO
+OL.O
+OL.O
+OL.O
+.OLO
+..OO`), 2, 3],
+    TOME: [g(`
+OOOO
+OPPO
+OGPO
+OppO
+OOOO`), 1, 3],
+  };
+  const SHIELD = g(`
+OOOO.
+OCCcO
+OCWcO
+OCCcO
+OdcdO
+.OdO.
+..O..`);
+  const HAND = { x: 13, y: 15 };
+
+  const hexRGB = h => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+  const rotCW = grid => { const H = grid.length, W = grid[0].length, out = []; for (let x = 0; x < W; x++) { let row = ''; for (let y = H - 1; y >= 0; y--) row += grid[y][x]; out.push(row); } return out; };
+
+  function palette(spec) {
+    const p = Object.assign({}, BASE);
+    const cls = spec.cls;
+    let cape = CAPES[cls] || CAPES.PAWN;
+    if (spec.enemy) { Object.assign(p, SHADE); cape = SHADE_CAPE; if (spec.boss && BOSS[cls]) { cape = BOSS[cls].cape; Object.assign(p, BOSS[cls].over); } }
+    p.C = cape[0]; p.c = cape[1]; p.d = cape[2];
+    const out = {};
+    for (const [k, v] of Object.entries(p)) {
+      let c = hexRGB(v);
+      if (spec.dormant) c = c.map(x => Math.round(x * 0.62));
+      if (spec.flash) c = k === 'O' ? [255, 236, 210] : [255, 255, 255];
+      out[k] = c;
+    }
+    return out;
+  }
+  function paint(img, grid, pal, ox, oy) {
+    const d = img.data, W = img.width, Hh = img.height;
+    for (let y = 0; y < grid.length; y++) for (let x = 0; x < grid[y].length; x++) {
+      const ch = grid[y][x]; if (ch === '.' || ch === ' ') continue;
+      const c = pal[ch]; if (!c) continue;
+      const xx = x + ox, yy = y + oy; if (xx < 0 || yy < 0 || xx >= W || yy >= Hh) continue;
+      const i = (yy * W + xx) * 4; d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255;
+    }
+  }
+  /* frame: idle | bob | windup | strike | cast */
+  function build(spec, frame) {
+    const W = 16, Hh = 22;                       // two spare rows above for raised weapons
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = Hh;
+    const ctx = cv.getContext('2d'), img = ctx.createImageData(W, Hh), pal = palette(spec);
+    const top = 2, cls = BODIES[spec.cls] ? spec.cls : 'PAWN';
+    const lift = frame === 'bob' ? 1 : 0;
+    paint(img, FACE, pal, 0, top + lift);
+    paint(img, PAD.concat(BODIES[cls].slice(0, 4)), pal, 0, top + lift);
+    paint(img, Array(17).fill('................').concat(BODIES[cls].slice(4)), pal, 0, top);
+    if (cls === 'QUEEN') paint(img, QUEEN_HAIR, pal, 0, top + lift);
+    paint(img, HEAD[cls], pal, 0, top + lift);
+    const wt = spec.weapon && WEAPONS[spec.weapon] ? spec.weapon : null;
+    if (wt) {
+      let [grid, gx, gy] = WEAPONS[wt];
+      let hx = HAND.x, hy = HAND.y + lift;
+      if (frame === 'strike' && wt !== 'BOW' && wt !== 'TOME') { const r = rotCW(grid); const ngx = grid.length - 1 - gy, ngy = gx; grid = r; gx = ngx; gy = ngy; hx += 1; }
+      else if (frame === 'windup' || frame === 'cast') hy -= wt === 'LANCE' ? 2 : 4;
+      paint(img, grid, pal, hx - gx, top + hy - gy);
+    }
+    if (spec.shield) paint(img, SHIELD, pal, 0, top + 12 + lift);
+    ctx.putImageData(img, 0, 0);
+    return cv;
+  }
+  const cache = new Map();
+  function sprite(spec, frame) {
+    const key = [spec.cls, spec.enemy ? 1 : 0, spec.boss ? 1 : 0, spec.dormant ? 1 : 0, spec.flash ? 1 : 0, spec.weapon || '-', spec.shield ? 1 : 0, frame].join('|');
+    let c = cache.get(key);
+    if (!c) { c = build(spec, frame); cache.set(key, c); if (cache.size > 600) cache.delete(cache.keys().next().value); }
+    return c;
+  }
+  function specOf(u) {
+    return { cls: u.cls, enemy: !isPlayer(u), boss: !!u.boss, dormant: !!(u.bt && u.bt.dormant), weapon: u.weapon ? u.weapon.type : null, shield: !!(u.offhand && u.offhand.type === 'SHIELD') };
+  }
+  /* draw a sprite with its feet at (cx, footY), k pixels per sprite pixel */
+  function blit(ctx, spr, cx, footY, k, facing, opts) {
+    opts = opts || {};
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.translate(Math.round(cx), Math.round(footY));
+    if (opts.fall) ctx.rotate((facing < 0 ? -1 : 1) * opts.fall * Math.PI / 2);
+    if (facing < 0) ctx.scale(-1, 1);
+    ctx.drawImage(spr, -8 * k, -spr.height * k, spr.width * k, spr.height * k);
+    ctx.restore();
+  }
+  /* the board: frame from the unit's animation state and the clock */
+  function frameOf(u, now) {
+    const bt = u.bt;
+    if (bt.swing) {
+      const t = clamp((now - bt.swing.t0) / bt.swing.dur, 0, 1);
+      if (t >= 1) bt.swing = null;
+      else if (bt.swing.kind === 'melee') return t < 0.35 ? 'windup' : t < 0.7 ? 'strike' : 'idle';
+      else if (bt.swing.kind === 'cast') return 'cast';
+      else return 'idle';
+    }
+    if (bt.walk) return Math.floor(bt.walk.phase * 4) % 2 ? 'bob' : 'idle';
+    if (bt.dormant || Anim.reduced) return 'idle';
+    return Math.floor((now + u.id * 337) / 520) % 2 ? 'bob' : 'idle';
+  }
+  function drawUnit(ctx, u, cx, cy, now) {
+    const bt = u.bt, spec = specOf(u);
+    if (bt.hitT0) { const t = (now - bt.hitT0) / 320; if (t >= 1) bt.hitT0 = 0; else if (t < 0.3) spec.flash = true; }
+    const k = u.boss ? 5 : 4, facing = bt.facing || (isPlayer(u) ? 1 : -1);
+    let kx = 0;
+    if (bt.hitT0) { const t = (now - bt.hitT0) / 320; if (t < 1) kx = -facing * Math.round(3 * (1 - t)); }
+    blit(ctx, sprite(spec, frameOf(u, now)), cx + kx, cy + 22, k, facing, { fall: bt.fall || 0 });
+  }
+  /* a drop-in for drawCharacter(ctx, spec, x, y, size, pose) where the box
+     convention is kept: feet at y + size * 0.9, centred in the box */
+  function drawBox(ctx, spec, x, y, size, pose) {
+    pose = pose || {};
+    const k = Math.max(1, Math.round(size / 18));
+    blit(ctx, sprite(spec, 'idle'), x + size / 2, y + size * 0.9, k, pose.facing || (spec.enemy ? -1 : 1), { fall: pose.fall || 0 });
+  }
+  /* a head-and-shoulders portrait filling a square canvas */
+  function portrait(u, size) {
+    const c = document.createElement('canvas'); c.width = size; c.height = size;
+    const ctx = c.getContext('2d'); ctx.imageSmoothingEnabled = false;
+    const spr = sprite(specOf(u), 'idle'), k = Math.max(1, Math.round(size / 15));
+    ctx.drawImage(spr, 0, 2, 16, 16, Math.round((size - 16 * k) / 2), Math.round((size - 16 * k) / 2) + k, 16 * k, 16 * k);
+    return c;
+  }
+  return { sprite, specOf, drawUnit, drawBox, portrait, blit, build };
+})();
+
+
+/* =====================================================================
+   Module 05e — Battle art (v8): the large pixel figures of the battle close-ups.
+   Each figure is rasterised from a posed skeleton into an 80x96 pixel
+   buffer: capsule limbs, cel shading from the top-left, a contact line
+   wherever a part overlaps another, and a dark outline. The scene draws
+   the buffer at x3 with smoothing off, so it reads as hand-placed pixels.
+   ===================================================================== */
+const BattleArt = (() => {
+  const W = 124, H = 112, GROUND = 104, HIPX = 50;   // room for a raised weapon and a full lance thrust
+  const hex = h => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+  const R = (...hs) => hs.map(hex);
+  const mixc = (a, b, t) => [a[0] + (b[0] - a[0]) * t | 0, a[1] + (b[1] - a[1]) * t | 0, a[2] + (b[2] - a[2]) * t | 0];
+  const OUT = hex('#140c1c');
+
+  /* ---- palettes: five tones each, highlight to deepest shadow ---- */
+  const P = {
+    skin: R('#ffe6c8', '#f6c9a0', '#e0a27a', '#b4705a', '#7a4436'),
+    hair: R('#b8845a', '#8e5c3a', '#6c432c', '#4a2c1e', '#2c1810'),
+    linen: R('#fffaf0', '#efe4cc', '#d0bc95', '#9f8964', '#675640'),
+    leather: R('#c08f60', '#93623a', '#6e4628', '#4c2f1b', '#2c1a0f'),
+    cloth: R('#93806e', '#76624f', '#5a4838', '#3f3228', '#271e18'),
+    steel: R('#ffffff', '#e4eaf1', '#b0bccb', '#76819a', '#454c60'),
+    gold: R('#fff4c0', '#ffd77a', '#e2ad4c', '#a46e28', '#663e12'),
+    wood: R('#dca46e', '#b27c4c', '#8a5a32', '#623e20', '#3c2412'),
+    white: R('#ffffff', '#f8f4ee', '#e4dccf', '#b8ac9a', '#7e7464'),
+    ink: R('#3a3046', '#2a2234', '#1e1828', '#140f1c', '#0c0812'),
+    eye: R('#ffffff', '#ffffff', '#2a1a2e', '#2a1a2e', '#2a1a2e'),
+  };
+  const CLOTH = {   // the class colour: capes, tabards, gowns
+    PAWN: R('#e8dcc0', '#c8b48c', '#a08a64', '#76644a', '#4c3e2c'),
+    ROOK: R('#b0d0f0', '#7fa8d8', '#4f7fb5', '#30588a', '#1c3458'),
+    KNIGHT: R('#a6e6b4', '#6cc486', '#3f9a5a', '#25693a', '#123e1f'),
+    BISHOP: R('#dcc4f6', '#b48ae8', '#8a5ad6', '#5c3596', '#361c60'),
+    QUEEN: R('#f6a8b8', '#ea6c86', '#c43a5a', '#86203a', '#501022'),
+    KING: R('#e86a5a', '#c8402e', '#9c2a1e', '#6c1a12', '#40100a'),
+  };
+  const SHADE = {
+    skin: R('#9c90a8', '#7c7088', '#5c5268', '#41384e', '#2a2434'),
+    hair: R('#3c3448', '#2e2738', '#221c2c', '#18131f', '#0e0b13'),
+    linen: R('#6e5c6a', '#56444f', '#40323c', '#2c222a', '#1c151c'),
+    leather: R('#4e3e4a', '#3c2f39', '#2c222a', '#1e171e', '#120d12'),
+    cloth: R('#4a3e50', '#382e3e', '#2a222e', '#1c1720', '#110d14'),
+    steel: R('#c4b8d0', '#a196b0', '#7c7090', '#564c66', '#363042'),
+    gold: R('#e0c290', '#c9a46a', '#9a7440', '#64461e', '#3a2810'),
+    wood: R('#6e5444', '#564034', '#3e2e26', '#2a1f1a', '#18110e'),
+    white: R('#9a8ea6', '#7e7290', '#615672', '#463d54', '#2c2636'),
+    eye: R('#fff0c0', '#ffb36b', '#ff6a3d', '#ff6a3d', '#c43a1a'),
+  };
+  const SHADE_CLOTH = R('#e0687a', '#b83a50', '#8e2436', '#5e1424', '#380a14');
+
+  /* ---- the pixel buffer ---- */
+  class Cv {
+    constructor() { this.w = W; this.h = H; this.px = new Uint8ClampedArray(W * H * 4); this.id = new Int16Array(W * H).fill(-1); this.n = 0; }
+    mask() { return new Uint8Array(W * H); }
+  }
+  const IN = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
+
+  /* ---- primitives (pixel centres) ---- */
+  function ellipse(m, cx, cy, rx, ry, rot) {
+    const c = Math.cos(rot || 0), s = Math.sin(rot || 0), r = Math.max(rx, ry) + 1;
+    for (let y = Math.floor(cy - r); y <= Math.ceil(cy + r); y++) for (let x = Math.floor(cx - r); x <= Math.ceil(cx + r); x++) {
+      if (!IN(x, y)) continue;
+      const dx = x + 0.5 - cx, dy = y + 0.5 - cy, u = dx * c + dy * s, v = -dx * s + dy * c;
+      if ((u * u) / (rx * rx) + (v * v) / (ry * ry) <= 1) m[y * W + x] = 1;
+    }
+    return m;
+  }
+  function capsule(m, x1, y1, x2, y2, r1, r2) {
+    if (r2 == null) r2 = r1;
+    const minx = Math.floor(Math.min(x1, x2) - Math.max(r1, r2) - 1), maxx = Math.ceil(Math.max(x1, x2) + Math.max(r1, r2) + 1);
+    const miny = Math.floor(Math.min(y1, y2) - Math.max(r1, r2) - 1), maxy = Math.ceil(Math.max(y1, y2) + Math.max(r1, r2) + 1);
+    const dx = x2 - x1, dy = y2 - y1, L2 = dx * dx + dy * dy || 1;
+    for (let y = miny; y <= maxy; y++) for (let x = minx; x <= maxx; x++) {
+      if (!IN(x, y)) continue;
+      const px = x + 0.5, py = y + 0.5;
+      let t = ((px - x1) * dx + (py - y1) * dy) / L2; t = Math.max(0, Math.min(1, t));
+      const qx = x1 + dx * t, qy = y1 + dy * t, r = r1 + (r2 - r1) * t;
+      if ((px - qx) ** 2 + (py - qy) ** 2 <= r * r) m[y * W + x] = 1;
+    }
+    return m;
+  }
+  function poly(m, pts) {
+    const ys = pts.map(p => p[1]);
+    for (let y = Math.max(0, Math.floor(Math.min(...ys))); y <= Math.min(H - 1, Math.ceil(Math.max(...ys))); y++) {
+      const cy = y + 0.5, xs = [];
+      for (let i = 0; i < pts.length; i++) {
+        const [ax, ay] = pts[i], [bx, by] = pts[(i + 1) % pts.length];
+        if ((ay <= cy && by > cy) || (by <= cy && ay > cy)) xs.push(ax + (cy - ay) / (by - ay) * (bx - ax));
+      }
+      xs.sort((a, b) => a - b);
+      for (let k = 0; k + 1 < xs.length; k += 2) for (let x = Math.ceil(xs[k] - 0.5); x <= Math.floor(xs[k + 1] - 0.5); x++) if (IN(x, y)) m[y * W + x] = 1;
+    }
+    return m;
+  }
+  const rot = (pts, ox, oy, a) => { const c = Math.cos(a), s = Math.sin(a); return pts.map(([x, y]) => [ox + x * c - y * s, oy + x * s + y * c]); };
+  const sub = (m, n) => { for (let i = 0; i < m.length; i++) if (n[i]) m[i] = 0; return m; };
+  const and = (m, n) => { for (let i = 0; i < m.length; i++) if (!n[i]) m[i] = 0; return m; };
+
+  /* ---- painting: cel shading by distance from the lit and unlit edges ---- */
+  function paint(cv, m, rp, o) {
+    o = o || {};
+    const id = cv.n++;
+    const s = o.sh == null ? 2 : o.sh, sx = Math.max(1, Math.round(s * 0.75)), sy = s;
+    const has = (x, y) => IN(x, y) && m[y * W + x];
+    const tones = new Int8Array(W * H).fill(-1);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x; if (!m[i]) continue;
+      let t = o.tone == null ? 2 : o.tone;
+      if (!o.flat) {
+        if (!has(x + sx, y + sy)) t = 3;
+        if (o.deep && !has(x + 1, y + 1) && !has(x + 2, y + 2)) t = 4;
+        if (!has(x - 1, y - 1) || (o.hl && !has(x - o.hl, y - o.hl))) t = t >= 3 ? 2 : 1;
+        if (o.spec && !has(x - 1, y - 1) && has(x + 1, y + 1) && (x * 3 + y) % o.spec === 0) t = 0;
+      }
+      if (o.pattern) t = o.pattern(x, y, t);
+      tones[i] = t;
+    }
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x; if (tones[i] < 0) continue;
+      let t = tones[i];
+      if (o.line !== false) {      // a contact line where this part sits over an earlier one
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const xx = x + dx, yy = y + dy;
+          if (IN(xx, yy) && !m[yy * W + xx] && cv.id[yy * W + xx] >= 0) { t = 4; break; }
+        }
+      }
+      const c = rp[Math.max(0, Math.min(4, t))];
+      cv.px[i * 4] = c[0]; cv.px[i * 4 + 1] = c[1]; cv.px[i * 4 + 2] = c[2]; cv.px[i * 4 + 3] = 255;
+      cv.id[i] = id;
+    }
+  }
+  function dot(cv, x, y, c) {
+    x = Math.round(x); y = Math.round(y); if (!IN(x, y)) return;
+    const i = y * W + x; cv.px[i * 4] = c[0]; cv.px[i * 4 + 1] = c[1]; cv.px[i * 4 + 2] = c[2]; cv.px[i * 4 + 3] = 255; if (cv.id[i] < 0) cv.id[i] = cv.n++;
+  }
+  function outline(cv) {
+    const src = new Uint8ClampedArray(cv.px);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x; if (src[i * 4 + 3]) continue;
+      let best = null;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const xx = x + dx, yy = y + dy; if (!IN(xx, yy)) continue;
+        const j = (yy * W + xx) * 4; if (!src[j + 3]) continue;
+        const c = [src[j], src[j + 1], src[j + 2]];
+        if (!best || c[0] + c[1] + c[2] < best[0] + best[1] + best[2]) best = c;
+      }
+      if (best) { const c = mixc(best, OUT, 0.72); cv.px[i * 4] = c[0]; cv.px[i * 4 + 1] = c[1]; cv.px[i * 4 + 2] = c[2]; cv.px[i * 4 + 3] = 255; }
+    }
+  }
+
+  /* ---- the skeleton (facing right; the scene mirrors it) ---- */
+  function skeleton(p) {
+    const lean = p.lean || 0, crouch = p.crouch || 0;
+    const hip = { x: HIPX + (p.dx || 0), y: GROUND - 35 + crouch };
+    const neck = { x: hip.x + Math.sin(lean) * 23, y: hip.y - Math.cos(lean) * 23 };
+    const head = { x: neck.x + 2 + Math.sin(lean + (p.nod || 0)) * 9, y: neck.y - 10 + Math.abs(Math.sin(p.nod || 0)) * 2 };
+    const shF = { x: neck.x + 6, y: neck.y + 3 }, shB = { x: neck.x - 6, y: neck.y + 2 };
+    const limb = (o, a1, a2, l1, l2) => { const e = { x: o.x + Math.sin(a1) * l1, y: o.y + Math.cos(a1) * l1 }; return [e, { x: e.x + Math.sin(a1 + a2) * l2, y: e.y + Math.cos(a1 + a2) * l2 }]; };
+    const [elF, hdF] = limb(shF, p.arm == null ? 0.7 : p.arm, p.fore == null ? 0.9 : p.fore, 12, 11);
+    const [elB, hdB] = limb(shB, p.arm2 == null ? 0.25 : p.arm2, p.fore2 == null ? 0.6 : p.fore2, 11, 10);
+    const hipF = { x: hip.x + 3.5, y: hip.y + 1 }, hipB = { x: hip.x - 3.5, y: hip.y };
+    const footF = { x: hip.x + (p.stepF == null ? 9 : p.stepF), y: GROUND - 2 }, footB = { x: hip.x - (p.stepB == null ? 8 : p.stepB), y: GROUND - 2 };
+    const knee = (hp, ft) => {
+      const L1 = 17, L2 = 16, dx = ft.x - hp.x, dy = ft.y - hp.y, d = Math.min(L1 + L2 - 0.05, Math.hypot(dx, dy));
+      const a = Math.atan2(dy, dx), b = Math.acos(Math.max(-1, Math.min(1, (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d))));
+      return { x: hp.x + Math.cos(a - b) * L1, y: hp.y + Math.sin(a - b) * L1 };
+    };
+    return { hip, neck, head, shF, shB, elF, hdF, elB, hdB, hipF, hipB, footF, footB, kF: knee(hipF, footF), kB: knee(hipB, footB), lean };
+  }
+
+  /* ---- weapons, drawn in the hand at an absolute angle (0 = pointing up) ---- */
+  function weapon(cv, type, hand, ang, pal, cls) {
+    const at = (pts) => rot(pts, hand.x, hand.y, ang);
+    const m = () => cv.mask();
+    if (type === 'SWORD' || type === 'DAGGER') {
+      const L = type === 'SWORD' ? 22 : 11;
+      paint(cv, poly(m(), at([[-1.6, -3], [1.6, -3], [1.6, -L], [0, -L - 3], [-1.6, -L]])), pal.steel, { sh: 1, spec: 4 });
+      paint(cv, poly(m(), at([[-5, -3.5], [5, -3.5], [5, -1.5], [-5, -1.5]])), pal.gold, { sh: 1 });
+      paint(cv, poly(m(), at([[-1.2, -1.5], [1.2, -1.5], [1.2, 4], [-1.2, 4]])), pal.leather, { sh: 1 });
+      paint(cv, ellipse(m(), ...at([[0, 5]])[0], 1.8, 1.8), pal.gold, { sh: 1 });
+    } else if (type === 'LANCE') {
+      paint(cv, poly(m(), at([[-1.1, 12], [1.1, 12], [1.1, -30], [-1.1, -30]])), pal.wood, { sh: 1 });
+      paint(cv, poly(m(), at([[-3, -30], [3, -30], [0, -42]])), pal.steel, { sh: 1, spec: 3 });
+      paint(cv, poly(m(), at([[-4, -6], [4, -6], [2.5, 2], [-2.5, 2]])), pal.steel, { sh: 1 });
+    } else if (type === 'AXE') {
+      paint(cv, poly(m(), at([[-1.2, 6], [1.2, 6], [1.2, -22], [-1.2, -22]])), pal.wood, { sh: 1 });
+      paint(cv, poly(m(), at([[1, -21], [10, -27], [12, -20], [10, -12], [1, -15]])), pal.steel, { sh: 2, spec: 3 });
+      paint(cv, poly(m(), at([[-1, -20], [-5, -22], [-5, -16], [-1, -17]])), pal.steel, { sh: 1 });
+    } else if (type === 'TOME') {
+      const book = poly(m(), at([[-5, -9], [5, -9], [5, 2], [-5, 2]]));
+      paint(cv, book, CLOTH.BISHOP, { sh: 2, hl: 1 });
+      paint(cv, poly(m(), at([[3.2, -8], [5, -8], [5, 1], [3.2, 1]])), pal.white, { flat: true, tone: 1 });
+      paint(cv, poly(m(), at([[-2, -5], [1, -5], [1, -2], [-2, -2]])), pal.gold, { sh: 1, line: false });
+      if (cv.glow) { const [gx, gy] = at([[0, -13]])[0]; paint(cv, ellipse(m(), gx, gy, 2.5, 2.5), R('#ffffff', '#f2e6ff', '#c9a3ff', '#8a5ad6', '#5c3596'), { sh: 1, line: false }); }
+    } else if (type === 'STAFF') {
+      paint(cv, poly(m(), at([[-1.2, 14], [1.2, 14], [1.2, -26], [-1.2, -26]])), pal.wood, { sh: 1 });
+      paint(cv, poly(m(), at([[-3.5, -25], [3.5, -25], [2, -28], [-2, -28]])), pal.gold, { sh: 1 });
+      const [ox, oy] = at([[0, -32]])[0];
+      paint(cv, ellipse(m(), ox, oy, 4.2, 4.2), CLOTH.BISHOP, { sh: 2, hl: 2 });
+      dot(cv, ox - 1.5, oy - 1.5, hex('#ffffff'));
+    } else if (type === 'BOW') {
+      const bm = m();
+      for (let k = -18; k <= 18; k++) { const a = k / 18 * 1.0; const [x, y] = at([[-14 + 20 * Math.cos(a), 20 * Math.sin(a)]])[0]; capsule(bm, x, y, x, y, Math.abs(k) < 4 ? 1.9 : 1.3); }
+      paint(cv, bm, pal.wood, { sh: 1, hl: 1 });
+      const tips = at([[-3.2, -16.8], [-3.2, 16.8]]);
+      cv.bowTips = tips;
+      if (!cv.drawHand) paint(cv, capsule(m(), tips[0][0], tips[0][1], tips[1][0], tips[1][1], 0.45), pal.white, { flat: true, tone: 2, line: false });
+    }
+  }
+  function shield(cv, hand, pal, cloth, emblem) {
+    const m = cv.mask();
+    poly(m, [[hand.x - 7, hand.y - 11], [hand.x + 7, hand.y - 11], [hand.x + 7, hand.y + 2], [hand.x, hand.y + 12], [hand.x - 7, hand.y + 2]]);
+    paint(cv, m, cloth, { sh: 3, hl: 1 });
+    const rim = cv.mask(); poly(rim, [[hand.x - 7, hand.y - 11], [hand.x + 7, hand.y - 11], [hand.x + 7, hand.y - 9], [hand.x - 7, hand.y - 9]]);
+    paint(cv, rim, pal.steel, { sh: 1 });
+    if (emblem === 'ROOK') {   // a little tower
+      const e = cv.mask(); poly(e, [[hand.x - 3, hand.y - 6], [hand.x + 3, hand.y - 6], [hand.x + 3, hand.y + 3], [hand.x - 3, hand.y + 3]]);
+      for (const ox of [-3, 0, 2]) poly(e, [[hand.x + ox, hand.y - 8], [hand.x + ox + 1.5, hand.y - 8], [hand.x + ox + 1.5, hand.y - 6], [hand.x + ox, hand.y - 6]]);
+      paint(cv, e, pal.gold, { sh: 1, line: false });
+    }
+  }
+
+  /* ---- the figure ---- */
+  const KIT = {   // what each class wears and carries
+    PAWN: { weapon: 'SWORD', body: 'tunic', head: 'kettle', cape: false },
+    ROOK: { weapon: 'AXE', body: 'plate', head: 'tower', cape: true, shield: true },
+    KNIGHT: { weapon: 'LANCE', body: 'mail', head: 'horse', cape: true },
+    BISHOP: { weapon: 'STAFF', body: 'robe', head: 'mitre', cape: false },
+    QUEEN: { weapon: 'DAGGER', body: 'gown', head: 'tiara', cape: true },
+    KING: { weapon: 'BOW', body: 'royal', head: 'crown', cape: true },
+  };
+
+  function draw(cls, pose, opts) {
+    opts = opts || {};
+    const shade = !!opts.shade, kit = Object.assign({}, KIT[cls] || KIT.PAWN, opts.kit || {});
+    if (opts.shield != null) kit.shield = !!opts.shield;
+    const pal = Object.assign({}, P, shade ? SHADE : {});
+    const cloth = shade ? SHADE_CLOTH : (opts.cloth || CLOTH[cls] || CLOTH.PAWN);
+    const cv = new Cv(), S = skeleton(pose || {}), m = () => cv.mask();
+    const legPal = kit.body === 'plate' ? pal.steel : kit.body === 'mail' ? pal.steel : pal.cloth;
+    const longSkirt = kit.body === 'robe' || kit.body === 'gown' || kit.body === 'royal';
+
+    /* cape, behind everything */
+    if (kit.cape) {
+      const sway = (pose && pose.cape) || 0;
+      const cp = poly(m(), [[S.shB.x - 2, S.shB.y - 1], [S.shF.x + 1, S.shF.y - 2], [S.hip.x - 2, S.hip.y + 8], [S.hip.x - 9 - sway, GROUND - 6], [S.shB.x - 13 - sway * 1.4, GROUND - 4], [S.shB.x - 10 - sway, S.hip.y]]);
+      paint(cv, cp, cloth, { sh: 4, deep: true });
+    }
+    /* back arm (shield arm) and legs */
+    const limbs = (a, b, c, r1, r2, pl, o) => { const mm = capsule(m(), a.x, a.y, b.x, b.y, r1, r2); capsule(mm, b.x, b.y, c.x, c.y, r2, r2 * 0.9); paint(cv, mm, pl, o || { sh: 2 }); };
+    if (!longSkirt || kit.body === 'robe') {
+      limbs(S.hipB, S.kB, S.footB, 4.3, 3.4, legPal, { sh: 2, tone: 3 });
+      limbs(S.hipF, S.kF, S.footF, 4.5, 3.5, legPal, { sh: 3, deep: true });
+    }
+    const boot = (ft, back) => { const bm = ellipse(m(), ft.x + 2, ft.y + 0.5, 4.6, 2.6); capsule(bm, ft.x, ft.y - 4, ft.x + 1, ft.y, 3); paint(cv, bm, kit.body === 'plate' ? pal.steel : pal.leather, { sh: 1, tone: back ? 3 : 2 }); };
+    if (!longSkirt) { boot(S.footB, true); boot(S.footF); }
+
+    /* torso */
+    const tor = poly(m(), [[S.shB.x - 3, S.shB.y - 1], [S.shF.x + 3, S.shF.y - 1], [S.hipF.x + 4, S.hip.y + 3], [S.hipB.x - 4, S.hip.y + 3]]);
+    ellipse(tor, (S.shF.x + S.shB.x) / 2 + 0.5, S.shF.y + 2, 10.5, 5);
+    const body = kit.body;
+    if (body === 'tunic') {
+      poly(tor, [[S.hipB.x - 5, S.hip.y], [S.hipF.x + 5, S.hip.y], [S.hipF.x + 7, S.hip.y + 11], [S.hipB.x - 6, S.hip.y + 11]]);
+      paint(cv, tor, pal.linen, { sh: 4, deep: true, hl: 1, pattern: (x, y, t) => (y > S.hip.y + 2 && (x - S.hip.x + 40) % 5 === 0 && t === 2 ? 3 : t) });
+    } else if (body === 'plate') {
+      poly(tor, [[S.hipB.x - 5, S.hip.y], [S.hipF.x + 5, S.hip.y], [S.hipF.x + 6, S.hip.y + 9], [S.hipB.x - 5, S.hip.y + 9]]);
+      paint(cv, tor, pal.steel, { sh: 3, deep: true, hl: 1, spec: 5, pattern: (x, y, t) => ((y - S.hip.y) % 4 === 0 && y > S.hip.y && t > 0 ? 3 : t) });
+      const tab = poly(m(), [[S.neck.x - 3, S.neck.y + 6], [S.neck.x + 4, S.neck.y + 6], [S.hip.x + 4, S.hip.y + 10], [S.hip.x - 3, S.hip.y + 10]]);
+      paint(cv, tab, cloth, { sh: 2 });
+    } else if (body === 'mail') {
+      poly(tor, [[S.hipB.x - 5, S.hip.y], [S.hipF.x + 5, S.hip.y], [S.hipF.x + 6, S.hip.y + 9], [S.hipB.x - 5, S.hip.y + 9]]);
+      paint(cv, tor, pal.steel, { sh: 3, deep: true, pattern: (x, y, t) => (t >= 1 && t <= 2 && (x + y) % 2 === 0 ? t + 1 : t) });
+      const tab = poly(m(), [[S.neck.x - 5, S.neck.y + 4], [S.neck.x + 6, S.neck.y + 4], [S.hip.x + 6, S.hip.y + 12], [S.hip.x - 5, S.hip.y + 12]]);
+      paint(cv, tab, cloth, { sh: 3, hl: 1 });
+    } else if (body === 'robe') {
+      poly(tor, [[S.hipB.x - 5, S.hip.y], [S.hipF.x + 5, S.hip.y], [S.hipF.x + 9, GROUND - 1], [S.hipB.x - 9, GROUND - 1]]);
+      paint(cv, tor, pal.white, { sh: 4, deep: true, hl: 1 });
+      const stole = poly(m(), [[S.neck.x + 0, S.neck.y + 1], [S.neck.x + 4, S.neck.y + 1], [S.hip.x + 6, GROUND - 2], [S.hip.x + 2, GROUND - 2]]);
+      paint(cv, stole, cloth, { sh: 1 });
+      const hem = poly(m(), [[S.hipB.x - 9, GROUND - 3], [S.hipF.x + 9, GROUND - 3], [S.hipF.x + 9, GROUND - 1], [S.hipB.x - 9, GROUND - 1]]);
+      paint(cv, hem, pal.gold, { sh: 1 });
+    } else if (body === 'gown') {
+      poly(tor, [[S.hipB.x - 4, S.hip.y - 2], [S.hipF.x + 4, S.hip.y - 2], [S.hipF.x + 13, GROUND - 1], [S.hipB.x - 13, GROUND - 1]]);
+      paint(cv, tor, cloth, { sh: 4, deep: true, hl: 1, pattern: (x, y, t) => (y > S.hip.y + 4 && (x - S.hip.x + 40) % 6 === 0 && t >= 2 ? 3 : t) });
+      const belt = poly(m(), [[S.hipB.x - 4, S.hip.y - 3], [S.hipF.x + 4, S.hip.y - 3], [S.hipF.x + 4, S.hip.y - 1], [S.hipB.x - 4, S.hip.y - 1]]);
+      paint(cv, belt, pal.gold, { sh: 1 });
+      const hem = poly(m(), [[S.hipB.x - 13, GROUND - 3], [S.hipF.x + 13, GROUND - 3], [S.hipF.x + 13, GROUND - 1], [S.hipB.x - 13, GROUND - 1]]);
+      paint(cv, hem, pal.gold, { sh: 1 });
+    } else if (body === 'royal') {
+      poly(tor, [[S.hipB.x - 5, S.hip.y], [S.hipF.x + 5, S.hip.y], [S.hipF.x + 10, GROUND - 1], [S.hipB.x - 10, GROUND - 1]]);
+      paint(cv, tor, cloth, { sh: 4, deep: true, hl: 1 });
+      const front = poly(m(), [[S.neck.x - 1, S.neck.y + 3], [S.neck.x + 4, S.neck.y + 3], [S.hip.x + 7, GROUND - 2], [S.hip.x + 1, GROUND - 2]]);
+      paint(cv, front, pal.gold, { sh: 1, hl: 1 });
+      const ermine = poly(m(), [[S.hipB.x - 10, GROUND - 5], [S.hipF.x + 10, GROUND - 5], [S.hipF.x + 10, GROUND - 1], [S.hipB.x - 10, GROUND - 1]]);
+      paint(cv, ermine, pal.white, { sh: 1, pattern: (x, y, t) => ((x * 5 + y * 3) % 9 === 0 ? 4 : t) });
+      const collar = ellipse(m(), S.neck.x, S.neck.y + 3, 9, 3.4);
+      paint(cv, collar, pal.white, { sh: 1, pattern: (x, y, t) => ((x * 5 + y * 3) % 7 === 0 ? 4 : t) });
+    }
+    if (body === 'tunic' || body === 'plate' || body === 'mail') {   // belt
+      const belt = poly(m(), [[S.hipB.x - 5, S.hip.y - 1], [S.hipF.x + 5, S.hip.y - 1], [S.hipF.x + 5, S.hip.y + 1.5], [S.hipB.x - 5, S.hip.y + 1.5]]);
+      paint(cv, belt, pal.leather, { sh: 1 });
+      dot(cv, S.hip.x + 1, S.hip.y, pal.gold[1]);
+    }
+    if (body === 'plate') {   // pauldrons
+      paint(cv, ellipse(m(), S.shB.x - 1, S.shB.y + 1, 5, 4), pal.steel, { sh: 2, spec: 4, tone: 3 });
+    }
+
+    /* back arm, with the shield if any */
+    const armPal = body === 'plate' ? pal.steel : body === 'mail' ? pal.steel : body === 'robe' ? pal.white : body === 'gown' || body === 'royal' ? cloth : pal.linen;
+    limbs(S.shB, S.elB, S.hdB, 3.6, 3.0, armPal, { sh: 2, tone: 3 });
+    paint(cv, ellipse(m(), S.hdB.x, S.hdB.y, 2.2, 2.2), body === 'plate' ? pal.steel : pal.skin, { sh: 1, tone: 3 });
+    if (kit.shield) shield(cv, S.hdB, pal, cloth, cls);
+    const wtype = opts.weapon === undefined ? kit.weapon : opts.weapon;
+    const bowNow = wtype === 'BOW';
+    if (bowNow) { if (pose && pose.draw) cv.drawHand = S.hdF; weapon(cv, 'BOW', S.hdB, pose && pose.bow != null ? pose.bow : 0.15, pal, cls); }
+
+    /* head: neck, face, hair, headgear */
+    paint(cv, capsule(m(), S.neck.x, S.neck.y + 2, S.head.x - 1, S.head.y + 6, 2.6), pal.skin, { sh: 1, tone: 3 });
+    const hx = S.head.x, hy = S.head.y;
+    const hairBack = ellipse(m(), hx - 1.6, hy - 1.2, 9.6, 9.2);
+    if (kit.head === 'tiara') { capsule(hairBack, hx - 6, hy, hx - 9, hy + 18, 4.2, 3); capsule(hairBack, hx - 2, hy + 2, hx - 4, hy + 16, 3.5, 2.6); }
+    paint(cv, hairBack, pal.hair, { sh: 3, hl: 2, deep: true, pattern: (x, y, t) => (t === 1 && (x + y) % 3 === 0 ? 0 : (x * 2 + y) % 7 === 0 && t === 2 ? 3 : t) });
+    const face = ellipse(m(), hx + 1.4, hy + 1.6, 7.6, 8.2);
+    sub(face, poly(m(), [[hx - 10, hy - 12], [hx + 12, hy - 12], [hx + 12, hy - 4], [hx + 3, hy - 3], [hx - 10, hy + 2]]));
+    paint(cv, face, pal.skin, { sh: 3, hl: 1, deep: true });
+    for (let k = -3; k <= 3; k++) { const xx = Math.round(hx + k), yy = Math.round(hy + 9); if (IN(xx, yy) && cv.px[(yy * W + xx) * 4 + 3] && !face[yy * W + xx]) dot(cv, xx, yy, pal.skin[4]); }
+    /* fringe over the brow */
+    const fringe = poly(m(), [[hx - 8, hy - 7], [hx + 9, hy - 7], [hx + 9, hy - 3.5], [hx + 5, hy - 2.5], [hx + 3, hy - 4.5], [hx + 0, hy - 2], [hx - 3, hy - 4], [hx - 8, hy + 1]]);
+    and(fringe, ellipse(m(), hx - 0.6, hy - 1.2, 9.6, 9.2));
+    paint(cv, fringe, pal.hair, { sh: 1, line: false });
+    /* face details */
+    const E = pal.eye, closed = pose && pose.hurt;
+    for (const ex of [hx + 0, hx + 5]) {
+      if (closed) { dot(cv, ex, hy + 2, pal.skin[4]); dot(cv, ex + 1, hy + 2, pal.skin[4]); continue; }
+      if (shade) { dot(cv, ex, hy + 1, E[2]); dot(cv, ex + 1, hy + 1, E[1]); dot(cv, ex, hy + 2, E[2]); dot(cv, ex + 1, hy + 2, E[2]); continue; }
+      dot(cv, ex, hy + 1, E[2]); dot(cv, ex + 1, hy + 1, E[2]); dot(cv, ex, hy + 2, E[2]); dot(cv, ex + 1, hy + 2, E[0]); dot(cv, ex, hy + 3, E[2]); dot(cv, ex + 1, hy + 3, E[2]);
+      dot(cv, ex, hy - 1, pal.hair[3]); dot(cv, ex + 1, hy - 1, pal.hair[3]);
+    }
+    dot(cv, hx + 8, hy + 4, pal.skin[3]);
+    if (!shade) { dot(cv, hx + 3, hy + 7, pal.skin[4]); dot(cv, hx + 4, hy + 7, pal.skin[4]); if (pose && pose.shout) { dot(cv, hx + 3, hy + 8, pal.skin[4]); dot(cv, hx + 4, hy + 8, pal.skin[4]); } }
+
+    /* headgear */
+    const hg = kit.head;
+    if (hg === 'kettle') {
+      const k = ellipse(m(), hx, hy - 4, 9.2, 6.4); sub(k, poly(m(), [[hx - 12, hy - 2], [hx + 12, hy - 2], [hx + 12, hy + 6], [hx - 12, hy + 6]]));
+      paint(cv, k, pal.steel, { sh: 2, spec: 4, hl: 1 });
+      paint(cv, poly(m(), [[hx - 11, hy - 3.5], [hx + 12, hy - 3.5], [hx + 12, hy - 1.5], [hx - 11, hy - 1.5]]), pal.steel, { sh: 1, tone: 3 });
+    } else if (hg === 'tower') {
+      const t = poly(m(), [[hx - 9, hy - 10], [hx + 10, hy - 10], [hx + 10.5, hy + 8], [hx - 9, hy + 8]]);
+      for (const ox of [-9, -3.5, 2, 7]) poly(t, [[hx + ox, hy - 15], [hx + ox + 3.2, hy - 15], [hx + ox + 3.2, hy - 10], [hx + ox, hy - 10]]);
+      paint(cv, t, pal.steel, { sh: 4, deep: true, spec: 5, hl: 1 });
+      paint(cv, poly(m(), [[hx - 1, hy - 0.5], [hx + 10.5, hy - 0.5], [hx + 10.5, hy + 1.5], [hx - 1, hy + 1.5]]), pal.ink, { flat: true, tone: 2, line: false });
+      paint(cv, poly(m(), [[hx + 3.5, hy + 1.5], [hx + 5.5, hy + 1.5], [hx + 5.5, hy + 7], [hx + 3.5, hy + 7]]), pal.steel, { sh: 1, tone: 3, line: false });
+      for (const [bx, by] of [[7, 4], [9, 4], [7, 6], [9, 6]]) dot(cv, hx + bx, hy + by, pal.ink[2]);
+      if (shade) { dot(cv, hx + 2, hy + 0.5, pal.eye[2]); dot(cv, hx + 7, hy + 0.5, pal.eye[2]); }
+    } else if (hg === 'horse') {
+      const helm = ellipse(m(), hx + 0.5, hy - 2.5, 9.6, 8.2); sub(helm, poly(m(), [[hx + 2.5, hy - 1], [hx + 12, hy - 1], [hx + 12, hy + 8], [hx + 2.5, hy + 8]]));
+      capsule(helm, hx - 7, hy - 2, hx - 6, hy + 6, 3);
+      paint(cv, helm, pal.steel, { sh: 3, spec: 4, hl: 1, deep: true });
+      const crest = poly(m(), [[hx - 6, hy - 8], [hx - 4, hy - 17], [hx - 1, hy - 22], [hx + 0, hy - 25], [hx + 2, hy - 22], [hx + 5, hy - 21], [hx + 9, hy - 18], [hx + 13, hy - 15], [hx + 13, hy - 12], [hx + 10, hy - 11], [hx + 6, hy - 13], [hx + 3, hy - 11], [hx + 2, hy - 8]]);
+      paint(cv, crest, cloth, { sh: 2, hl: 1, deep: true });
+      dot(cv, hx + 5, hy - 18, pal.ink[2]); dot(cv, hx + 12, hy - 13, pal.ink[1]);
+      const mane = poly(m(), [[hx - 6, hy - 8], [hx - 5, hy - 15], [hx - 2, hy - 21], [hx - 9, hy - 10], [hx - 10, hy - 4]]);
+      paint(cv, mane, pal.hair, { sh: 1, tone: 3 });
+    } else if (hg === 'mitre') {
+      const mt = poly(m(), [[hx - 7, hy - 5], [hx + 8, hy - 5], [hx + 6, hy - 14], [hx + 0.5, hy - 21], [hx - 5, hy - 14]]);
+      paint(cv, mt, pal.white, { sh: 3, hl: 1 });
+      const band = poly(m(), [[hx - 0.8, hy - 20], [hx + 1.8, hy - 20], [hx + 1.8, hy - 5], [hx - 0.8, hy - 5]]);
+      paint(cv, band, cloth, { sh: 1, line: false });
+      const rim = poly(m(), [[hx - 7, hy - 7], [hx + 8, hy - 7], [hx + 8, hy - 4.5], [hx - 7, hy - 4.5]]);
+      paint(cv, rim, pal.gold, { sh: 1 });
+    } else if (hg === 'tiara') {
+      const t = poly(m(), [[hx - 7, hy - 7], [hx + 8, hy - 7], [hx + 8, hy - 9], [hx + 6, hy - 13], [hx + 4, hy - 9], [hx + 0.5, hy - 14], [hx - 3, hy - 9], [hx - 5, hy - 13], [hx - 7, hy - 9]]);
+      paint(cv, t, pal.gold, { sh: 1, spec: 3 });
+      dot(cv, hx + 0.5, hy - 11, hex('#e05070'));
+    } else if (hg === 'crown') {
+      const c = poly(m(), [[hx - 8, hy - 6], [hx + 9, hy - 6], [hx + 9, hy - 11], [hx + 6, hy - 14], [hx + 4, hy - 11], [hx + 1, hy - 15], [hx - 2, hy - 11], [hx - 5, hy - 14], [hx - 8, hy - 11]]);
+      poly(c, [[hx + 0.2, hy - 15], [hx + 1.8, hy - 15], [hx + 1.8, hy - 21], [hx + 0.2, hy - 21]]);
+      poly(c, [[hx - 1.5, hy - 19.5], [hx + 3.5, hy - 19.5], [hx + 3.5, hy - 18], [hx - 1.5, hy - 18]]);
+      paint(cv, c, pal.gold, { sh: 2, spec: 3, hl: 1 });
+      dot(cv, hx + 1, hy - 8.5, hex('#c43a5a'));
+      dot(cv, hx - 4, hy - 8.5, hex('#4f7fb5')); dot(cv, hx + 6, hy - 8.5, hex('#3f9a5a'));
+    }
+
+    /* front arm and the weapon in it */
+    if (body === 'plate') paint(cv, ellipse(m(), S.shF.x + 1, S.shF.y + 1, 5.2, 4.2), pal.steel, { sh: 2, spec: 4 });
+    const wAng = pose && pose.weapon != null ? pose.weapon : 0.2;
+    const wpn = bowNow || !wtype ? null : wtype;
+    if (wpn && (pose && pose.weaponBehind)) weapon(cv, wpn, S.hdF, wAng, pal, cls);
+    limbs(S.shF, S.elF, S.hdF, 3.8, 3.1, armPal, { sh: 2, deep: true });
+    if (wpn && !(pose && pose.weaponBehind)) weapon(cv, wpn, S.hdF, wAng, pal, cls);
+    paint(cv, ellipse(m(), S.hdF.x, S.hdF.y, 2.4, 2.4), body === 'plate' ? pal.steel : pal.skin, { sh: 1 });
+    if (bowNow && pose && pose.draw && cv.bowTips) {   // string pulled to the hand, an arrow on it
+      const [t1, t2] = cv.bowTips, sm = capsule(m(), t1[0], t1[1], S.hdF.x, S.hdF.y, 0.45); capsule(sm, t2[0], t2[1], S.hdF.x, S.hdF.y, 0.45);
+      paint(cv, sm, pal.white, { flat: true, tone: 2, line: false });
+      paint(cv, capsule(m(), S.hdF.x, S.hdF.y, S.hdF.x + 26, S.hdF.y, 0.6), pal.wood, { flat: true, tone: 1, line: false });
+      paint(cv, poly(m(), [[S.hdF.x + 26, S.hdF.y - 2], [S.hdF.x + 31, S.hdF.y], [S.hdF.x + 26, S.hdF.y + 2]]), pal.steel, { sh: 1 });
+      paint(cv, poly(m(), [[S.hdF.x - 1, S.hdF.y - 2.5], [S.hdF.x + 3, S.hdF.y], [S.hdF.x - 1, S.hdF.y + 2.5]]), pal.white, { flat: true, tone: 2 });
+    }
+    outline(cv);
+    return cv;
+  }
+
+  /* the key poses a close-up needs */
+  const POSES = {
+    ready:   { arm: 0.9, fore: 1.0, weapon: 0.35, arm2: 0.5, fore2: 0.9, lean: 0.04 },
+    windup:  { arm: -2.3, fore: -0.4, weapon: -1.0, arm2: 0.8, fore2: 0.6, lean: -0.1, stepF: 6, stepB: 10, cape: 2 },
+    strike:  { arm: 1.7, fore: 0.3, weapon: 2.0, arm2: 0.0, fore2: 0.4, lean: 0.22, stepF: 13, stepB: 9, dx: 3, crouch: 2, cape: 5, shout: true },
+    hurt:    { arm: -0.4, fore: 0.9, weapon: -0.4, arm2: -0.6, fore2: 1.0, lean: -0.2, stepF: 6, stepB: 9, dx: -3, hurt: true, cape: -2 },
+    cast:    { arm: 2.4, fore: 0.2, weapon: 0.1, arm2: 2.1, fore2: 0.3, lean: -0.04, cape: 3 },
+    shoot:   { arm: 1.9, fore: -3.9, weapon: 0, arm2: 1.57, fore2: 0, bow: 0, lean: 0.0, draw: true, stepF: 7, stepB: 10 },
+  };
+  /* how a weapon finishes its blow: a thrust points at the foe, a cut follows through low */
+  const STRIKE = { SWORD: 2.15, AXE: 2.3, DAGGER: 1.6, LANCE: 1.57, STAFF: 1.9, TOME: 1.2, BOW: 1.57 };
+  function strikeFor(type) { return Object.assign({}, POSES.strike, { weapon: STRIKE[type] == null ? 2 : STRIKE[type] }, type === 'LANCE' || type === 'DAGGER' ? { arm: 1.55, fore: 0.05 } : {}); }
+  /* the three bosses keep their colours */
+  const BOSS_CLOTH = {
+    ROOK: R('#d8d2c4', '#b0aa9c', '#878174', '#5c574c', '#36332c'),
+    BISHOP: R('#8ad6ca', '#4fa89c', '#2f7a70', '#1a4a44', '#0e2a26'),
+    KING: R('#fff0b0', '#e0c070', '#a07a2a', '#5e4412', '#2e2008'),
+  };
+  /* a canvas for a unit in a named pose (cached); flash = the white frame of a hit */
+  const cache = new Map();
+  function canvasFor(spec, poseName, flash) {
+    const key = [spec.cls, spec.enemy ? 1 : 0, spec.boss ? 1 : 0, spec.weapon || '-', spec.shield ? 1 : 0, poseName, flash ? 1 : 0].join('|');
+    let c = cache.get(key); if (c) return c;
+    const pose = poseName === 'strike' ? strikeFor(spec.weapon) : (POSES[poseName] || POSES.ready);
+    const cv = draw(spec.cls, pose, { shade: spec.enemy, weapon: spec.weapon || null, shield: spec.shield, cloth: spec.enemy && spec.boss ? BOSS_CLOTH[spec.cls] : undefined });
+    if (flash) for (let i = 0; i < cv.px.length; i += 4) if (cv.px[i + 3]) { cv.px[i] = cv.px[i] + (255 - cv.px[i]) * 0.8; cv.px[i + 1] = cv.px[i + 1] + (255 - cv.px[i + 1]) * 0.8; cv.px[i + 2] = cv.px[i + 2] + (255 - cv.px[i + 2]) * 0.75; }
+    c = document.createElement('canvas'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d'), img = ctx.createImageData(W, H); img.data.set(cv.px); ctx.putImageData(img, 0, 0);
+    cache.set(key, c); if (cache.size > 300) cache.delete(cache.keys().next().value);
+    return c;
+  }
+  /* draw with the feet at (x, footY), k screen units per pixel, facing ±1 */
+  function blit(ctx, c, x, footY, k, facing, opts) {
+    opts = opts || {};
+    ctx.save(); ctx.imageSmoothingEnabled = false;
+    ctx.translate(x, footY);
+    if (opts.fall) ctx.rotate((facing < 0 ? 1 : -1) * opts.fall * Math.PI / 2);
+    if (facing < 0) ctx.scale(-1, 1);
+    ctx.drawImage(c, -HIPX * k, -GROUND * k, W * k, H * k);
+    ctx.restore();
+  }
+  return { W, H, GROUND, ANCHOR: { x: HIPX, y: GROUND }, draw, POSES, KIT, CLOTH, strikeFor, canvasFor, blit };
+})();
+if (typeof module !== 'undefined') module.exports = BattleArt;
 
 
 /* =====================================================================
@@ -6483,7 +7314,7 @@ function drawTitleBackdrop() {
   if (W >= 700) {
     const ks = Math.min(190, H * 0.3), kxp = W * 0.08, kyp = H * 0.97;
     ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.ellipse(kxp + ks * 0.5, kyp, ks * 0.5, ks * 0.1, 0, 0, Math.PI * 2); ctx.fill();
-    drawCharacter(ctx, { cls: 'KING', enemy: false, weapon: 'SWORD', cape: CAPE_COLORS.KING, tunic: '#d9a441', seed: 3 }, kxp, kyp - ks * CHAR.footY, ks, { facing: 1 });
+    BattleArt.blit(ctx, BattleArt.canvasFor({ cls: 'KING', enemy: false, weapon: 'SWORD' }, 'ready'), Math.round(kxp + ks * 0.5), Math.round(kyp), Math.max(1, Math.round(ks / 100)), 1);   // v8: the King in his battle art
     const rim = ctx.createRadialGradient(kxp + ks * 0.5, kyp - ks * 0.5, ks * 0.2, kxp + ks * 0.5, kyp - ks * 0.5, ks * 0.9);
     rim.addColorStop(0, 'rgba(10,6,14,0)'); rim.addColorStop(1, 'rgba(10,6,14,0.35)'); ctx.fillStyle = rim; ctx.fillRect(kxp - ks * 0.5, kyp - ks * 1.4, ks * 2, ks * 1.6);
   }
@@ -6516,7 +7347,7 @@ function init() {
   /* title emblem: a king on a four-square board */
   const tm = $('#title-mark').getContext('2d');
   for (let i = 0; i < 4; i++) { tm.fillStyle = i % 3 ? '#3b3a35' : '#4b4a44'; tm.fillRect((i % 2) * 60, Math.floor(i / 2) * 60, 60, 60); }
-  drawCharacter(tm, { cls: 'KING', enemy: false, weapon: 'SWORD', cape: CAPE_COLORS.KING, tunic: '#d9a441', seed: 1 }, 4, 4, 112, { facing: 1 });
+  MapSprites.drawBox(tm, { cls: 'KING', enemy: false, weapon: 'SWORD' }, 4, 4, 112, { facing: 1 });
   /* title */
   /* v7.3 (research: get to the first move in one tap): Play uses the remembered
      opening, a fresh seed and a random name; the custom run keeps every choice. */
@@ -6596,7 +7427,7 @@ function init() {
 }
 
 /* Debug / test handle. Not used by the UI. */
-window.RF = { Game, Battle, BattleUI, BattleScene, Screens, WorldUI, Anim, CLASSES, WEAPONS, ABILITIES, ACTS, PERKS, OFFHANDS, STORY, ORIGINS, BANNERS, RULES, generateMap, generateOverworld, RNG, makeUnit, makeEnemy, makeOffhand, makeWeapon, makeCape, promote, canPromote, drawIcon, icon, ICON_PATHS, ICON_CREDITS, Sfx, Music, ITEMS, ORIGINS, ORIGIN_STORIES, LORE, CODEX, confideLines, fillLine, loreOf, statOf, maxHp, hasSynergy, moveRange, Store, SAVE_KEY, ANNALS_KEY, HOLD_ROUNDS, EDGES, Progress, Telemetry, RUNGS, UNLOCKS };
+window.RF = { Game, Battle, BattleUI, BattleScene, Screens, WorldUI, Anim, CLASSES, WEAPONS, ABILITIES, ACTS, PERKS, OFFHANDS, STORY, ORIGINS, BANNERS, RULES, generateMap, generateOverworld, RNG, makeUnit, makeEnemy, makeOffhand, makeWeapon, makeCape, promote, canPromote, drawIcon, icon, ICON_PATHS, ICON_CREDITS, Sfx, Music, ITEMS, ORIGINS, ORIGIN_STORIES, LORE, CODEX, confideLines, fillLine, loreOf, statOf, maxHp, hasSynergy, moveRange, Store, SAVE_KEY, ANNALS_KEY, HOLD_ROUNDS, EDGES, Progress, Telemetry, RUNGS, UNLOCKS, MapSprites, BattleArt };
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 
