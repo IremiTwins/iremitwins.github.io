@@ -474,6 +474,7 @@ html, #board, #map, #tap-toast, button, .btn { touch-action: manipulation; }
         <tr><td>King</td><td>Inspire — allies within 2 heal 20% and gain +2 ATK until the end of next round (3)</td><td>—</td><td>Bow (range 2–3), Sword</td><td>Dying</td></tr>
       </table>
       <p><b>Pushes.</b> A shoved or thrown foe that hits a wall, the edge of the field or another unit takes 2, and so does the unit it hits. Pushed into water or lava, it is gone. Bosses stand firm. Every preview shows the edge and where the push lands.</p>
+      <p><b>Criticals.</b> There are no dice: a critical is earned. A blow that meets a class edge (or an Executioner's mark) glints gold in the close-up; one that also fells its foe is a <b>Critical</b> — the stage darkens and the blow lands at full stretch.</p>
       <h3>Growing</h3>
       <p>Units level from hits and kills: +HP, alternating +ATK / +DEF, +SPD every third level. At levels 3, 6 and 9 they choose a <b>talent</b>. Every recruit has an origin with a small stat lean. At camps you can rest, train one unit, or <b>confide</b> — sit with someone by the fire for +3 max HP and a little of their story.</p>
       <h3>Banners</h3>
@@ -542,7 +543,7 @@ const CHARGE_DAMAGE_MULT = 0.75;
 const DECREE_ATK = 3;
 const FORTIFY_DEF = 5;
 const INSPIRE_PCT = 0.20;
-const BUILD = 'v8.0';            // shown in Help and stamped on every Annals entry and bug report
+const BUILD = 'v8.1';            // shown in Help and stamped on every Annals entry and bug report
 const INSPIRE_ATK = 2;
 const SKIP_GOLD = { COMBAT: 10, ELITE: 15, BOSS: 25 };   // v7.3: taking gold instead of a reward pick
 const BANNER_SKIP_GOLD = 15;   // v7.3: raising none of an offered banner
@@ -1507,6 +1508,10 @@ const Sfx = {
       case 'swing': this.noise(70, 0.18, { type: 'bandpass', freq: 1400, q: 0.8, curve: 1.6 }); break;
       case 'hit': this.noise(90, 0.25); this.tone(140, 120, 'square', 0.08, 70); break;
       case 'arrow': this.noise(140, 0.14, { type: 'highpass', freq: 2200, curve: 2 }); this.tone(1800, 140, 'sine', 0.05, 500); break;
+      /* v8.1: the close-ups' criticals and specials */
+      case 'glint': this.tone(2093, 90, 'sine', 0.05); this.tone(3136, 260, 'sine', 0.04, 2637, 60); this.noise(90, 0.04, { type: 'highpass', freq: 5000, curve: 2 }); break;
+      case 'crit': this.noise(150, 0.34, { freq: 1600, curve: 1.2 }); this.tone(110, 260, 'square', 0.09, 50); this.tone(1320, 360, 'sine', 0.05, 990, 30); break;
+      case 'slam': this.noise(420, 0.4, { freq: 260, curve: 1.1 }); this.tone(70, 520, 'sine', 0.18, 34); this.noise(260, 0.12, { type: 'bandpass', freq: 900, curve: 1.6, delay: 60 }); break;
       case 'spell': [880, 1320, 1760].forEach((f, i) => this.tone(f, 320 - i * 60, 'sine', 0.06, f * 1.06, i * 40)); this.noise(260, 0.06, { type: 'highpass', freq: 3000, curve: 1.2 }); break;
       case 'burn': this.noise(220, 0.16, { freq: 600, curve: 1.3 }); this.tone(110, 200, 'sawtooth', 0.04, 60); break;
       case 'kill': this.noise(160, 0.3); this.tone(220, 420, 'sawtooth', 0.09, 40); break;
@@ -2419,7 +2424,8 @@ class Battle {
     const edge = this.edgeOf(att, def, from);
     let raw = statOf(att, 'atk') + (att.weapon ? weaponDamage(att.weapon) : 0) + this.flatAtk(att) + (edge ? edge.atk : 0);
     if (hasSynergy(att)) raw *= SYNERGY_MULT;
-    if (hasPerk(att, 'EXECUTIONER') && def.hp < maxHp(def) * 0.3) raw *= 1.5;
+    const exec = hasPerk(att, 'EXECUTIONER') && def.hp < maxHp(def) * 0.3;
+    if (exec) raw *= 1.5;
     if (isPlayer(att) && def.bt && def.bt.dormant && this.has('GREY_CLOAKS')) raw *= GREY_SLEEP_MULT;
     raw = Math.round(raw * mult);
     let d;
@@ -2430,7 +2436,10 @@ class Battle {
     if (def.bt && def.bt.brace) dmg = Math.ceil(dmg / 2);
     if (this.guardianNear(def)) dmg = Math.max(1, dmg - 1);
     if (isPlayer(def) && this.has('PHALANX') && this.alliesAdjacent(def) >= 2) dmg = Math.max(1, dmg - PHALANX_REDUCTION);
-    return { perHit: dmg, hits: (w && w.hits) || 1, total: dmg * ((w && w.hits) || 1), kind, edge };
+    /* v8.1: a critical is earned, never rolled. An edge blow (a class edge or the Executioner's
+       mark) gets a flourish in the close-up; an edge blow that fells its foe is a Critical. */
+    const hits = (w && w.hits) || 1, total = dmg * hits, edgeBlow = !!(edge || exec);
+    return { perHit: dmg, hits, total, kind, edge, exec, edgeBlow, crit: edgeBlow && total >= def.hp };
   }
   /* ---- v7.3: class edges and pushes (the band's alone) ----
      edgeOf: the +ATK condition a blow meets, or null. */
@@ -2531,8 +2540,11 @@ class Battle {
     const dmg = this.damageAgainst(att, def);
     const ranged = cheb(att, meant) > 1 || dmg.kind === 'arcane';      // review M-BE-3: a sword swing stays a sword swing
     /* v7.3: the Shining Force close-up. The hits are decided here and only performed by the scene. */
-    const scene = await this.showScene(ranged ? (dmg.kind === 'arcane' ? 'arcane' : 'ranged') : 'melee', att,
-      [{ u: def, perHit: dmg.perHit, hits: dmg.hits, burn: !ranged && isPlayer(att) && this.has('EMBER_EDGE') }], guard ? `${guard.name} steps in front of the King.` : dmg.edge ? `${dmg.edge.name}: +${dmg.edge.atk}` : null);
+    const thrust = ranged && dmg.kind !== 'arcane' && att.weapon && att.weapon.type !== 'BOW';   // v8.1: a lance over a friend's shoulder is a thrust, not an arrow
+    const scene = await this.showScene(ranged && !thrust ? (dmg.kind === 'arcane' ? 'arcane' : 'ranged') : 'melee', att,
+      [{ u: def, perHit: dmg.perHit, hits: dmg.hits, burn: !ranged && isPlayer(att) && this.has('EMBER_EDGE') }],
+      guard ? `${guard.name} steps in front of the King.` : dmg.edge ? `${dmg.edge.name}: +${dmg.edge.atk}` : dmg.exec ? 'Executioner: +50%' : null, { crit: dmg.crit, edge: dmg.edgeBlow });
+    if (!scene && dmg.crit) this.floater(def, 'CRITICAL', '#ffd166');
     if (!scene) {
       if (ranged) { Sfx.play(dmg.kind === 'arcane' ? 'spell' : 'arrow'); await this.animateRanged(att, def, dmg.kind); this.effect(dmg.kind === 'arcane' ? 'bolt' : 'arrow', att, def); await Anim.wait(260); }
       else { Sfx.play('swing'); await this.animateBump(att, def); }
@@ -2553,7 +2565,7 @@ class Battle {
      [{u, perHit, hits, burn}] in the order the blows land (a unit may appear
      twice, e.g. a Royal Guard covering the King from Crush). Returns true when
      a scene played, so the board lands the hits without its own strike. */
-  async showScene(kind, att, targets, note) {
+  async showScene(kind, att, targets, note, opts) {
     if (!targets.length || this.over || this.ui !== BattleUI || typeof BattleScene === 'undefined' || !BattleScene.enabled()) return false;
     const byUnit = new Map();
     for (const t of targets) {
@@ -2568,7 +2580,7 @@ class Battle {
     const verb = { melee: 'attacks', ranged: 'shoots', arcane: 'casts', charge: 'charges', crush: 'brings the axe down' }[kind] || 'attacks';
     const onForest = u => this.grid.t(u.x, u.y) === 'FOREST';
     const all = [att, ...defs.map(d => d.u)];
-    await BattleScene.play({ kind, att, defs, act: this.run.act, boss: this.kind === 'BOSS', note,
+    await BattleScene.play({ kind, att, defs, act: this.run.act, boss: this.kind === 'BOSS', note, crit: !!(opts && opts.crit), edge: !!(opts && opts.edge),
       title: kind === 'charge' ? `${att.name} — Charge!` : kind === 'crush' ? `${att.name} — Crush!` : `${att.name} ${verb}!`,
       forest: { L: all.some(u => !isPlayer(u) && onForest(u)), R: all.some(u => isPlayer(u) && onForest(u)) } });
     return true;
@@ -2702,7 +2714,9 @@ class Battle {
       case 'CHARGE': {
         this.grid.place(u, target.x, target.y);
         const foes = DIRS8.map(([dx, dy]) => this.grid.unitAt(target.x + dx, target.y + dy)).filter(o => o && o.alive && o.faction !== u.faction);
-        const scene = await this.showScene('charge', u, foes.map(o => { const d = this.damageAgainst(u, o, CHARGE_DAMAGE_MULT); return { u: o, perHit: d.perHit, hits: d.hits, burn: isPlayer(u) && this.has('EMBER_EDGE') }; }));
+        const blows = foes.map(o => ({ o, d: this.damageAgainst(u, o, CHARGE_DAMAGE_MULT) })), crit = blows.find(b => b.d.crit), edged = crit || blows.find(b => b.d.edgeBlow);
+        const scene = await this.showScene('charge', u, blows.map(({ o, d }) => ({ u: o, perHit: d.perHit, hits: d.hits, burn: isPlayer(u) && this.has('EMBER_EDGE') })),
+          edged ? (edged.d.edge ? `${edged.d.edge.name}: +${edged.d.edge.atk}` : 'Executioner: +50%') : null, { crit: !!crit, edge: !!edged });
         if (scene) { u.bt.rx = u.x; u.bt.ry = u.y; this.ui.shake(5); } else await this.animateLeap(u, target);
         this.effect('shock', u, null, '#ffd166');
         this.sceneShown = scene;
@@ -4710,6 +4724,8 @@ const Scenes = {
 
 /* =====================================================================
    Module 05c: battle scenes (v7.3) — Shining Force-style close-ups.
+   v8.1: criticals (a darkened stage, a glint, a dash with afterimages,
+   hit-stop, gold numbers) and choreographed specials (Charge, Crush, spells).
 
    When a blow is struck, the board gives way to a side-on stage: the
    band on the right, the shades on the left, a painted backdrop for the
@@ -4740,7 +4756,11 @@ const BattleScene = {
   },
 
   /* Play one scene. spec = { kind: melee|ranged|arcane|charge|crush, att,
-     defs: [{u, hits, hp0, killed, burn}], title, note, act, battle }.
+     defs: [{u, hits, hp0, killed, burn}], title, note, act, battle, crit, edge }.
+     v8.1 — the game has no dice, so a critical is earned on the board:
+     edge: the blow met a class edge or the Executioner's mark (a glint, gold numbers);
+     crit: an edge blow that fells its foe (the full Critical: a darkened stage,
+     a held poise, a dash with afterimages, hit-stop, the banner).
      Resolves when it has finished or been skipped. */
   play(spec) {
     if (!this.enabled() || !spec || !spec.att || !spec.defs.length) return Promise.resolve();
@@ -4762,9 +4782,10 @@ const BattleScene = {
     this.spec = this.timeline(spec);
     /* v8: paint the battle-art frames this scene will need before it starts (each is a few ms, once) */
     try {
-      const sp = u => ({ cls: u.cls, enemy: !isPlayer(u), boss: !!u.boss, weapon: u.weapon ? u.weapon.type : null, shield: !!(u.offhand && u.offhand.type === 'SHIELD') });
-      for (const key of ['ready', 'windup', 'strike', spec.kind === 'arcane' ? 'cast' : 'shoot']) BattleArt.canvasFor(sp(spec.att), key);
-      for (const d of spec.defs) { BattleArt.canvasFor(sp(d.u), 'ready'); BattleArt.canvasFor(sp(d.u), 'hurt'); BattleArt.canvasFor(sp(d.u), 'hurt', true); }
+      const S = this.spec, sa = this.specOf(S.att);
+      for (const key of this.keysFor(S)) BattleArt.canvasFor(sa, key);
+      if (S.ghost) for (const key of S.ghostKeys) BattleArt.canvasFor(sa, key, S.ghost);
+      for (const d of S.defs) { const sd = this.specOf(d.u); BattleArt.canvasFor(sd, 'ready'); BattleArt.canvasFor(sd, 'hurt'); BattleArt.canvasFor(sd, 'hurt', true); }
     } catch (e) { /* drawn lazily instead */ }
     this.active = true; this.skipping = false; this.fired = new Set(); this.sparks = []; this.t = 0;
     this.speed = (this.mode === 'fast' ? 2.2 : 1) * Math.max(1, Anim.rate ? Anim.rate() : Anim.speed || 1);
@@ -4772,7 +4793,7 @@ const BattleScene = {
       let last = performance.now();
       const step = now => {
         const dt = Math.min(50, now - last); last = now;
-        this.t += dt * this.speed * (this.skipping ? 5 : 1);
+        this.t += dt * this.speed * this.slowAt(this.t) * (this.skipping ? 5 : 1);   // v8.1: hit-stop on the big blows
         try { this.render(); } catch (e) { this.t = this.spec.end; }
         if (this.t >= this.spec.end) { this.active = false; this.canvas.hidden = true; resolve(); return; }
         requestAnimationFrame(step);
@@ -4781,31 +4802,92 @@ const BattleScene = {
     });
   },
   skip() { if (!this.active) return; this.skipping = true; this.t = Math.max(this.t, this.spec.last + 60); },
+  specOf(u) { return { cls: u.cls, enemy: !isPlayer(u), boss: !!u.boss, weapon: u.weapon ? u.weapon.type : null, shield: !!(u.offhand && u.offhand.type === 'SHIELD') }; },
+  keysFor(S) {
+    return { melee: S.crit ? ['ready', 'poise', 'lunge', 'windup', 'strike'] : ['ready', 'windup', 'strike'], ranged: S.wt === 'BOW' ? ['ready', 'shoot', 'loose'] : ['ready', 'windup', 'strike'],
+      arcane: ['ready', 'cast', 'release'], charge: ['ready', 'crouch', 'leap', 'land'], crush: ['ready', 'heave', 'slam'] }[S.kind] || ['ready'];
+  },
+  slowAt(t) { if (this.skipping || !this.spec) return 1; for (const s of this.spec.stops) if (t >= s.at && t < s.at + s.len) return s.f; return 1; },
 
-  /* ---- timing ---- */
+  /* ---- timing ----
+     T.focus: the stage darkens and the speed lines gather (criticals, Crush)
+     T.release: the arrow or the spell leaves; T.dash0..1: a critical's dash */
   timeline(spec) {
-    const k = spec.kind;
-    const impact = { melee: 900, ranged: 880, arcane: 900, charge: 860, crush: 860 }[k] || 900;
+    const k = spec.kind, wt = spec.att.weapon ? spec.att.weapon.type : 'SWORD';
+    const crit = !!spec.crit && k !== 'crush';
+    let impact = { melee: 900, ranged: 880, arcane: 900, charge: 960, crush: 960 }[k] || 900;
+    const T = { release: 720, dash0: 0, dash1: 0, focus: 0 };
+    if (crit && k === 'melee') { T.focus = 620; T.dash0 = 1030; T.dash1 = 1190; impact = 1210; }
+    else if (crit && k === 'ranged') { T.focus = 620; T.release = 1040; impact = 1170; }
+    else if (crit && k === 'arcane') { T.focus = 620; T.release = 960; impact = 1160; }
+    else if (crit && k === 'charge') T.focus = 420;
+    else if (k === 'crush') T.focus = 640;
     const maxHits = Math.max(1, ...spec.defs.map(d => d.hits.length));
     const last = impact + (maxHits - 1) * 240;
     const anyKill = spec.defs.some(d => d.killed);
-    const end = last + (anyKill ? 980 : 760);
-    return { ...spec, impact, last, end, anyKill, attSide: isPlayer(spec.att) ? 1 : -1 };
+    const end = last + (anyKill ? 980 : 760) + (crit ? 120 : 0);
+    const stops = [];
+    if (crit) for (let j = 0; j < maxHits; j++) stops.push({ at: impact + j * 240, len: 26, f: 0.13 });
+    else if (k === 'charge' || k === 'crush') stops.push({ at: impact, len: 20, f: 0.2 });
+    const edge = !crit && !!spec.edge && k !== 'crush';
+    return { ...spec, crit, edge, wt, impact, last, end, anyKill, T, stops, ghost: crit ? '#ffd166' : k === 'charge' ? '#a8dcff' : null,
+      ghostKeys: k === 'charge' ? ['leap'] : ['lunge'], attSide: isPlayer(spec.att) ? 1 : -1, seed: (Math.random() * 1e6) | 0 };
   },
   cue(id, at, fn) { if (this.t >= at && !this.fired.has(id)) { this.fired.add(id); fn(); } },
+
+  /* ---- the attacker's choreography: where they stand and which frame shows, at time t ---- */
+  attackerAt(S, t) {
+    const FLOOR = 452, toward = -S.attSide, homeA = S.attSide > 0 ? 515 : 205, homeD = S.attSide > 0 ? 205 : 515;
+    const lerpT = (t0, t1) => clamp((t - t0) / (t1 - t0), 0, 1), T = S.T;
+    const hitsN = Math.max(1, S.defs[0] ? S.defs[0].hits.length : 1);
+    const reach = homeD - toward * ({ LANCE: 285, AXE: 215 }[S.wt] || 205);   // where a melee attacker stops (a lance stops further off)
+    let x = homeA, y = FLOOR, key = 'ready', moving = false;
+    const blows = (from, wind) => { for (let i = from; i < hitsN; i++) { const d = t - (S.impact + i * 240); if (d >= -wind && d < -40) key = 'windup'; else if (d >= -40 && d < 200) key = 'strike'; } };
+    if (S.kind === 'melee' || (S.kind === 'ranged' && S.wt !== 'BOW')) {
+      if (S.crit) {   /* a step in, a held poise while the stage darkens, then a dash that lands the blow */
+        const close = homeD - toward * ({ LANCE: 240, AXE: 200 }[S.wt] || 190);          // a critical closes in further
+        const mid = homeA - toward * 24, step = easeInOut(lerpT(420, 620)), dash = easeIn(lerpT(T.dash0, T.dash1)), back = easeInOut(lerpT(S.last + 300, S.last + 620));
+        x = lerp(lerp(lerp(homeA, mid, step), close, dash), homeA, back);
+        key = t < 600 ? 'ready' : t < T.dash0 ? 'poise' : 'lunge';
+        blows(1, 150);
+        if (t >= S.last + 300) key = 'ready';
+        moving = dash > 0 && dash < 1;
+      } else {
+        const go = easeInOut(lerpT(480, 760)), back = easeInOut(lerpT(S.last + 260, S.last + 560));
+        x = lerp(homeA, reach, go * (1 - back)); blows(0, 230);
+      }
+    } else if (S.kind === 'ranged') {
+      key = t > 420 && t < T.release ? 'shoot' : t >= T.release && t < T.release + 300 ? 'loose' : 'ready';
+    } else if (S.kind === 'arcane') {
+      key = t > 440 && t < T.release ? 'cast' : t >= T.release && t < S.last + 260 ? 'release' : 'ready';
+    } else if (S.kind === 'charge') {   /* a hop back into a crouch, an arcing leap with the lance couched, a landing that shakes the floor */
+      const land = homeD - toward * ({ LANCE: 240, AXE: 160 }[S.wt] || 150), start = homeA - toward * 45;
+      const hop = easeOut(lerpT(480, 600)), leap = lerpT(640, 940);
+      x = lerp(lerp(homeA, start, hop), land, easeInOut(leap));
+      y = FLOOR - Math.sin(leap * Math.PI) * 185 - Math.sin(hop * Math.PI) * 14 * (1 - leap);
+      key = t < 480 ? 'ready' : t < 640 ? 'crouch' : t < 925 ? 'leap' : t < S.last + 420 ? 'land' : 'ready';   // the Knight stays in the pack, as on the board
+      moving = leap > 0 && leap < 1;
+    } else if (S.kind === 'crush') {   /* the Warden heaves the axe overhead in both hands and brings it into the floor */
+      const step = easeInOut(lerpT(440, 700)), back = easeInOut(lerpT(S.last + 360, S.last + 660));
+      x = lerp(homeA, homeA + toward * 90, step * (1 - back));
+      key = t < 440 ? 'ready' : t < S.impact - 45 ? 'heave' : t < S.last + 360 ? 'slam' : 'ready';
+    }
+    return { x, y, key, moving };
+  },
 
   /* ---- drawing ---- */
   render() {
     const S = this.spec, ctx = this.canvas.getContext('2d'), t = this.t;
     ctx.setTransform(this.scale, 0, 0, this.scale, 0, 0);
     const W = SCENE_W, H = SCENE_H, FLOOR = 452;
-    /* positions: the band stands right, the shades left */
-    const homeA = S.attSide > 0 ? 515 : 205, homeD = S.attSide > 0 ? 205 : 515;
+    const homeD = S.attSide > 0 ? 205 : 515;
     const toward = -S.attSide;                                  // direction from attacker to defenders (+1 = right)
-    /* camera: a small push-in at the impact, and shake */
-    const sinceImpact = t - S.impact;
-    let shake = 0; if (sinceImpact >= 0 && sinceImpact < 380) shake = (1 - sinceImpact / 380) * (S.kind === 'crush' || S.kind === 'charge' ? 11 : 7);
-    const zoom = 1 + (sinceImpact >= 0 && sinceImpact < 420 ? 0.035 * (1 - sinceImpact / 420) : 0);
+    const lerpT = (t0, t1) => clamp((t - t0) / (t1 - t0), 0, 1);
+    /* camera: a push-in at the impact, and shake — harder for criticals and specials */
+    const sinceImpact = t - S.impact, big = S.crit || S.kind === 'crush' || S.kind === 'charge';
+    let shake = 0; if (sinceImpact >= 0 && sinceImpact < 420) shake = (1 - sinceImpact / 420) * (S.kind === 'crush' ? 16 : S.crit ? 13 : S.kind === 'charge' ? 12 : 7);
+    if (S.kind === 'crush' && t > 440 && t < S.impact) shake = Math.max(shake, 1.6 * lerpT(440, S.impact));   // the floor trembles as the axe goes up
+    const zoom = 1 + (sinceImpact >= 0 && sinceImpact < 460 ? (big ? 0.075 : 0.035) * (1 - sinceImpact / 460) : 0);
     const intro = clamp(t / 260, 0, 1), outro = clamp((S.end - t) / 240, 0, 1);
     ctx.save();
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
@@ -4815,175 +4897,255 @@ const BattleScene = {
     ctx.drawImage(this.backdrop(S), 0, 0, W, H);
     this.ambient(ctx, S, t);
 
-    /* ---- the attacker's motion ---- */
-    const a = { x: homeA, y: FLOOR, pose: { facing: toward }, alpha: 1 };
-    const reach = homeD - toward * ({ LANCE: 285, AXE: 215 }[S.att.weapon && S.att.weapon.type] || 205);   // where a melee attacker stops (v8: a lance stops further off)
-    const lerpT = (t0, t1) => clamp((t - t0) / (t1 - t0), 0, 1);
-    const wt = S.att.weapon ? S.att.weapon.type : 'SWORD', rest = WEAPON_REST[wt] || 0.5;
-    a.pose.bob = Math.sin(t / 260) * 0.008;
-    if (S.kind === 'melee') {
-      const go = easeInOut(lerpT(480, 760)), back = easeInOut(lerpT(S.last + 260, S.last + 560));
-      a.x = lerp(homeA, reach, go * (1 - back));
-      if (go > 0 && go < 1 || back > 0 && back < 1) { a.pose.legSwing = Math.sin(t / 55) * 0.6; a.pose.lean = 0.14; }
-      for (let i = 0; i <= (S.defs[0].hits.length || 1) - 1; i++) this.swingPose(a.pose, t, S.impact + i * 240, rest);
-    } else if (S.kind === 'ranged') {
-      const k = lerpT(480, 720), rel = lerpT(720, 860);
-      a.pose.armAngle = -0.9 * easeOut(k) * (1 - rel); a.pose.weaponAbs = 0; a.pose.lean = -0.06 * k * (1 - rel);
-    } else if (S.kind === 'arcane') {
-      const k = lerpT(480, 760), rel = lerpT(800, 1000);
-      a.pose.raise = easeOut(k) * (1 - rel); a.pose.swingGlow = a.pose.raise;
-    } else if (S.kind === 'charge') {
-      const crouch = lerpT(480, 560), leap = lerpT(560, 840), back = easeInOut(lerpT(S.last + 300, S.last + 620));
-      const land = homeD - toward * ({ LANCE: 240, AXE: 160 }[S.att.weapon && S.att.weapon.type] || 140);   // v8: where the leap lands, by reach
-      a.x = lerp(homeA, land, easeInOut(leap) * (1 - back));
-      a.y = FLOOR - Math.sin(leap * Math.PI) * 150 * (1 - back) + crouch * (1 - leap) * 8;
-      a.pose.legSwing = leap > 0 && leap < 1 ? 0.5 : 0;
-      this.swingPose(a.pose, t, S.impact, rest);
-    } else if (S.kind === 'crush') {
-      const raise = lerpT(480, 780), slam = lerpT(780, 860), settle = lerpT(S.last + 200, S.last + 500);
-      a.pose.armAngle = lerp(-2.6 * easeOut(raise), 1.0, easeIn(slam)) * (1 - settle); a.pose.weaponAbs = lerp(rest, -0.4, raise) + (1.9 + 0.4) * slam * (1 - settle);
-      a.pose.lean = -0.1 * raise + 0.22 * slam * (1 - settle);
-    }
+    const A = this.attackerAt(S, t);
+    const kOf = u => (u.boss ? 4 : 3);
+    const size = u => u.boss ? 330 : 290;
 
     /* ---- defenders: stacked back from the front one ---- */
     const defs = S.defs.slice(0, 3).map((d, i) => ({ d, i, x: homeD + toward * [0, 82, 150][i], y: FLOOR - i * 28, sc: [1, 0.82, 0.7][i] }));
     for (const D of defs) {
-      D.pose = { facing: -toward, bob: Math.sin(t / 300 + D.i) * 0.008 }; D.alpha = 1; D.kx = 0;
+      D.alpha = 1; D.kx = 0; D.ky = 0; D.fall = 0;
       D.d.hits.forEach((dmg, j) => {
-        const ht = S.impact + j * 240, since = t - ht;
-        if (since >= 0 && since < 260) { const k = 1 - since / 260; D.kx += toward * 22 * k * k; D.pose.squashX = 1 + 0.18 * k * k; D.pose.squashY = 1 - 0.18 * k * k; if (since < 90) D.pose.flash = 1; }
+        const since = t - (S.impact + j * 240);
+        if (since >= 0 && since < 300) { const k = 1 - since / 300; D.kx += toward * (S.crit ? 42 : S.kind === 'crush' ? 30 : 22) * k * k; }
+        if (S.kind === 'crush' && since >= 0 && since < 340) D.ky -= Math.sin(since / 340 * Math.PI) * 38;   // thrown off their feet
       });
-      if (D.d.killed) { const f = lerpT(S.last + 140, S.last + 640); D.pose.fall = easeOut(f); D.alpha = 1 - lerpT(S.last + 520, S.last + 900); }
+      if (D.d.killed) { const f = lerpT(S.last + 140, S.last + 640); D.fall = easeOut(f); D.alpha = 1 - lerpT(S.last + 520, S.last + 900); }
     }
 
-    /* ---- draw back to front: shadows, defenders, attacker ---- */
-    const size = u => u.boss ? 330 : 290;
+    /* ---- v8.1: the critical / special stage — darkness, focus lines, a glint on the steel ---- */
+    const focusA = S.T.focus ? clamp((t - S.T.focus) / 160, 0, 1) * (1 - clamp((t - S.impact - 420) / 300, 0, 1)) : 0;
+    if (focusA > 0) this.focusStage(ctx, S, t, focusA, S.kind === 'crush' ? { x: A.x, y: FLOOR - 170 } : defs[0] ? { x: defs[0].x, y: defs[0].y - 140 } : { x: W / 2, y: 300 });
+
+    /* ---- draw back to front: shadows, defenders, afterimages, attacker ---- */
     const shadow = (x, y, s, alpha) => { ctx.save(); ctx.globalAlpha *= alpha; ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.ellipse(x, y + 2, s * 0.24, s * 0.05, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore(); };
-    /* v8: the large pixel battle art, keyframed like a 16-bit close-up */
-    const specOf = u => ({ cls: u.cls, enemy: !isPlayer(u), boss: !!u.boss, weapon: u.weapon ? u.weapon.type : null, shield: !!(u.offhand && u.offhand.type === 'SHIELD') });
-    const hitsN = Math.max(1, S.defs[0] ? S.defs[0].hits.length : 1);
-    const keyA = (() => {
-      if (S.kind === 'arcane') return t > 440 && t < S.last + 260 ? 'cast' : 'ready';
-      if (S.kind === 'ranged' && wt === 'BOW') return t > 420 && t < S.impact - 20 ? 'shoot' : 'ready';
-      if (S.kind === 'crush') return t > 480 && t < 780 ? 'windup' : t >= 780 && t < S.last + 260 ? 'strike' : 'ready';
-      for (let i = 0; i < hitsN; i++) { const d = t - (S.impact + i * 240); if (d >= -230 && d < -50) return 'windup'; if (d >= -50 && d < 200) return 'strike'; }
-      if (S.kind === 'charge' && t > 560 && t < S.impact - 230) return 'windup';
-      return 'ready';
-    })();
-    const kOf = u => (u.boss ? 4 : 3);
-    const figure = (u, x, y, k, key, flash, facing, fall, alpha) => { ctx.save(); ctx.globalAlpha *= alpha; BattleArt.blit(ctx, BattleArt.canvasFor(specOf(u), key, flash), Math.round(x), Math.round(y), k, facing, { fall }); ctx.restore(); };
+    const figure = (u, x, y, k, key, flash, facing, fall, alpha) => { ctx.save(); ctx.globalAlpha *= alpha; BattleArt.blit(ctx, BattleArt.canvasFor(this.specOf(u), key, flash), Math.round(x), Math.round(y), k, facing, { fall }); ctx.restore(); };
     for (const D of [...defs].reverse()) {
       const k = D.i === 0 ? kOf(D.d.u) : 2, s = size(D.d.u) * D.sc;
       let hurt = false, flash = false;
       D.d.hits.forEach((dmg, j) => { const since = t - (S.impact + j * 240); if (since >= 0 && since < 300) { hurt = true; if (since < 90) flash = true; } });
       if (D.d.killed && t > S.last) hurt = true;
-      shadow(D.x + D.kx, D.y, s, D.alpha);
-      figure(D.d.u, D.x + D.kx, D.y, k, hurt ? 'hurt' : 'ready', flash, -toward, D.pose.fall || 0, D.alpha);
+      shadow(D.x + D.kx, D.y, s * (1 + D.ky / 300), D.alpha);
+      figure(D.d.u, D.x + D.kx, D.y + D.ky, k, hurt ? 'hurt' : 'ready', flash, -toward, D.fall, D.alpha);
     }
-    shadow(a.x, FLOOR, size(S.att) * (1 - (FLOOR - a.y) / 600), 1);
-    figure(S.att, a.x, a.y, kOf(S.att), keyA, false, toward, 0, 1);
+    shadow(A.x, FLOOR, size(S.att) * (1 - (FLOOR - A.y) / 600), 1);
+    if (S.ghost) for (let i = 4; i >= 1; i--) {      // afterimages trail a dash or a leap
+      const g = this.attackerAt(S, t - i * 26);
+      if (!(g.moving || A.moving) || !S.ghostKeys.includes(g.key) || Math.abs(g.x - A.x) + Math.abs(g.y - A.y) < 12) continue;
+      figure(S.att, g.x, g.y, kOf(S.att), g.key, S.ghost, toward, 0, 0.5 - i * 0.1);
+    }
+    figure(S.att, A.x, A.y, kOf(S.att), A.key, false, toward, 0, 1);
 
     /* ---- effects ---- */
-    this.effects(ctx, S, t, a, defs, toward);
+    this.effects(ctx, S, t, A, defs, toward);
 
     /* ---- numbers ---- */
     for (const D of defs) {
-      let shown = 0;
       D.d.hits.forEach((dmg, j) => {
         const ht = S.impact + j * 240, since = t - ht;
-        if (since < 0) return; shown += dmg;
-        if (since < 900) {
-          const lethal = D.d.killed && j === D.d.hits.length - 1;
-          const k = since / 900, pop = since < 120 ? 1 + 0.7 * (1 - since / 120) : 1;
-          ctx.save(); ctx.globalAlpha *= 1 - Math.pow(k, 3);
-          ctx.font = `bold ${Math.round((lethal ? 58 : 46) * pop * D.sc)}px "Cinzel", Georgia, serif`; ctx.textAlign = 'center';
-          ctx.lineWidth = 7; ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.fillStyle = lethal ? '#ff5a3c' : '#fff1c0';
-          const nx = D.x + D.kx + toward * -10 + j * 26 * -toward, ny = D.y - size(D.d.u) * D.sc * 0.78 - easeOut(k) * 50;
-          ctx.strokeText(String(dmg), nx, ny); ctx.fillText(String(dmg), nx, ny); ctx.restore();
-        }
+        if (since < 0 || since >= 900) return;
+        const lethal = D.d.killed && j === D.d.hits.length - 1;
+        const k = since / 900, pop = since < 120 ? 1 + (S.crit ? 1.1 : 0.7) * (1 - since / 120) : 1;
+        ctx.save(); ctx.globalAlpha *= 1 - Math.pow(k, 3);
+        ctx.font = `bold ${Math.round((S.crit ? (lethal ? 72 : 62) : S.edge ? (lethal ? 60 : 52) : lethal ? 58 : 46) * pop * D.sc)}px "Cinzel", Georgia, serif`; ctx.textAlign = 'center';
+        ctx.lineWidth = S.crit ? 9 : 7; ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.fillStyle = S.crit ? (lethal ? '#ffb347' : '#ffd166') : S.edge ? '#ffd98a' : lethal ? '#ff5a3c' : '#fff1c0';
+        const nx = D.x + D.kx + toward * -10 + j * 26 * -toward, ny = D.y + D.ky - size(D.d.u) * D.sc * 0.78 - easeOut(k) * 50;
+        ctx.strokeText(String(dmg), nx, ny); ctx.fillText(String(dmg), nx, ny); ctx.restore();
       });
       if (D.d.burn && t > S.last + 200 && t < S.last + 1000) { ctx.save(); ctx.font = 'bold 22px "Alegreya Sans", sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#ff9f43'; ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 5; const by = D.y - size(D.d.u) * D.sc * 0.98; ctx.strokeText('BURN', D.x, by); ctx.fillText('BURN', D.x, by); ctx.restore(); }
-      if (D.d.killed && t > S.last + 300) { ctx.save(); ctx.globalAlpha *= clamp((t - S.last - 300) / 200, 0, 1); ctx.font = 'bold 30px "Cinzel", Georgia, serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#ffd7c4'; ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.lineWidth = 6; const sy = FLOOR - 30 - D.i * 26; const word = isPlayer(D.d.u) ? 'FALLEN' : 'STRUCK DOWN'; ctx.strokeText(word, D.x, sy); ctx.fillText(word, D.x, sy); ctx.restore(); }
+      if (D.d.killed && t > S.last + 300) { ctx.save(); ctx.globalAlpha *= clamp((t - S.last - 300) / 200, 0, 1); ctx.font = 'bold 30px "Cinzel", Georgia, serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#ffd7c4'; ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.lineWidth = 6; const sy = FLOOR - 30 - D.i * 26, wx = clamp(D.x, 120, W - 120); const word = isPlayer(D.d.u) ? 'FALLEN' : 'STRUCK DOWN'; ctx.strokeText(word, wx, sy); ctx.fillText(word, wx, sy); ctx.restore(); }
     }
     /* impact flash */
-    if (sinceImpact >= 0 && sinceImpact < 110) { ctx.fillStyle = `rgba(255,250,235,${0.28 * (1 - sinceImpact / 110)})`; ctx.fillRect(0, 0, W, H); }
+    if (sinceImpact >= 0 && sinceImpact < 110) { const f = 1 - sinceImpact / 110; ctx.fillStyle = `rgba(255,250,235,${big ? 0.42 * f * f : 0.28 * f})`; ctx.fillRect(0, 0, W, H); }
     ctx.restore();
 
     /* ---- frame: letterbox, title, nameplates (not shaken) ---- */
     ctx.save(); ctx.globalAlpha = Math.min(intro, outro);
     this.hud(ctx, S, t, defs);
+    if (S.crit) this.banner(ctx, S, t);
     ctx.restore();
 
     /* ---- sound, once each ---- */
-    if (S.kind === 'melee') { for (let i = 0; i < Math.max(1, S.defs[0].hits.length); i++) this.cue('sw' + i, S.impact + i * 240 - 120, () => Sfx.play('swing')); }
-    if (S.kind === 'ranged') this.cue('rel', 720, () => Sfx.play('arrow'));
-    if (S.kind === 'arcane') this.cue('rel', 760, () => Sfx.play('spell'));
-    if (S.kind === 'charge') this.cue('leap', 560, () => Sfx.play('ability'));
-    if (S.kind === 'crush') this.cue('raise', 600, () => Sfx.play('swing'));
-    for (let j = 0; j < Math.max(...S.defs.map(d => d.hits.length), 1); j++) this.cue('hit' + j, S.impact + j * 240, () => Sfx.play('hit'));
+    const T = S.T, hitsMax = Math.max(...S.defs.map(d => d.hits.length), 1);
+    if (S.kind === 'melee') { for (let i = 0; i < Math.max(1, S.defs[0].hits.length); i++) this.cue('sw' + i, S.crit && !i ? T.dash0 + 40 : S.impact + i * 240 - 120, () => Sfx.play('swing')); }
+    if (S.kind === 'ranged') this.cue('rel', T.release, () => Sfx.play('arrow'));
+    if (S.kind === 'arcane') this.cue('rel', T.release + 40, () => Sfx.play('spell'));
+    if (S.kind === 'charge') { this.cue('crouch', 520, () => Sfx.play('ability')); this.cue('leap', 640, () => Sfx.play('swing')); }
+    if (S.kind === 'crush') { this.cue('raise', 560, () => Sfx.play('swing')); this.cue('glint', 760, () => Sfx.play('glint')); }
+    if (S.crit) this.cue('glint', T.focus + 140, () => Sfx.play('glint'));
+    const eg = this.edgeGlint(S); if (eg) this.cue('glint', eg.from + 20, () => Sfx.play('glint'));
+    for (let j = 0; j < hitsMax; j++) this.cue('hit' + j, S.impact + j * 240, () => Sfx.play(!j && (S.crit) ? 'crit' : !j && (S.kind === 'charge' || S.kind === 'crush') ? 'slam' : 'hit'));
     if (S.anyKill) this.cue('kill', S.last + 160, () => Sfx.play('kill'));
   },
-  swingPose(pose, t, at, rest) {
-    const t0 = at - 300, dur = 460;
-    const k = (t - t0) / dur; if (k < 0 || k > 1) return;
-    if (k < 0.35) { const e = easeOut(k / 0.35); pose.armAngle = lerp(0, -2.4, e); pose.weaponAbs = lerp(rest, -0.35, e); pose.lean = -0.08 * e; }
-    else if (k < 0.6) { const e = easeOut((k - 0.35) / 0.25); pose.armAngle = lerp(-2.4, 0.9, e); pose.weaponAbs = lerp(-0.35, 1.9, e); pose.lean = lerp(-0.08, 0.18, e); pose.swingGlow = 1 - e * 0.5; }
-    else { const e = easeInOut((k - 0.6) / 0.4); pose.armAngle = lerp(0.9, 0, e); pose.weaponAbs = lerp(1.9, rest, e); pose.lean = lerp(0.18, 0, e); }
+
+  /* v8.1: the stage for a critical or a special — the scene goes dark around
+     the fighters, lines gather on the target, and the colour of the moment
+     (gold for a critical, ember for the Warden's slam) glows behind. */
+  focusStage(ctx, S, t, a, at) {
+    const W = SCENE_W, H = SCENE_H, ember = S.kind === 'crush';
+    ctx.save();
+    ctx.fillStyle = `rgba(6,3,10,${0.64 * a})`; ctx.fillRect(0, 0, W, H);
+    const g = ctx.createRadialGradient(at.x, at.y, 20, at.x, at.y, 420);
+    g.addColorStop(0, ember ? `rgba(255,110,60,${0.32 * a})` : `rgba(255,215,120,${0.26 * a})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    const rng = new RNG(S.seed + Math.floor(t / 55));          // the lines flicker a few times a second
+    ctx.strokeStyle = ember ? '#ffb38a' : '#fff4d6'; ctx.lineCap = 'round';
+    for (let i = 0; i < 64; i++) {
+      const ang = rng.next() * Math.PI * 2, r0 = 190 + rng.next() * 90, r1 = 760;
+      ctx.globalAlpha = a * (0.12 + rng.next() * 0.22); ctx.lineWidth = 1 + rng.next() * 3.5;
+      ctx.beginPath(); ctx.moveTo(at.x + Math.cos(ang) * r0, at.y + Math.sin(ang) * r0 * 0.8); ctx.lineTo(at.x + Math.cos(ang) * r1, at.y + Math.sin(ang) * r1 * 0.8); ctx.stroke();
+    }
+    ctx.restore();
+  },
+  edgeGlint(S) {
+    if (!S.edge) return null;
+    const T = S.T;
+    return { melee: { key: 'windup', from: S.impact - 230, to: S.impact - 50 }, ranged: { key: S.wt === 'BOW' ? 'shoot' : 'windup', from: S.wt === 'BOW' ? 520 : S.impact - 230, to: S.wt === 'BOW' ? T.release : S.impact - 50 },
+      arcane: { key: 'cast', from: 560, to: T.release }, charge: { key: 'crouch', from: 500, to: 640 } }[S.kind] || null;
+  },
+  /* a four-point star on the steel */
+  glint(ctx, x, y, s, rot, a) {
+    if (a <= 0 || s <= 0) return;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.globalAlpha *= a;
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, s * 0.9); g.addColorStop(0, 'rgba(255,255,255,0.95)'); g.addColorStop(0.4, 'rgba(255,224,150,0.5)'); g.addColorStop(1, 'rgba(255,200,100,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, s * 0.9, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    const star = (w, l) => { ctx.beginPath(); ctx.moveTo(0, -l); ctx.lineTo(w, 0); ctx.lineTo(0, l); ctx.lineTo(-w, 0); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(-l, 0); ctx.lineTo(0, w); ctx.lineTo(l, 0); ctx.lineTo(0, -w); ctx.closePath(); ctx.fill(); };
+    star(s * 0.12, s * 1.5); ctx.rotate(Math.PI / 4); star(s * 0.08, s * 0.8);
+    ctx.restore();
+  },
+  banner(ctx, S, t) {
+    const since = t - S.impact; if (since < 0 || since > 900) return;
+    const k = this.k || 1, pop = since < 140 ? 1 + 0.6 * (1 - since / 140) : 1, a = 1 - clamp((since - 640) / 260, 0, 1);
+    ctx.save(); ctx.globalAlpha *= a; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.translate(SCENE_W / 2 + S.attSide * 120, 50 * k + 66); ctx.scale(pop, pop); ctx.rotate(-0.03);   // over the striker's half, clear of the numbers
+    ctx.font = `700 ${Math.round(46 * Math.min(k, 1.15))}px "Cinzel", Georgia, serif`;
+    ctx.lineWidth = 10; ctx.strokeStyle = 'rgba(20,8,4,0.9)'; ctx.strokeText('CRITICAL!', 0, 0);
+    const g = ctx.createLinearGradient(0, -24 * k, 0, 24 * k); g.addColorStop(0, '#fff4c0'); g.addColorStop(0.5, '#ffd166'); g.addColorStop(1, '#e08a2c');
+    ctx.fillStyle = g; ctx.fillText('CRITICAL!', 0, 0);
+    ctx.restore();
+  },
+  burst(D, t, n, kind, toward) {   // sparks, embers and stones
+    for (let i = 0; i < n; i++) {
+      const ang = Math.random() * Math.PI * 2, v = 2 + Math.random() * (kind === 'gold' ? 9 : 6);
+      const p = { x: D.x, y: D.y, vx: Math.cos(ang) * v + toward * 2, vy: Math.sin(ang) * v - 2, born: t, life: 380 + Math.random() * 260, c: kind === 'arcane' ? '#d9c2ff' : kind === 'gold' ? (i % 3 ? '#ffd166' : '#ffffff') : '#ffe2a0', r: kind === 'gold' ? 4.2 : 3.2, g: 0.06 };
+      if (kind === 'rock') Object.assign(p, { vx: (Math.random() - 0.5) * 9, vy: -4 - Math.random() * 8, life: 640 + Math.random() * 300, c: ['#6e6152', '#8a7b68', '#4c4238'][i % 3], r: 3 + Math.random() * 4, g: 0.35, square: true });
+      if (kind === 'dust') Object.assign(p, { vx: (i % 2 ? 1 : -1) * (1.5 + Math.random() * 3.5), vy: -0.6 - Math.random() * 1.2, life: 520 + Math.random() * 300, c: 'rgba(214,200,170,0.32)', r: 8 + Math.random() * 10, g: 0, puff: true });
+      this.sparks.push(p);
+    }
   },
   effects(ctx, S, t, a, defs, toward) {
     const front = defs[0]; if (!front) return;
-    const fx = front.x, fy = front.y - 150;
-    if (S.kind === 'melee' || S.kind === 'charge' || S.kind === 'crush') {
+    const fx = front.x, fy = front.y - 150, FLOOR = 452, T = S.T;
+    const art = key => BattleArt.canvasFor(this.specOf(S.att), key), kA = S.att.boss ? 4 : 3;
+    /* a glint where the steel catches the light, while the blow is held back */
+    if (S.crit && t > T.focus + 100) {
+      const key = S.kind === 'ranged' ? 'shoot' : S.kind === 'arcane' ? 'cast' : S.kind === 'charge' ? 'crouch' : 'poise';
+      const until = S.kind === 'melee' ? T.dash0 : S.kind === 'charge' ? 640 : T.release;
+      if (t < until) { const tip = BattleArt.tipAt(art(key), a.x, a.y, kA, toward), k = clamp((t - T.focus - 100) / 180, 0, 1); this.glint(ctx, tip.x, tip.y, (26 + Math.sin(t / 60) * 6) * easeOut(k), t / 260, 1); }
+    }
+    /* an edge blow that will not fell its foe: a quick glint as the blow is gathered */
+    const eg = this.edgeGlint(S);
+    if (eg && t > eg.from && t < eg.to) { const tip = BattleArt.tipAt(art(eg.key), a.x, a.y, kA, toward), k = (t - eg.from) / (eg.to - eg.from); this.glint(ctx, tip.x, tip.y, 24 * Math.sin(k * Math.PI), t / 200, 1); }
+    if (S.kind === 'crush' && t > 700 && t < S.impact - 45) { const tip = BattleArt.tipAt(art('heave'), a.x, a.y, kA, toward); this.glint(ctx, tip.x, tip.y, 30 * easeOut(clamp((t - 700) / 160, 0, 1)), t / 240, 1); }
+    /* the arc of a cut, or two crossed for a critical */
+    if (S.kind === 'melee' || S.kind === 'charge') {
       const hits = S.kind === 'melee' ? S.defs[0].hits.length : 1;
       for (let j = 0; j < Math.max(1, hits); j++) {
         const since = t - (S.impact + j * 240);
-        if (since >= -40 && since < 220) {
-          const k = clamp((since + 40) / 260, 0, 1);
+        if (since >= -40 && since < 240) {
+          const k = clamp((since + 40) / 280, 0, 1);
           ctx.save(); ctx.globalAlpha *= 1 - k; ctx.lineCap = 'round';
           ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 16 * (1 - k) + 3;
           const a0 = (toward > 0 ? -2.3 : -0.85) + k * 0.6 * (toward > 0 ? 1 : -1);
           ctx.beginPath(); ctx.arc(fx - toward * 30, fy + 10, 110, a0, a0 + 1.7); ctx.stroke();
-          ctx.strokeStyle = '#ffd98a'; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(fx - toward * 30, fy + 10, 86, a0 + 0.2, a0 + 1.4); ctx.stroke();
+          ctx.strokeStyle = S.crit || S.edge ? '#ffd166' : '#ffd98a'; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(fx - toward * 30, fy + 10, 86, a0 + 0.2, a0 + 1.4); ctx.stroke();
+          if (S.crit && !j) {   // the cross-cut
+            const L = 150 * easeOut(Math.min(1, k * 1.6));
+            ctx.strokeStyle = '#fff8e0'; ctx.lineWidth = 12 * (1 - k) + 2;
+            for (const s of [1, -1]) { ctx.beginPath(); ctx.moveTo(fx - L * 0.8, fy + 10 - s * L * 0.6); ctx.lineTo(fx + L * 0.8, fy + 10 + s * L * 0.6); ctx.stroke(); }
+          }
           ctx.restore();
         }
       }
     }
-    if (S.kind === 'charge' || S.kind === 'crush') {
+    /* Charge: dust as the Knight crouches, and the landing's ring */
+    if (S.kind === 'charge') {
+      if (t >= 600 && !this.fired.has('dust0')) { this.fired.add('dust0'); this.burst({ x: a.x, y: FLOOR - 6 }, t, 8, 'dust', toward); }
+      if (t >= S.impact && !this.fired.has('dust1')) { this.fired.add('dust1'); this.burst({ x: a.x + toward * 40, y: FLOOR - 6 }, t, 14, 'dust', toward); this.burst({ x: a.x + toward * 60, y: FLOOR - 10 }, t, 8, 'rock', toward); }
       const since = t - S.impact;
-      if (since >= 0 && since < 520) { const k = since / 520; ctx.save(); ctx.globalAlpha *= 1 - k; ctx.strokeStyle = S.kind === 'crush' ? '#ff6a4d' : '#ffd166'; ctx.lineWidth = 10 * (1 - k) + 2; ctx.beginPath(); ctx.ellipse(S.kind === 'crush' ? a.x : (a.x + fx) / 2, 452, 60 + k * 300, (60 + k * 300) * 0.22, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
+      if (since >= 0 && since < 520) { const k = since / 520; ctx.save(); ctx.globalAlpha *= 1 - k; ctx.strokeStyle = S.crit ? '#ffd166' : '#bfe6ff'; ctx.lineWidth = 10 * (1 - k) + 2; ctx.beginPath(); ctx.ellipse(a.x + toward * 40, FLOOR, 60 + k * 320, (60 + k * 320) * 0.2, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
     }
-    if (S.kind === 'ranged') {
-      const k = clamp((t - 720) / 160, 0, 1);
-      if (t >= 720 && k < 1) {
-        const sx = a.x + toward * 60, sy = a.y - 160, ex = fx, ey = fy + 20;
-        const x = lerp(sx, ex, k), y = lerp(sy, ey, k) - Math.sin(k * Math.PI) * 40, ang = Math.atan2(ey - sy - Math.cos(k * Math.PI) * 40 * -1, ex - sx);
+    /* Crush: the floor splits from the axe head, stones fly, a wave runs out under the band */
+    if (S.kind === 'crush') {
+      const tip = BattleArt.tipAt(art('slam'), a.x, a.y, kA, toward), cx = tip.x, since = t - S.impact;
+      if (since >= 0) {
+        if (!this.fired.has('rocks')) { this.fired.add('rocks'); this.burst({ x: cx, y: FLOOR - 4 }, t, 16, 'rock', toward); this.burst({ x: cx, y: FLOOR - 6 }, t, 12, 'dust', toward); }
+        const grow = easeOut(clamp(since / 220, 0, 1)), fade = 1 - clamp((since - 700) / 400, 0, 1);
+        if (fade > 0) {
+          const rng = new RNG(S.seed);
+          ctx.save(); ctx.globalAlpha *= fade; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          const lines = [];
+          for (let i = 0; i < 6; i++) {
+            const dir = i === 5 ? -toward : toward, len = (90 + rng.next() * 170) * grow, slope = -0.04 + i * 0.07 + rng.next() * 0.06;   // fanning out toward the viewer
+            let x = cx, y = FLOOR + 1; const pts = [[x, y]];
+            for (let s = 0; s < 5; s++) { x += dir * len / 5 * (0.7 + rng.next() * 0.6); y = Math.max(FLOOR - 6, y + len / 5 * slope + (rng.next() - 0.5) * 9); pts.push([x, y]); }
+            lines.push({ pts, w: 1 - i / 9 });
+            const b = pts[2 + (i % 2)], bl = len * 0.35;   // a branch off the middle
+            lines.push({ pts: [b, [b[0] + dir * bl * 0.5, b[1] + 6 + rng.next() * 6], [b[0] + dir * bl, b[1] + 8 + rng.next() * 12]], w: 0.6 });
+          }
+          for (const [w, c] of [[24, 'rgba(255,130,50,0.22)'], [10, 'rgba(16,7,5,0.95)'], [3.5, S.act === 2 ? '#ff9a4a' : '#ffcf8f']]) for (const l of lines) {
+            ctx.strokeStyle = c; ctx.lineWidth = w * l.w; ctx.beginPath(); l.pts.forEach(([px, py], n) => (n ? ctx.lineTo(px, py) : ctx.moveTo(px, py))); ctx.stroke();
+          }
+          ctx.restore();
+        }
+        if (since < 560) { const k = since / 560; ctx.save(); ctx.globalAlpha *= 1 - k; ctx.strokeStyle = '#ff6a4d'; ctx.lineWidth = 12 * (1 - k) + 2; ctx.beginPath(); ctx.ellipse(cx, FLOOR, 50 + k * 420, (50 + k * 420) * 0.18, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
+      }
+    }
+    /* the arrow, from the bow's own arrowhead */
+    if (S.kind === 'ranged' && S.wt === 'BOW') {
+      const k = clamp((t - T.release) / (S.impact - T.release), 0, 1);
+      if (t >= T.release && k < 1) {
+        const st = BattleArt.tipAt(art('shoot'), a.x, a.y, kA, toward), sx = st.x, sy = st.y, ex = fx, ey = fy + 20;
+        const arcH = S.crit ? 10 : 40, x = lerp(sx, ex, k), y = lerp(sy, ey, k) - Math.sin(k * Math.PI) * arcH, ang = Math.atan2(ey - sy - Math.cos(k * Math.PI) * arcH * Math.PI, ex - sx);
         ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.strokeStyle = '#8a5a30'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(-46, 0); ctx.lineTo(30, 0); ctx.stroke();
         ctx.fillStyle = '#e4e7ea'; ctx.beginPath(); ctx.moveTo(42, 0); ctx.lineTo(26, -9); ctx.lineTo(26, 9); ctx.closePath(); ctx.fill();
         ctx.fillStyle = '#efe7d2'; ctx.beginPath(); ctx.moveTo(-46, 0); ctx.lineTo(-58, -10); ctx.lineTo(-36, -2); ctx.lineTo(-58, 10); ctx.closePath(); ctx.fill(); ctx.restore();
-        ctx.save(); ctx.globalAlpha *= 0.35; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(lerp(sx, ex, Math.max(0, k - 0.25)), lerp(sy, ey, Math.max(0, k - 0.25))); ctx.lineTo(x, y); ctx.stroke(); ctx.restore();
+        ctx.save(); ctx.globalAlpha *= S.crit ? 0.8 : 0.35; ctx.strokeStyle = S.crit ? '#ffd166' : '#fff'; ctx.lineWidth = S.crit ? 5 : 2; ctx.beginPath(); ctx.moveTo(lerp(sx, ex, Math.max(0, k - (S.crit ? 0.45 : 0.25))), lerp(sy, ey, Math.max(0, k - (S.crit ? 0.45 : 0.25)))); ctx.lineTo(x, y); ctx.stroke(); ctx.restore();
       }
     }
+    /* a spell: a circle under the caster, then a bolt from the staff's orb or the open book */
     if (S.kind === 'arcane') {
-      const rise = clamp((t - 480) / 280, 0, 1);
-      if (rise > 0 && t < 900) { ctx.save(); ctx.globalAlpha *= rise * (1 - clamp((t - 760) / 140, 0, 1)); ctx.strokeStyle = '#c9a3ff'; ctx.lineWidth = 3; ctx.translate(a.x, 452); ctx.rotate(t / 400);
-        ctx.beginPath(); for (let i = 0; i < 6; i++) { const ang = i * Math.PI / 3, r = 90; i ? ctx.lineTo(Math.cos(ang) * r, Math.sin(ang) * r * 0.3) : ctx.moveTo(Math.cos(ang) * r, Math.sin(ang) * r * 0.3); } ctx.closePath(); ctx.stroke();
-        ctx.beginPath(); ctx.ellipse(0, 0, 70, 21, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
-      const k = clamp((t - 760) / 140, 0, 1);
-      if (t >= 760 && k < 1) {
-        const sx = a.x + toward * 70, sy = a.y - 230, x = lerp(sx, fx, easeIn(k)), y = lerp(sy, fy, easeIn(k));
-        ctx.save(); const g = ctx.createRadialGradient(x, y, 0, x, y, 46); g.addColorStop(0, 'rgba(255,255,255,0.95)'); g.addColorStop(0.35, 'rgba(201,163,255,0.85)'); g.addColorStop(1, 'rgba(138,90,214,0)');
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 46, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      const rise = clamp((t - 480) / 280, 0, 1), big = S.crit ? 1.35 : 1;
+      if (rise > 0 && t < T.release + 160) { ctx.save(); ctx.globalAlpha *= rise * (1 - clamp((t - T.release) / 160, 0, 1)); ctx.strokeStyle = S.crit ? '#ffe3a0' : '#c9a3ff'; ctx.lineWidth = 3; ctx.translate(a.x, 452); ctx.rotate(t / 400);
+        ctx.beginPath(); for (let i = 0; i < 6; i++) { const ang = i * Math.PI / 3, r = 90 * big; i ? ctx.lineTo(Math.cos(ang) * r, Math.sin(ang) * r * 0.3) : ctx.moveTo(Math.cos(ang) * r, Math.sin(ang) * r * 0.3); } ctx.closePath(); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(0, 0, 70 * big, 21 * big, 0, 0, Math.PI * 2); ctx.stroke();
+        if (S.crit) { ctx.rotate(-t / 200); ctx.beginPath(); ctx.ellipse(0, 0, 112, 34, 0, 0, Math.PI * 2); ctx.stroke(); }
+        ctx.restore(); }
+      if (t > 480 && t < T.release + 40) { const tip = BattleArt.tipAt(art('cast'), a.x, a.y, kA, toward); ctx.save(); const r = 22 * big * (0.8 + 0.2 * Math.sin(t / 70)); const g = ctx.createRadialGradient(tip.x, tip.y, 0, tip.x, tip.y, r); g.addColorStop(0, 'rgba(255,255,255,0.9)'); g.addColorStop(0.5, 'rgba(201,163,255,0.5)'); g.addColorStop(1, 'rgba(138,90,214,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(tip.x, tip.y, r, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+      const k = clamp((t - T.release - 40) / (S.impact - T.release - 40), 0, 1);
+      if (t >= T.release + 40 && k < 1) {
+        const st = BattleArt.tipAt(art('release'), a.x, a.y, kA, toward), x = lerp(st.x, fx, easeIn(k)), y = lerp(st.y, fy, easeIn(k)), R = 46 * big;
+        if (S.crit) for (let i = 1; i <= 3; i++) { const kk = Math.max(0, k - i * 0.08), tx = lerp(st.x, fx, easeIn(kk)), ty = lerp(st.y, fy, easeIn(kk)); ctx.save(); ctx.globalAlpha *= 0.35 - i * 0.08; ctx.fillStyle = '#ffe3a0'; ctx.beginPath(); ctx.arc(tx, ty, R * (1 - i * 0.18), 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+        ctx.save(); const g = ctx.createRadialGradient(x, y, 0, x, y, R); g.addColorStop(0, 'rgba(255,255,255,0.95)'); g.addColorStop(0.35, S.crit ? 'rgba(255,214,140,0.9)' : 'rgba(201,163,255,0.85)'); g.addColorStop(1, 'rgba(138,90,214,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.fill(); ctx.restore();
       }
       const since = t - S.impact;
-      if (since >= 0 && since < 420) { const kk = since / 420; ctx.save(); ctx.globalAlpha *= 1 - kk; ctx.strokeStyle = '#d9c2ff'; ctx.lineWidth = 6 * (1 - kk) + 1; ctx.beginPath(); ctx.arc(fx, fy, 30 + kk * 120, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
+      if (since >= 0 && since < 420) { const kk = since / 420; ctx.save(); ctx.globalAlpha *= 1 - kk; ctx.strokeStyle = S.crit ? '#ffe3a0' : '#d9c2ff'; ctx.lineWidth = 6 * (1 - kk) + 1; ctx.beginPath(); ctx.arc(fx, fy, 30 + kk * 120 * big, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
     }
-    /* sparks at every impact */
+    /* sparks at every impact (gold and twice as many for a critical) */
     for (const D of defs) D.d.hits.forEach((_, j) => {
       const id = `sp${D.i}-${j}`, at = S.impact + j * 240;
-      if (t >= at && !this.fired.has(id)) { this.fired.add(id); for (let n = 0; n < 16; n++) { const ang = Math.random() * Math.PI * 2, v = 2 + Math.random() * 6; this.sparks.push({ x: D.x, y: D.y - 150 * D.sc, vx: Math.cos(ang) * v + toward * 2, vy: Math.sin(ang) * v - 2, born: t, life: 380 + Math.random() * 240, c: S.kind === 'arcane' ? '#d9c2ff' : '#ffe2a0' }); } }
+      if (t >= at && !this.fired.has(id)) { this.fired.add(id); this.burst({ x: D.x, y: D.y - 150 * D.sc }, t, S.crit ? 30 : S.edge ? 22 : 16, S.crit || S.edge ? 'gold' : S.kind === 'arcane' ? 'arcane' : 'spark', toward); }
     });
     ctx.save();
-    for (let i = this.sparks.length - 1; i >= 0; i--) { const p = this.sparks[i], age = t - p.born; if (age > p.life) { this.sparks.splice(i, 1); continue; } const k = age / 16; ctx.globalAlpha = 1 - age / p.life; ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x + p.vx * k, p.y + p.vy * k + 0.06 * k * k, 3.2 * (1 - age / p.life) + 0.8, 0, Math.PI * 2); ctx.fill(); }
+    for (let i = this.sparks.length - 1; i >= 0; i--) {
+      const p = this.sparks[i], age = t - p.born; if (age > p.life) { this.sparks.splice(i, 1); continue; }
+      const k = age / 16, life = age / p.life, px = p.x + p.vx * k, py = Math.min(FLOOR + 4, p.y + p.vy * k + p.g * k * k);
+      ctx.globalAlpha = 1 - life; ctx.fillStyle = p.c;
+      if (p.square) { const r = Math.round(p.r); ctx.fillRect(Math.round(px - r / 2), Math.round(py - r / 2), r, r); }
+      else { ctx.beginPath(); ctx.arc(px, py, p.puff ? p.r * (1 + life * 1.4) : p.r * (1 - life) + 0.8, 0, Math.PI * 2); ctx.fill(); }
+    }
     ctx.restore();
   },
   ambient(ctx, S, t) {
@@ -5368,9 +5530,13 @@ OdcdO
     if (wt) {
       let [grid, gx, gy] = WEAPONS[wt];
       let hx = HAND.x, hy = HAND.y + lift;
+      const raised = frame === 'windup' || frame === 'cast';
       if (frame === 'strike' && wt !== 'BOW' && wt !== 'TOME') { const r = rotCW(grid); const ngx = grid.length - 1 - gy, ngy = gx; grid = r; gx = ngx; gy = ngy; hx += 1; }
-      else if (frame === 'windup' || frame === 'cast') hy -= wt === 'LANCE' ? 2 : 4;
+      else if (raised) hy -= wt === 'LANCE' ? 2 : 4;
+      /* v8.1: a raised weapon keeps a hand on it — the forearm comes up with it and the fist closes over the grip */
+      if (raised) for (let y = hy + 1; y < HAND.y + lift; y++) paint(img, ['OsO'], pal, HAND.x - 1, top + y);
       paint(img, grid, pal, hx - gx, top + hy - gy);
+      if (raised) paint(img, ['OSO'], pal, hx - 1, top + hy);
     }
     if (spec.shield) paint(img, SHIELD, pal, 0, top + 12 + lift);
     ctx.putImageData(img, 0, 0);
@@ -5440,13 +5606,15 @@ OdcdO
 
 /* =====================================================================
    Module 05e — Battle art (v8): the large pixel figures of the battle close-ups.
-   Each figure is rasterised from a posed skeleton into an 80x96 pixel
+   Each figure is rasterised from a posed skeleton into a 140x128 pixel
    buffer: capsule limbs, cel shading from the top-left, a contact line
    wherever a part overlaps another, and a dark outline. The scene draws
    the buffer at x3 with smoothing off, so it reads as hand-placed pixels.
+   v8.1: hands can be placed by target (two-bone IK), so a bow is drawn to
+   the cheek and both hands close on an axe haft; full helms hide the hair.
    ===================================================================== */
 const BattleArt = (() => {
-  const W = 124, H = 112, GROUND = 104, HIPX = 50;   // room for a raised weapon and a full lance thrust
+  const W = 140, H = 128, GROUND = 120, HIPX = 50;   // room for a lance raised overhead and a full lunge
   const hex = h => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
   const R = (...hs) => hs.map(hex);
   const mixc = (a, b, t) => [a[0] + (b[0] - a[0]) * t | 0, a[1] + (b[1] - a[1]) * t | 0, a[2] + (b[2] - a[2]) * t | 0];
@@ -5589,6 +5757,18 @@ const BattleArt = (() => {
   }
 
   /* ---- the skeleton (facing right; the scene mirrors it) ---- */
+  /* two-bone reach: the elbow and hand of an arm from `sh` towards target T
+     (the hand stops short if T is out of reach). bend: which way the elbow
+     goes — 'down' (default), 'up', 'back' or 'front'. */
+  function reachArm(sh, T, L1, L2, up) {
+    const dx = T.x - sh.x, dy = T.y - sh.y, d = Math.max(1, Math.min(L1 + L2 - 0.05, Math.hypot(dx, dy)));
+    const a = Math.atan2(dy, dx), b = Math.acos(Math.max(-1, Math.min(1, (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d))));
+    const e1 = { x: sh.x + Math.cos(a - b) * L1, y: sh.y + Math.sin(a - b) * L1 }, e2 = { x: sh.x + Math.cos(a + b) * L1, y: sh.y + Math.sin(a + b) * L1 };
+    const pick = { up: (p, q) => p.y < q.y, back: (p, q) => p.x < q.x, front: (p, q) => p.x > q.x }[up] || ((p, q) => p.y > q.y);
+    const el = pick(e1, e2) ? e1 : e2;
+    const ex = T.x - el.x, ey = T.y - el.y, el2 = Math.hypot(ex, ey) || 1;
+    return [el, { x: el.x + ex / el2 * L2, y: el.y + ey / el2 * L2 }];
+  }
   function skeleton(p) {
     const lean = p.lean || 0, crouch = p.crouch || 0;
     const hip = { x: HIPX + (p.dx || 0), y: GROUND - 35 + crouch };
@@ -5596,10 +5776,11 @@ const BattleArt = (() => {
     const head = { x: neck.x + 2 + Math.sin(lean + (p.nod || 0)) * 9, y: neck.y - 10 + Math.abs(Math.sin(p.nod || 0)) * 2 };
     const shF = { x: neck.x + 6, y: neck.y + 3 }, shB = { x: neck.x - 6, y: neck.y + 2 };
     const limb = (o, a1, a2, l1, l2) => { const e = { x: o.x + Math.sin(a1) * l1, y: o.y + Math.cos(a1) * l1 }; return [e, { x: e.x + Math.sin(a1 + a2) * l2, y: e.y + Math.cos(a1 + a2) * l2 }]; };
-    const [elF, hdF] = limb(shF, p.arm == null ? 0.7 : p.arm, p.fore == null ? 0.9 : p.fore, 12, 11);
-    const [elB, hdB] = limb(shB, p.arm2 == null ? 0.25 : p.arm2, p.fore2 == null ? 0.6 : p.fore2, 11, 10);
+    /* a hand is posed by joint angles, or by a target relative to the neck */
+    const [elF, hdF] = p.handF ? reachArm(shF, { x: neck.x + p.handF[0], y: neck.y + p.handF[1] }, 12, 11, p.handF[2]) : limb(shF, p.arm == null ? 0.7 : p.arm, p.fore == null ? 0.9 : p.fore, 12, 11);
+    const [elB, hdB] = p.handB ? reachArm(shB, { x: neck.x + p.handB[0], y: neck.y + p.handB[1] }, 11, 10, p.handB[2]) : limb(shB, p.arm2 == null ? 0.25 : p.arm2, p.fore2 == null ? 0.6 : p.fore2, 11, 10);
     const hipF = { x: hip.x + 3.5, y: hip.y + 1 }, hipB = { x: hip.x - 3.5, y: hip.y };
-    const footF = { x: hip.x + (p.stepF == null ? 9 : p.stepF), y: GROUND - 2 }, footB = { x: hip.x - (p.stepB == null ? 8 : p.stepB), y: GROUND - 2 };
+    const footF = { x: hip.x + (p.stepF == null ? 9 : p.stepF), y: GROUND - 2 - (p.liftF || 0) }, footB = { x: hip.x - (p.stepB == null ? 8 : p.stepB), y: GROUND - 2 - (p.liftB || 0) };
     const knee = (hp, ft) => {
       const L1 = 17, L2 = 16, dx = ft.x - hp.x, dy = ft.y - hp.y, d = Math.min(L1 + L2 - 0.05, Math.hypot(dx, dy));
       const a = Math.atan2(dy, dx), b = Math.acos(Math.max(-1, Math.min(1, (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d))));
@@ -5612,6 +5793,7 @@ const BattleArt = (() => {
   function weapon(cv, type, hand, ang, pal, cls) {
     const at = (pts) => rot(pts, hand.x, hand.y, ang);
     const m = () => cv.mask();
+    cv.tip = at([[0, -({ SWORD: 25, DAGGER: 14, LANCE: 42, AXE: 26, TOME: 13, STAFF: 32, BOW: 17 }[type] || 20)]])[0];   // v8.1: where a glint or a spell leaves from
     if (type === 'SWORD' || type === 'DAGGER') {
       const L = type === 'SWORD' ? 22 : 11;
       paint(cv, poly(m(), at([[-1.6, -3], [1.6, -3], [1.6, -L], [0, -L - 3], [-1.6, -L]])), pal.steel, { sh: 1, spec: 4 });
@@ -5636,27 +5818,33 @@ const BattleArt = (() => {
       paint(cv, poly(m(), at([[-1.2, 14], [1.2, 14], [1.2, -26], [-1.2, -26]])), pal.wood, { sh: 1 });
       paint(cv, poly(m(), at([[-3.5, -25], [3.5, -25], [2, -28], [-2, -28]])), pal.gold, { sh: 1 });
       const [ox, oy] = at([[0, -32]])[0];
+      if (cv.glow) paint(cv, ellipse(m(), ox, oy, 6.4, 6.4), R('#ffffff', '#f2e6ff', '#dcc4f6', '#b48ae8', '#8a5ad6'), { sh: 1, hl: 2, line: false });
       paint(cv, ellipse(m(), ox, oy, 4.2, 4.2), CLOTH.BISHOP, { sh: 2, hl: 2 });
       dot(cv, ox - 1.5, oy - 1.5, hex('#ffffff'));
     } else if (type === 'BOW') {
-      const bm = m();
-      for (let k = -18; k <= 18; k++) { const a = k / 18 * 1.0; const [x, y] = at([[-14 + 20 * Math.cos(a), 20 * Math.sin(a)]])[0]; capsule(bm, x, y, x, y, Math.abs(k) < 4 ? 1.9 : 1.3); }
+      /* the grip sits in the fist; the limbs curve back toward the archer, further when drawn */
+      const bm = m(), depth = cv.drawHand ? 7 : 6, pts = [];
+      for (let k = -18; k <= 18; k++) { const a = k / 18; pts.push([at([[-depth * a * a + (Math.abs(a) > 0.86 ? (Math.abs(a) - 0.86) * 6 : 0), 17 * a]])[0], Math.abs(k) < 4 ? 1.9 : 1.3]); }
+      for (let i = 1; i < pts.length; i++) capsule(bm, pts[i - 1][0][0], pts[i - 1][0][1], pts[i][0][0], pts[i][0][1], pts[i][1]);
       paint(cv, bm, pal.wood, { sh: 1, hl: 1 });
-      const tips = at([[-3.2, -16.8], [-3.2, 16.8]]);
+      const tips = [pts[0][0], pts[pts.length - 1][0]];
       cv.bowTips = tips;
       if (!cv.drawHand) paint(cv, capsule(m(), tips[0][0], tips[0][1], tips[1][0], tips[1][1], 0.45), pal.white, { flat: true, tone: 2, line: false });
     }
   }
   function shield(cv, hand, pal, cloth, emblem) {
-    const m = cv.mask();
-    poly(m, [[hand.x - 7, hand.y - 11], [hand.x + 7, hand.y - 11], [hand.x + 7, hand.y + 2], [hand.x, hand.y + 12], [hand.x - 7, hand.y + 2]]);
-    paint(cv, m, cloth, { sh: 3, hl: 1 });
-    const rim = cv.mask(); poly(rim, [[hand.x - 7, hand.y - 11], [hand.x + 7, hand.y - 11], [hand.x + 7, hand.y - 9], [hand.x - 7, hand.y - 9]]);
-    paint(cv, rim, pal.steel, { sh: 1 });
+    /* v8.1: a steel rim all round and a boss, so the shield reads against a gown of the same colour */
+    const x = hand.x, y = hand.y, outer = [[x - 7, y - 11], [x + 7, y - 11], [x + 7, y + 2], [x, y + 12], [x - 7, y + 2]];
+    paint(cv, poly(cv.mask(), outer), pal.steel, { sh: 2, hl: 1 });
+    const inner = poly(cv.mask(), [[x - 5.6, y - 9.6], [x + 5.6, y - 9.6], [x + 5.6, y + 1.4], [x, y + 10.2], [x - 5.6, y + 1.4]]);
+    paint(cv, inner, cloth, { sh: 3, hl: 1, line: false });
     if (emblem === 'ROOK') {   // a little tower
-      const e = cv.mask(); poly(e, [[hand.x - 3, hand.y - 6], [hand.x + 3, hand.y - 6], [hand.x + 3, hand.y + 3], [hand.x - 3, hand.y + 3]]);
-      for (const ox of [-3, 0, 2]) poly(e, [[hand.x + ox, hand.y - 8], [hand.x + ox + 1.5, hand.y - 8], [hand.x + ox + 1.5, hand.y - 6], [hand.x + ox, hand.y - 6]]);
+      const e = cv.mask(); poly(e, [[x - 3, y - 5], [x + 3, y - 5], [x + 3, y + 4], [x - 3, y + 4]]);
+      for (const ox of [-3, -0.75, 1.5]) poly(e, [[x + ox, y - 7.5], [x + ox + 1.5, y - 7.5], [x + ox + 1.5, y - 5], [x + ox, y - 5]]);
       paint(cv, e, pal.gold, { sh: 1, line: false });
+      dot(cv, x, y - 1, pal.gold[4]); dot(cv, x, y, pal.gold[4]);
+    } else {   // a plain boss
+      paint(cv, ellipse(cv.mask(), x, y - 2, 2.4, 2.4), pal.steel, { sh: 1, spec: 2, line: false });
     }
   }
 
@@ -5677,6 +5865,17 @@ const BattleArt = (() => {
     const pal = Object.assign({}, P, shade ? SHADE : {});
     const cloth = shade ? SHADE_CLOTH : (opts.cloth || CLOTH[cls] || CLOTH.PAWN);
     const cv = new Cv(), S = skeleton(pose || {}), m = () => cv.mask();
+    pose = pose || {};
+    const wtype = opts.weapon === undefined ? kit.weapon : opts.weapon;
+    const bowNow = wtype === 'BOW', bowFront = bowNow && !!pose.bowFront;
+    const bowAng = pose.bow != null ? pose.bow : 0.15;
+    cv.glow = !!pose.glow;
+    /* both hands on a long haft: the back hand closes on it a little below the front one */
+    const twoHand = !!(pose.twoHand && wtype && !bowNow && !kit.shield);
+    if (twoHand) {
+      const a = pose.weapon != null ? pose.weapon : 0.2, g = typeof pose.twoHand === 'number' ? pose.twoHand : 6;
+      [S.elB, S.hdB] = reachArm(S.shB, { x: S.hdF.x - Math.sin(a) * g, y: S.hdF.y + Math.cos(a) * g }, 11, 10, pose.up2);
+    }
     const legPal = kit.body === 'plate' ? pal.steel : kit.body === 'mail' ? pal.steel : pal.cloth;
     const longSkirt = kit.body === 'robe' || kit.body === 'gown' || kit.body === 'royal';
 
@@ -5748,18 +5947,22 @@ const BattleArt = (() => {
     /* back arm, with the shield if any */
     const armPal = body === 'plate' ? pal.steel : body === 'mail' ? pal.steel : body === 'robe' ? pal.white : body === 'gown' || body === 'royal' ? cloth : pal.linen;
     limbs(S.shB, S.elB, S.hdB, 3.6, 3.0, armPal, { sh: 2, tone: 3 });
-    paint(cv, ellipse(m(), S.hdB.x, S.hdB.y, 2.2, 2.2), body === 'plate' ? pal.steel : pal.skin, { sh: 1, tone: 3 });
-    if (kit.shield) shield(cv, S.hdB, pal, cloth, cls);
-    const wtype = opts.weapon === undefined ? kit.weapon : opts.weapon;
-    const bowNow = wtype === 'BOW';
-    if (bowNow) { if (pose && pose.draw) cv.drawHand = S.hdF; weapon(cv, 'BOW', S.hdB, pose && pose.bow != null ? pose.bow : 0.15, pal, cls); }
+    const handPal = body === 'plate' ? pal.steel : pal.skin;
+    if (bowNow && !bowFront) { if (pose.draw) cv.drawHand = S.hdF; weapon(cv, 'BOW', S.hdB, bowAng, pal, cls); }   // the fist closes over the grip
+    paint(cv, ellipse(m(), S.hdB.x, S.hdB.y, 2.2, 2.2), handPal, { sh: 1, tone: 3 });
+    if (kit.shield && !(bowNow && !bowFront)) shield(cv, S.hdB, pal, cloth, cls);
 
     /* head: neck, face, hair, headgear */
-    paint(cv, capsule(m(), S.neck.x, S.neck.y + 2, S.head.x - 1, S.head.y + 6, 2.6), pal.skin, { sh: 1, tone: 3 });
+    /* v8.1: a great helm or a coif hides the hair; plate and mail close the throat with steel */
+    const fullHelm = kit.head === 'tower' || kit.head === 'horse';
+    const neckPal = body === 'plate' || body === 'mail' ? pal.steel : pal.skin;
+    paint(cv, capsule(m(), S.neck.x, S.neck.y + 2, S.head.x - 1, S.head.y + 6, body === 'plate' ? 3.4 : 2.6), neckPal, { sh: 1, tone: 3, pattern: body === 'mail' ? (x, y, t) => ((x + y) % 2 === 0 ? 4 : t) : null });
     const hx = S.head.x, hy = S.head.y;
-    const hairBack = ellipse(m(), hx - 1.6, hy - 1.2, 9.6, 9.2);
-    if (kit.head === 'tiara') { capsule(hairBack, hx - 6, hy, hx - 9, hy + 18, 4.2, 3); capsule(hairBack, hx - 2, hy + 2, hx - 4, hy + 16, 3.5, 2.6); }
-    paint(cv, hairBack, pal.hair, { sh: 3, hl: 2, deep: true, pattern: (x, y, t) => (t === 1 && (x + y) % 3 === 0 ? 0 : (x * 2 + y) % 7 === 0 && t === 2 ? 3 : t) });
+    if (!fullHelm) {
+      const hairBack = ellipse(m(), hx - 1.6, hy - 1.2, 9.6, 9.2);
+      if (kit.head === 'tiara') { capsule(hairBack, hx - 6, hy, hx - 9, hy + 18, 4.2, 3); capsule(hairBack, hx - 2, hy + 2, hx - 4, hy + 16, 3.5, 2.6); }
+      paint(cv, hairBack, pal.hair, { sh: 3, hl: 2, deep: true, pattern: (x, y, t) => (t === 1 && (x + y) % 3 === 0 ? 0 : (x * 2 + y) % 7 === 0 && t === 2 ? 3 : t) });
+    }
     const face = ellipse(m(), hx + 1.4, hy + 1.6, 7.6, 8.2);
     sub(face, poly(m(), [[hx - 10, hy - 12], [hx + 12, hy - 12], [hx + 12, hy - 4], [hx + 3, hy - 3], [hx - 10, hy + 2]]));
     paint(cv, face, pal.skin, { sh: 3, hl: 1, deep: true });
@@ -5767,7 +5970,7 @@ const BattleArt = (() => {
     /* fringe over the brow */
     const fringe = poly(m(), [[hx - 8, hy - 7], [hx + 9, hy - 7], [hx + 9, hy - 3.5], [hx + 5, hy - 2.5], [hx + 3, hy - 4.5], [hx + 0, hy - 2], [hx - 3, hy - 4], [hx - 8, hy + 1]]);
     and(fringe, ellipse(m(), hx - 0.6, hy - 1.2, 9.6, 9.2));
-    paint(cv, fringe, pal.hair, { sh: 1, line: false });
+    if (!fullHelm) paint(cv, fringe, pal.hair, { sh: 1, line: false });
     /* face details */
     const E = pal.eye, closed = pose && pose.hurt;
     for (const ex of [hx + 0, hx + 5]) {
@@ -5794,14 +5997,19 @@ const BattleArt = (() => {
       for (const [bx, by] of [[7, 4], [9, 4], [7, 6], [9, 6]]) dot(cv, hx + bx, hy + by, pal.ink[2]);
       if (shade) { dot(cv, hx + 2, hy + 0.5, pal.eye[2]); dot(cv, hx + 7, hy + 0.5, pal.eye[2]); }
     } else if (hg === 'horse') {
+      /* a mail coif under an open bascinet; the horse-head crest rides on a steel socket */
+      const coif = capsule(m(), hx - 5, hy - 2, hx - 4, hy + 8, 4.4, 3.6); capsule(coif, hx - 4, hy + 7, hx + 3, hy + 9, 2.4);
+      sub(coif, ellipse(m(), hx + 1.4, hy + 1.6, 7.0, 7.6));
+      paint(cv, coif, pal.steel, { sh: 2, tone: 2, pattern: (x, y, t) => (t >= 1 && (x + y) % 2 === 0 ? Math.min(4, t + 1) : t) });
       const helm = ellipse(m(), hx + 0.5, hy - 2.5, 9.6, 8.2); sub(helm, poly(m(), [[hx + 2.5, hy - 1], [hx + 12, hy - 1], [hx + 12, hy + 8], [hx + 2.5, hy + 8]]));
-      capsule(helm, hx - 7, hy - 2, hx - 6, hy + 6, 3);
+      sub(helm, poly(m(), [[hx - 12, hy + 1], [hx + 2.5, hy + 1], [hx + 2.5, hy + 8], [hx - 12, hy + 8]]));
       paint(cv, helm, pal.steel, { sh: 3, spec: 4, hl: 1, deep: true });
-      const crest = poly(m(), [[hx - 6, hy - 8], [hx - 4, hy - 17], [hx - 1, hy - 22], [hx + 0, hy - 25], [hx + 2, hy - 22], [hx + 5, hy - 21], [hx + 9, hy - 18], [hx + 13, hy - 15], [hx + 13, hy - 12], [hx + 10, hy - 11], [hx + 6, hy - 13], [hx + 3, hy - 11], [hx + 2, hy - 8]]);
+      paint(cv, poly(m(), [[hx - 2.5, hy - 12], [hx + 2.5, hy - 12], [hx + 1.8, hy - 9.5], [hx - 1.8, hy - 9.5]]), pal.gold, { sh: 1 });
+      const mane = poly(m(), [[hx - 2, hy - 11], [hx - 5, hy - 13], [hx - 6, hy - 18], [hx - 3, hy - 23], [hx + 0, hy - 25], [hx - 1, hy - 18]]);
+      paint(cv, mane, cloth, { sh: 1, tone: 3, pattern: (x, y, t) => ((x + y * 2) % 4 === 0 ? 4 : t) });
+      const crest = poly(m(), [[hx - 2, hy - 11], [hx - 3, hy - 17], [hx - 1, hy - 22], [hx + 0, hy - 25], [hx + 2, hy - 22], [hx + 5, hy - 21], [hx + 9, hy - 18], [hx + 13, hy - 15], [hx + 13, hy - 12], [hx + 10, hy - 11], [hx + 6, hy - 13], [hx + 3, hy - 11.5], [hx + 2, hy - 11]]);
       paint(cv, crest, cloth, { sh: 2, hl: 1, deep: true });
       dot(cv, hx + 5, hy - 18, pal.ink[2]); dot(cv, hx + 12, hy - 13, pal.ink[1]);
-      const mane = poly(m(), [[hx - 6, hy - 8], [hx - 5, hy - 15], [hx - 2, hy - 21], [hx - 9, hy - 10], [hx - 10, hy - 4]]);
-      paint(cv, mane, pal.hair, { sh: 1, tone: 3 });
     } else if (hg === 'mitre') {
       const mt = poly(m(), [[hx - 7, hy - 5], [hx + 8, hy - 5], [hx + 6, hy - 14], [hx + 0.5, hy - 21], [hx - 5, hy - 14]]);
       paint(cv, mt, pal.white, { sh: 3, hl: 1 });
@@ -5824,35 +6032,72 @@ const BattleArt = (() => {
 
     /* front arm and the weapon in it */
     if (body === 'plate') paint(cv, ellipse(m(), S.shF.x + 1, S.shF.y + 1, 5.2, 4.2), pal.steel, { sh: 2, spec: 4 });
-    const wAng = pose && pose.weapon != null ? pose.weapon : 0.2;
+    const wAng = pose.weapon != null ? pose.weapon : 0.2;
     const wpn = bowNow || !wtype ? null : wtype;
-    if (wpn && (pose && pose.weaponBehind)) weapon(cv, wpn, S.hdF, wAng, pal, cls);
+    if (wpn && pose.weaponBehind) weapon(cv, wpn, S.hdF, wAng, pal, cls);
+    if (bowFront) weapon(cv, 'BOW', S.hdF, bowAng, pal, cls);   // at rest the bow hangs in the near hand
     limbs(S.shF, S.elF, S.hdF, 3.8, 3.1, armPal, { sh: 2, deep: true });
-    if (wpn && !(pose && pose.weaponBehind)) weapon(cv, wpn, S.hdF, wAng, pal, cls);
-    paint(cv, ellipse(m(), S.hdF.x, S.hdF.y, 2.4, 2.4), body === 'plate' ? pal.steel : pal.skin, { sh: 1 });
-    if (bowNow && pose && pose.draw && cv.bowTips) {   // string pulled to the hand, an arrow on it
+    if (wpn && !pose.weaponBehind) weapon(cv, wpn, S.hdF, wAng, pal, cls);
+    paint(cv, ellipse(m(), S.hdF.x, S.hdF.y, 2.4, 2.4), handPal, { sh: 1 });
+    if (twoHand) paint(cv, ellipse(m(), S.hdB.x, S.hdB.y, 2.2, 2.2), handPal, { sh: 1, tone: 2 });   // the second fist, over the haft
+    if (bowNow && pose.draw && cv.bowTips) {   // string pulled to the cheek, an arrow laid across the grip
       const [t1, t2] = cv.bowTips, sm = capsule(m(), t1[0], t1[1], S.hdF.x, S.hdF.y, 0.45); capsule(sm, t2[0], t2[1], S.hdF.x, S.hdF.y, 0.45);
       paint(cv, sm, pal.white, { flat: true, tone: 2, line: false });
-      paint(cv, capsule(m(), S.hdF.x, S.hdF.y, S.hdF.x + 26, S.hdF.y, 0.6), pal.wood, { flat: true, tone: 1, line: false });
-      paint(cv, poly(m(), [[S.hdF.x + 26, S.hdF.y - 2], [S.hdF.x + 31, S.hdF.y], [S.hdF.x + 26, S.hdF.y + 2]]), pal.steel, { sh: 1 });
-      paint(cv, poly(m(), [[S.hdF.x - 1, S.hdF.y - 2.5], [S.hdF.x + 3, S.hdF.y], [S.hdF.x - 1, S.hdF.y + 2.5]]), pal.white, { flat: true, tone: 2 });
+      const dx = S.hdB.x - S.hdF.x, dy = S.hdB.y - S.hdF.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, ex = S.hdF.x + ux * (L + 8), ey = S.hdF.y + uy * (L + 8);
+      paint(cv, capsule(m(), S.hdF.x - ux * 2, S.hdF.y - uy * 2, ex, ey, 0.6), pal.wood, { flat: true, tone: 1, line: false });
+      paint(cv, poly(m(), [[ex - uy * 2, ey + ux * 2], [ex + ux * 5, ey + uy * 5], [ex + uy * 2, ey - ux * 2]]), pal.steel, { sh: 1 });
+      cv.tip = [ex + ux * 4, ey + uy * 4];
+      paint(cv, poly(m(), [[S.hdF.x - ux * 4 - uy * 2.5, S.hdF.y - uy * 4 + ux * 2.5], [S.hdF.x, S.hdF.y], [S.hdF.x - ux * 4 + uy * 2.5, S.hdF.y - uy * 4 - ux * 2.5]]), pal.white, { flat: true, tone: 2 });
+      paint(cv, ellipse(m(), S.hdF.x, S.hdF.y, 2.4, 2.4), handPal, { sh: 1 });
     }
     outline(cv);
     return cv;
   }
 
-  /* the key poses a close-up needs */
+  /* the key poses a close-up needs. Hands are joint angles (arm/fore,
+     arm2/fore2) or IK targets from the neck (handF/handB: [x, y, bend]). */
   const POSES = {
     ready:   { arm: 0.9, fore: 1.0, weapon: 0.35, arm2: 0.5, fore2: 0.9, lean: 0.04 },
     windup:  { arm: -2.3, fore: -0.4, weapon: -1.0, arm2: 0.8, fore2: 0.6, lean: -0.1, stepF: 6, stepB: 10, cape: 2 },
     strike:  { arm: 1.7, fore: 0.3, weapon: 2.0, arm2: 0.0, fore2: 0.4, lean: 0.22, stepF: 13, stepB: 9, dx: 3, crouch: 2, cape: 5, shout: true },
     hurt:    { arm: -0.4, fore: 0.9, weapon: -0.4, arm2: -0.6, fore2: 1.0, lean: -0.2, stepF: 6, stepB: 9, dx: -3, hurt: true, cape: -2 },
-    cast:    { arm: 2.4, fore: 0.2, weapon: 0.1, arm2: 2.1, fore2: 0.3, lean: -0.04, cape: 3 },
-    shoot:   { arm: 1.9, fore: -3.9, weapon: 0, arm2: 1.57, fore2: 0, bow: 0, lean: 0.0, draw: true, stepF: 7, stepB: 10 },
+    cast:    { arm: 2.4, fore: 0.2, weapon: 0.1, arm2: 2.1, fore2: 0.3, lean: -0.04, cape: 3, glow: true },
+    shoot:   { handF: [0, -4, 'down'], handB: [18, -5], weapon: 0, bow: 0, lean: -0.02, draw: true, stepF: 8, stepB: 10, cape: 1 },
+    loose:   { handF: [-5, -1, 'down'], handB: [18, -5], weapon: 0, bow: 0.05, lean: 0.03, stepF: 8, stepB: 10, cape: 2 },   // the string has gone forward
+    /* v8.1: criticals and specials */
+    poise:   { handF: [-3, -21, 'up'], weapon: -0.75, arm2: 0.55, fore2: 1.1, lean: -0.14, crouch: 3, stepF: 8, stepB: 12, cape: 3 },
+    lunge:   { arm: 1.6, fore: 0.2, weapon: 2.0, arm2: -0.3, fore2: 0.5, lean: 0.36, stepF: 18, stepB: 12, dx: 6, crouch: 6, cape: 8, shout: true },
+    crouch:  { arm: 0.3, fore: 1.25, weapon: 1.35, arm2: 0.5, fore2: 1.0, lean: 0.32, crouch: 8, stepF: 10, stepB: 12, cape: 3 },
+    leap:    { arm: 1.5, fore: 0.05, weapon: 1.8, arm2: 0.9, fore2: 0.9, lean: 0.24, liftF: 14, liftB: 7, stepF: 8, stepB: 5, cape: 9, shout: true },
+    land:    { arm: 1.75, fore: 0.15, weapon: 2.05, arm2: 0.2, fore2: 0.6, lean: 0.38, crouch: 10, stepF: 15, stepB: 12, dx: 2, cape: 7, shout: true },
+    heave:   { handF: [2, -25, 'up'], weapon: -1.3, twoHand: 7, up2: 'up', lean: -0.22, stepF: 9, stepB: 11, cape: 1, shout: true },
+    slam:    { handF: [14, 15, 'down'], weapon: 2.75, twoHand: 7, lean: 0.5, crouch: 9, stepF: 16, stepB: 12, dx: 5, cape: 7, shout: true },
+    release: { handF: [16, -1], weapon: 1.15, handB: [13, 7], lean: 0.12, stepF: 11, stepB: 10, cape: 4, glow: true },
   };
   /* how a weapon finishes its blow: a thrust points at the foe, a cut follows through low */
   const STRIKE = { SWORD: 2.15, AXE: 2.3, DAGGER: 1.6, LANCE: 1.57, STAFF: 1.9, TOME: 1.2, BOW: 1.57 };
   function strikeFor(type) { return Object.assign({}, POSES.strike, { weapon: STRIKE[type] == null ? 2 : STRIKE[type] }, type === 'LANCE' || type === 'DAGGER' ? { arm: 1.55, fore: 0.05 } : {}); }
+  /* v8.1: per-weapon touches, so the gear sits right in every pose */
+  const THRUST = { handF: [-13, 5, 'down'], weapon: 1.57, lean: -0.12, crouch: 4, stepF: 8, stepB: 12, cape: 3 };
+  const WPOSE = {
+    LANCE: { hurt: { weapon: 0.55, weaponBehind: true }, poise: THRUST, lunge: { arm: 1.55, fore: 0.05, weapon: 1.57 }, cast: { weapon: 0.3 } },
+    DAGGER: { poise: THRUST, lunge: { arm: 1.55, fore: 0.05, weapon: 1.6 } },
+    STAFF: { hurt: { weapon: 0.6 } },
+    AXE: { hurt: { weapon: 0.55, weaponBehind: true } },
+    TOME: { release: { weapon: 1.35 } },
+    BOW: {   /* at rest the bow hangs from the near hand; the far hand holds it to shoot */
+      ready: { bowFront: true, handF: [10, 19, 'back'], bow: 0.42, arm2: 0.3, fore2: 0.45 },
+      hurt: { bowFront: true, handF: [5, 15, 'back'], bow: -0.25, arm2: -0.5, fore2: 0.9 },
+      windup: { bowFront: true, handF: [8, 10, 'back'], bow: 0.6 },
+      cast: { bowFront: true, arm: 2.5, fore: 0.1, bow: 0.2 },
+    },
+  };
+  const SHIELD_POSE = { windup: { arm2: 0.55, fore2: 1.15 }, poise: { arm2: 0.5, fore2: 1.2 } };
+  function poseFor(name, type, shield) {
+    if (type === 'BOW' && (name === 'strike' || name === 'lunge' || name === 'poise' || name === 'release')) name = 'shoot';
+    const base = name === 'strike' ? strikeFor(type) : name === 'lunge' ? Object.assign({}, POSES.lunge, { weapon: STRIKE[type] == null ? 2 : STRIKE[type] }) : POSES[name] || POSES.ready;
+    return Object.assign({}, base, (WPOSE[type] || {})[name] || {}, shield ? SHIELD_POSE[name] || {} : {});
+  }
   /* the three bosses keep their colours */
   const BOSS_CLOTH = {
     ROOK: R('#d8d2c4', '#b0aa9c', '#878174', '#5c574c', '#36332c'),
@@ -5861,13 +6106,15 @@ const BattleArt = (() => {
   };
   /* a canvas for a unit in a named pose (cached); flash = the white frame of a hit */
   const cache = new Map();
+  /* flash: true = the white frame of a hit; a '#rrggbb' string = a flat tinted silhouette (afterimages) */
   function canvasFor(spec, poseName, flash) {
-    const key = [spec.cls, spec.enemy ? 1 : 0, spec.boss ? 1 : 0, spec.weapon || '-', spec.shield ? 1 : 0, poseName, flash ? 1 : 0].join('|');
+    const key = [spec.cls, spec.enemy ? 1 : 0, spec.boss ? 1 : 0, spec.weapon || '-', spec.shield ? 1 : 0, poseName, flash ? (typeof flash === 'string' ? flash : 1) : 0].join('|');
     let c = cache.get(key); if (c) return c;
-    const pose = poseName === 'strike' ? strikeFor(spec.weapon) : (POSES[poseName] || POSES.ready);
+    const pose = poseFor(poseName, spec.weapon, spec.shield);
     const cv = draw(spec.cls, pose, { shade: spec.enemy, weapon: spec.weapon || null, shield: spec.shield, cloth: spec.enemy && spec.boss ? BOSS_CLOTH[spec.cls] : undefined });
-    if (flash) for (let i = 0; i < cv.px.length; i += 4) if (cv.px[i + 3]) { cv.px[i] = cv.px[i] + (255 - cv.px[i]) * 0.8; cv.px[i + 1] = cv.px[i + 1] + (255 - cv.px[i + 1]) * 0.8; cv.px[i + 2] = cv.px[i + 2] + (255 - cv.px[i + 2]) * 0.75; }
-    c = document.createElement('canvas'); c.width = W; c.height = H;
+    if (typeof flash === 'string') { const t = hex(flash); for (let i = 0; i < cv.px.length; i += 4) if (cv.px[i + 3]) { const l = (cv.px[i] + cv.px[i + 1] + cv.px[i + 2]) / 765; cv.px[i] = t[0] * (0.55 + l * 0.6); cv.px[i + 1] = t[1] * (0.55 + l * 0.6); cv.px[i + 2] = t[2] * (0.55 + l * 0.6); } }
+    else if (flash) for (let i = 0; i < cv.px.length; i += 4) if (cv.px[i + 3]) { cv.px[i] = cv.px[i] + (255 - cv.px[i]) * 0.8; cv.px[i + 1] = cv.px[i + 1] + (255 - cv.px[i + 1]) * 0.8; cv.px[i + 2] = cv.px[i + 2] + (255 - cv.px[i + 2]) * 0.75; }
+    c = document.createElement('canvas'); c.width = W; c.height = H; c.tip = cv.tip || null;
     const ctx = c.getContext('2d'), img = ctx.createImageData(W, H); img.data.set(cv.px); ctx.putImageData(img, 0, 0);
     cache.set(key, c); if (cache.size > 300) cache.delete(cache.keys().next().value);
     return c;
@@ -5882,7 +6129,9 @@ const BattleArt = (() => {
     ctx.drawImage(c, -HIPX * k, -GROUND * k, W * k, H * k);
     ctx.restore();
   }
-  return { W, H, GROUND, ANCHOR: { x: HIPX, y: GROUND }, draw, POSES, KIT, CLOTH, strikeFor, canvasFor, blit };
+  /* where the weapon's tip of a canvas lands on screen, drawn as blit() draws it */
+  function tipAt(c, x, footY, k, facing) { const t = c && c.tip; return t ? { x: x + facing * (t[0] - HIPX) * k, y: footY + (t[1] - GROUND) * k } : { x: x + facing * 20 * k, y: footY - 60 * k }; }
+  return { W, H, GROUND, ANCHOR: { x: HIPX, y: GROUND }, draw, POSES, KIT, CLOTH, strikeFor, poseFor, canvasFor, blit, tipAt };
 })();
 if (typeof module !== 'undefined') module.exports = BattleArt;
 
