@@ -14,5 +14,3 @@ My smart home runs on **Home Assistant**, hosted on a Home Assistant Green box.
 - **Automations** use the Tuya integration.
 
 **Debugging tip:** when a device didn't show up in the automation entity picker, *Developer Tools → States* was the fastest way to see what Home Assistant actually knew about it.
-
-*More automations coming soon.*

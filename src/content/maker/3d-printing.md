@@ -25,5 +25,3 @@ The Bambu Lab P1P is the workhorse of my hobby setup, and PLA Basic is my go-to 
 
 - Learning multi-colour AMS workflows properly.
 - Printing custom accessories and mounts for the [OT-2](/nika/maker/opentrons-ot2).
-
-*Photos coming soon.*

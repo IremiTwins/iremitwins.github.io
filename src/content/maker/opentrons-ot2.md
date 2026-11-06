@@ -22,5 +22,3 @@ The goal is **creative, non-lab uses**. Ideas on the list:
 6. Cocktail mixing, eventually.
 
 Custom tool holders and mounts will come off the [3D printer](/nika/maker/3d-printing).
-
-*Build log coming soon.*
