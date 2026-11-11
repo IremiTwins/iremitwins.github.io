@@ -1,0 +1,33 @@
+---
+// Parabola Drop — the game is a single static page at public/parabola-drop/index.html.
+// This page introduces it; "Play" opens the game full-page (the board needs the width).
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+---
+<BaseLayout title="Parabola Drop" description="Parabola Drop: drop or sling balls into a parabola bowl you can reshape. Turn on doubling and every wall hit splits a ball in two." twin="nika">
+  <section class="container section--tight">
+    <p class="eyebrow">Games</p>
+    <h1 class="title">Parabola Drop</h1>
+    <p><a href="/nika/games">← All games</a></p>
+    <p class="lede">A toy more than a game. Drop a ball into a parabola, or pull back and sling it. Turn on doubling and every wall hit splits the ball in two, until the bowl is full of them.</p>
+    <div class="btn-row">
+      <a class="btn btn--accent play" href="/parabola-drop/">▶ Play in the browser</a>
+    </div>
+    <img class="shot card" src="/parabola-drop/cover.jpg" alt="Parabola Drop: coloured balls bouncing inside a chalk-white parabola on a dark green grid" width="1200" height="675" loading="lazy" />
+  </section>
+  <section class="container section--tight">
+    <h2>What you can change</h2>
+    <div class="grid grid--3">
+      <div class="card"><h3>Doubling</h3><p class="muted">One switch. When it is on, a ball that hits the wall becomes two, and the pair fan apart so you can see both. Set the limit anywhere from 1 to 5,000.</p></div>
+      <div class="card"><h3>The sling</h3><p class="muted">Click for a plain drop. Drag back and release to launch, with a dotted line showing where the ball will go.</p></div>
+      <div class="card"><h3>The wall</h3><p class="muted">Width, height, lean, and the power of the curve: 2 is a true parabola, 1 is a V, higher gives a flat bottom with steep sides. The equation updates as you move the sliders.</p></div>
+    </div>
+    <p class="muted small">Built with Claude in one evening. One HTML file, no engine. Balls pass through each other, and any ball that clears the rim is gone.</p>
+  </section>
+</BaseLayout>
+<style>
+  .title { font-size: clamp(2.2rem, 5vw, 3.2rem); }
+  .play { font-size: 1.15rem; min-height: 52px; padding-inline: 24px; }
+  .small { font-size: 0.95rem; margin-top: 24px; }
+  .shot { width: 100%; height: auto; margin-top: 20px; padding: 0; overflow: hidden; }
+  .card h3 { margin-top: 0; font-size: 1.15rem; }
+</style>

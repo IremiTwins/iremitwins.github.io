@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Parabola Drop: drop or sling balls into a parabola bowl you can reshape. Turn on doubling and every wall hit splits a ball in two.">
+<meta property="og:title" content="Parabola Drop">
+<meta property="og:description" content="Drop or sling balls into a parabola. Every wall hit doubles them.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://iremitwins.com/parabola-drop/">
+<meta property="og:image" content="https://iremitwins.com/parabola-drop/cover.jpg">
+<meta name="theme-color" content="#131d1c">
+<link rel="icon" href="/Iremi.ico">
+<title>Parabola Drop</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a chalkboard. Playfield on the left, a narrow control rail on the right; stacks on phones.
+   Single dark look on purpose (it is a chalkboard), so every colour is set explicitly. */
+:root {
+  color-scheme: dark;
+  --board: #1b2928;        /* slate green board */
+  --board-deep: #131d1c;   /* page ground */
+  --panel: #223231;        /* control rail */
+  --rule: #35494a;         /* borders, grid */
+  --chalk: #eef0e4;        /* main text and the curve */
+  --muted: #9db0aa;        /* secondary text */
+  --accent: #f2c84b;       /* chalk yellow */
+  --warn: #f08fa5;         /* limit reached */
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+html, body { height: auto; }
+body {
+  background: var(--board-deep); color: var(--chalk);
+  font-family: var(--font-display); font-size: 15px; line-height: 1.45;
+  padding-block: 20px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 16px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; }
+h1 { font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+header p { margin: 0; color: var(--muted); }
+.back { margin-left: auto; color: var(--accent); }
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+@media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+
+.field { display: grid; gap: 8px; min-width: 0; }
+canvas {
+  display: block; width: 100%; max-width: 100%; aspect-ratio: 900 / 640;
+  background: var(--board); border: 1px solid var(--rule); border-radius: 6px;
+  touch-action: none; cursor: crosshair;
+}
+.equation { font-family: var(--font-data); font-size: 13px; color: var(--muted); margin: 0; overflow-wrap: anywhere; }
+.equation b { color: var(--chalk); font-weight: 600; }
+
+.panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; display: grid; gap: 18px; min-width: 0; }
+.counter { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.count { font-family: var(--font-data); font-size: 34px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1; }
+.count small { font-size: 15px; color: var(--muted); font-weight: 400; }
+.pill { font-family: var(--font-data); font-size: 12px; padding: 3px 8px; border-radius: 99px; border: 1px solid var(--rule); color: var(--muted); }
+.pill.full { color: var(--board-deep); background: var(--warn); border-color: var(--warn); }
+.stat { font-family: var(--font-data); font-size: 12px; color: var(--muted); margin: 6px 0 0; font-variant-numeric: tabular-nums; }
+
+fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 12px; min-width: 0; }
+legend { padding: 0; margin-bottom: 10px; font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.row label { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+.row output { font-family: var(--font-data); font-size: 13px; color: var(--accent); font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
+.toggle { display: flex; align-items: center; gap: 10px; font-size: 15px; cursor: pointer; }
+.toggle input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
+.maxrow { display: grid; grid-template-columns: minmax(0, 1fr) 84px; gap: 10px; align-items: center; }
+input[type="number"] {
+  width: 100%; box-sizing: border-box; font-family: var(--font-data); font-size: 14px; padding: 5px 6px;
+  background: var(--board); color: var(--chalk); border: 1px solid var(--rule); border-radius: 4px;
+}
+.buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+button {
+  font-family: var(--font-display); font-size: 14px; font-weight: 500; padding: 8px 14px; cursor: pointer;
+  background: transparent; color: var(--chalk); border: 1px solid var(--muted); border-radius: 4px;
+}
+button:hover { border-color: var(--chalk); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--board-deep); font-weight: 700; }
+button.primary:hover { filter: brightness(1.08); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.keys { font-size: 12px; color: var(--muted); margin: 0; }
+kbd { font-family: var(--font-data); border: 1px solid var(--rule); border-radius: 3px; padding: 0 4px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Parabola Drop</h1>
+    <p>Click inside the bowl to drop a ball. Drag back and release to sling it.</p>
+    <a class="back" href="/nika/games">← All games</a>
+  </header>
+
+  <div class="stage">
+    <div class="field">
+      <canvas id="board" aria-label="Playfield: a parabola-shaped bowl. Click to drop a ball, drag to sling."></canvas>
+      <p class="equation" id="equation"></p>
+    </div>
+
+    <div class="panel">
+      <div>
+        <div class="counter">
+          <div class="count"><span id="count">0</span> <small>/ <span id="countMax">256</span> balls</small></div>
+          <span class="pill" id="status">ready</span>
+        </div>
+        <p class="stat"><span id="splits">0</span> splits · <span id="bounces">0</span> wall hits</p>
+      </div>
+
+      <div class="buttons">
+        <button class="primary" id="reset" type="button">Reset</button>
+        <button id="pause" type="button">Pause</button>
+        <button id="shapeReset" type="button">Default shape</button>
+      </div>
+
+      <fieldset>
+        <legend>Doubling</legend>
+        <label class="toggle"><input type="checkbox" id="split" checked> Double on every wall hit</label>
+        <div class="row">
+          <label for="maxRange">Max balls</label>
+          <div class="maxrow">
+            <input type="range" id="maxRange" min="1" max="5000" step="1" value="256">
+            <input type="number" id="maxNum" min="1" max="5000" step="1" value="256" aria-label="Max balls, exact value">
+          </div>
+        </div>
+        <div id="doublingSliders" class="row" style="gap:12px"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Launch</legend>
+        <div id="launchSliders" class="row" style="gap:12px"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Wall shape</legend>
+        <div id="shapeSliders" class="row" style="gap:12px"></div>
+      </fieldset>
+
+      <p class="keys"><kbd>R</kbd> reset · <kbd>Space</kbd> pause. Balls pass through each other, and any ball that clears the rim is gone.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================================
+   PARABOLA DROP
+   How it is organised (top to bottom):
+     1. Constants and settings   - the numbers you can tune
+     2. The wall                 - turns the shape sliders into a curve
+     3. Physics                  - gravity, bouncing, doubling
+     4. Input                    - click to drop, drag to sling
+     5. Drawing                  - paints the board every frame
+     6. Controls                 - wires the sliders/buttons to the settings
+   The game works in a fixed "world" of 900 x 640 units. The canvas is scaled
+   to fit the screen, so the physics never depends on the window size.
+   ============================================================================ */
+
+// ---------- 1. Constants and settings ----------
+const WORLD_W = 900, WORLD_H = 640;
+const CENTER_X = 450;      // x of the bottom of the bowl
+const BASE_Y = 600;        // y of the bottom of the bowl (y grows downward on a canvas)
+const BALL_R = 6;          // ball radius
+const GRAVITY = 1400;      // downward acceleration, world units per second squared
+const STEP = 1 / 240;      // physics runs in small fixed steps so fast balls can't tunnel through the wall
+const WALL_SEGMENTS = 200; // the curve is approximated by this many short straight pieces
+const GRID = 50;           // one grid square = 50 world units (used for the equation readout)
+const MIN_IMPACT = 60;     // a hit slower than this is "rolling", not a bounce, and never doubles
+const SPLIT_COOLDOWN = 0.2;  // seconds a ball must wait before it can double again (stops wall-skimming balls from eating the whole limit)
+const MAX_PULL = 220;      // longest sling drag that counts, in world units
+const COLORS = ["#f2c84b", "#f08fa5", "#7fc8f0", "#9fe0a8", "#f0a36b", "#c9a6f0"];
+
+const DEFAULTS = {
+  split: true,   // doubling toggle
+  max: 256,      // ball limit
+  angle: 8,      // degrees each ball turns away from the other when doubling
+  power: 5,      // sling strength: launch speed = pull distance x power
+  bounce: 1,     // 1 = perfectly bouncy, lower = loses energy each hit
+  halfW: 300,    // half the width of the bowl opening
+  depth: 480,    // height of the taller rim above the bottom
+  exp: 2,        // exponent of the curve: 2 is a true parabola
+  lean: 0        // -1..1, lowers one rim to make the bowl lopsided
+};
+const cfg = { ...DEFAULTS };
+
+const game = { balls: [], splits: 0, bounces: 0, paused: false, drag: null };
+
+// ---------- 2. The wall ----------
+// Height of the wall above the bowl's bottom at a given x. This one function
+// IS the shape; everything else (collision, drawing, equation text) reads it.
+function rimScale(side) {           // side: -1 = left half, +1 = right half
+  if (cfg.lean > 0 && side > 0) return 1 - cfg.lean * 0.8;
+  if (cfg.lean < 0 && side < 0) return 1 + cfg.lean * 0.8;
+  return 1;
+}
+function wallY(x) {
+  const u = (x - CENTER_X) / cfg.halfW;                 // -1 at left rim, +1 at right rim
+  return BASE_Y - cfg.depth * rimScale(Math.sign(u)) * Math.pow(Math.abs(u), cfg.exp);
+}
+
+// The curve as a list of straight segments, rebuilt whenever a shape slider moves.
+// Each segment stores its start point, direction, and a unit "normal" arrow
+// pointing into the bowl (used to push balls out and to reflect them).
+let wall = [];
+function buildWall() {
+  wall = [];
+  const x0 = CENTER_X - cfg.halfW, dx = (2 * cfg.halfW) / WALL_SEGMENTS;
+  for (let i = 0; i < WALL_SEGMENTS; i++) {
+    const ax = x0 + i * dx, ay = wallY(ax);
+    const bx = ax + dx, by = wallY(bx);
+    const ex = bx - ax, ey = by - ay, len = Math.hypot(ex, ey);
+    wall.push({ ax, ay, ex, ey, len2: len * len, nx: ey / len, ny: -ex / len });
+  }
+}
+
+// ---------- 3. Physics ----------
+function addBall(x, y, vx, vy, color) {
+  if (game.balls.length >= cfg.max) return false;
+  game.balls.push({ x, y, vx, vy, color, cool: 0 });
+  return true;
+}
+
+function rotate(ball, degrees) {
+  const a = degrees * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+  const vx = ball.vx * c - ball.vy * s;
+  ball.vy = ball.vx * s + ball.vy * c;
+  ball.vx = vx;
+}
+
+// After turning a ball, make sure it is still heading away from the wall it just hit.
+function keepLeaving(ball, seg) {
+  const vn = ball.vx * seg.nx + ball.vy * seg.ny;
+  if (vn < 0) { ball.vx -= 2 * vn * seg.nx; ball.vy -= 2 * vn * seg.ny; }
+}
+
+// Doubling: the original turns one way, the copy turns the other, so they fan apart.
+function splitBall(ball, seg) {
+  const copy = { ...ball, color: (ball.color + 1) % COLORS.length };
+  rotate(ball, cfg.angle);
+  rotate(copy, -cfg.angle);
+  keepLeaving(ball, seg);
+  keepLeaving(copy, seg);
+  ball.cool = copy.cool = SPLIT_COOLDOWN;
+  game.balls.push(copy);
+  game.splits++;
+}
+
+function collideWithWall(ball) {
+  // Only the few segments under the ball can touch it, so look those up by x instead of testing all 200.
+  const x0 = CENTER_X - cfg.halfW, dx = (2 * cfg.halfW) / WALL_SEGMENTS;
+  let first = Math.floor((ball.x - BALL_R - x0) / dx);
+  let last = Math.floor((ball.x + BALL_R - x0) / dx);
+  if (last < 0 || first >= WALL_SEGMENTS) return;       // outside the bowl: nothing to hit
+  first = Math.max(first, 0); last = Math.min(last, WALL_SEGMENTS - 1);
+
+  let hit = null, hitDist = BALL_R;
+  for (let i = first; i <= last; i++) {
+    const seg = wall[i];
+    const px = ball.x - seg.ax, py = ball.y - seg.ay;
+    const along = (px * seg.ex + py * seg.ey) / seg.len2;  // 0..1 = position along the segment
+    if (along < -0.05 || along > 1.05) continue;
+    const dist = px * seg.nx + py * seg.ny;                // distance from the wall (negative = sunk into it)
+    if (dist < hitDist) { hitDist = dist; hit = seg; }
+  }
+  if (!hit) return;
+
+  // Push the ball back so it just touches the wall.
+  ball.x += hit.nx * (BALL_R - hitDist);
+  ball.y += hit.ny * (BALL_R - hitDist);
+
+  const vn = ball.vx * hit.nx + ball.vy * hit.ny;          // speed into the wall (negative = moving in)
+  if (vn >= 0) return;
+  ball.vx -= (1 + cfg.bounce) * vn * hit.nx;               // reflect, keeping "bounce" of the speed
+  ball.vy -= (1 + cfg.bounce) * vn * hit.ny;
+
+  if (-vn < MIN_IMPACT) return;                            // too gentle to count as a hit
+  game.bounces++;
+  if (cfg.split && ball.cool <= 0 && game.balls.length < cfg.max) splitBall(ball, hit);
+}
+
+function stepPhysics() {
+  const balls = game.balls;
+  const n = balls.length;                 // copies made during this step start moving on the next one
+  for (let i = 0; i < n; i++) {
+    const b = balls[i];
+    b.vy += GRAVITY * STEP;
+    b.x += b.vx * STEP;
+    b.y += b.vy * STEP;
+    if (b.cool > 0) b.cool -= STEP;
+    collideWithWall(b);
+  }
+  // Remove balls that left the board (flew over the rim and fell away).
+  for (let i = balls.length - 1; i >= 0; i--) {
+    const b = balls[i];
+    if (b.y > WORLD_H + 40 || b.x < -40 || b.x > WORLD_W + 40) {
+      balls[i] = balls[balls.length - 1];
+      balls.pop();
+    }
+  }
+}
+
+function resetGame() {
+  game.balls.length = 0;
+  game.splits = 0;
+  game.bounces = 0;
+  game.drag = null;
+}
+
+// ---------- 4. Input: click to drop, drag back to sling ----------
+const canvas = document.getElementById("board");
+const ctx = canvas.getContext("2d");
+
+function toWorld(event) {
+  const r = canvas.getBoundingClientRect();
+  return { x: (event.clientX - r.left) / r.width * WORLD_W, y: (event.clientY - r.top) / r.height * WORLD_H };
+}
+
+// A ball must start inside the bowl, so nudge the start point in if the click was on or under the wall.
+function clampInsideBowl(p) {
+  const x = Math.min(Math.max(p.x, CENTER_X - cfg.halfW + BALL_R * 2), CENTER_X + cfg.halfW - BALL_R * 2);
+  const y = Math.min(p.y, wallY(x) - BALL_R * 2.5);
+  return { x, y };
+}
+
+// Launch velocity for the current drag: opposite the pull, like a slingshot.
+function slingVelocity(drag) {
+  let px = drag.start.x - drag.pull.x, py = drag.start.y - drag.pull.y;
+  const d = Math.hypot(px, py);
+  if (d < 6) return { vx: 0, vy: 0 };               // a plain click is a plain drop
+  const k = Math.min(d, MAX_PULL) / d * cfg.power;
+  return { vx: px * k, vy: py * k };
+}
+
+canvas.addEventListener("pointerdown", (e) => {
+  const p = toWorld(e);
+  game.drag = { start: clampInsideBowl(p), pull: p };
+  game.drag.pull = { ...game.drag.start };
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener("pointermove", (e) => { if (game.drag) game.drag.pull = toWorld(e); });
+canvas.addEventListener("pointerup", () => {
+  if (!game.drag) return;
+  const v = slingVelocity(game.drag);
+  addBall(game.drag.start.x, game.drag.start.y, v.vx, v.vy, 0);
+  game.drag = null;
+});
+canvas.addEventListener("pointercancel", () => { game.drag = null; });
+
+// ---------- 5. Drawing ----------
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(1, Math.round(canvas.clientWidth * dpr));
+  if (canvas.width !== w) { canvas.width = w; canvas.height = Math.round(w * WORLD_H / WORLD_W); }
+}
+
+function drawGrid() {
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(238,240,228,0.06)";
+  ctx.beginPath();
+  for (let x = CENTER_X % GRID; x <= WORLD_W; x += GRID) { ctx.moveTo(x, 0); ctx.lineTo(x, WORLD_H); }
+  for (let y = BASE_Y % GRID; y <= WORLD_H; y += GRID) { ctx.moveTo(0, y); ctx.lineTo(WORLD_W, y); }
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(238,240,228,0.2)";           // the two axes through the bowl's bottom
+  ctx.beginPath();
+  ctx.moveTo(CENTER_X, 0); ctx.lineTo(CENTER_X, WORLD_H);
+  ctx.moveTo(0, BASE_Y); ctx.lineTo(WORLD_W, BASE_Y);
+  ctx.stroke();
+}
+
+function drawWall() {
+  ctx.strokeStyle = "#eef0e4";
+  ctx.lineWidth = 3;
+  ctx.lineJoin = "round"; ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(wall[0].ax, wall[0].ay);
+  for (const s of wall) ctx.lineTo(s.ax + s.ex, s.ay + s.ey);
+  ctx.stroke();
+}
+
+function drawBalls() {
+  for (let c = 0; c < COLORS.length; c++) {            // one path per colour is much faster than one per ball
+    ctx.fillStyle = COLORS[c];
+    ctx.beginPath();
+    for (const b of game.balls) {
+      if (b.color !== c) continue;
+      ctx.moveTo(b.x + BALL_R, b.y);
+      ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2);
+    }
+    ctx.fill();
+  }
+}
+
+function drawSling() {
+  const d = game.drag;
+  if (!d) return;
+  const v = slingVelocity(d);
+  // Rubber band from the ball to the pointer.
+  ctx.strokeStyle = "rgba(242,200,75,0.7)"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(d.start.x, d.start.y); ctx.lineTo(d.pull.x, d.pull.y); ctx.stroke();
+  // Dotted preview of the flight until it meets the wall.
+  ctx.fillStyle = "rgba(238,240,228,0.75)";
+  let x = d.start.x, y = d.start.y, vx = v.vx, vy = v.vy;
+  for (let i = 0; i < 60; i++) {
+    for (let k = 0; k < 6; k++) { vy += GRAVITY * STEP; x += vx * STEP; y += vy * STEP; }
+    if (Math.abs(x - CENTER_X) > cfg.halfW || y > wallY(x) - BALL_R) break;
+    ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.fillStyle = COLORS[0];
+  ctx.beginPath(); ctx.arc(d.start.x, d.start.y, BALL_R, 0, Math.PI * 2); ctx.fill();
+}
+
+function draw() {
+  resizeCanvas();
+  ctx.setTransform(canvas.width / WORLD_W, 0, 0, canvas.width / WORLD_W, 0, 0);
+  ctx.fillStyle = "#1b2928";
+  ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+  drawGrid();
+  drawWall();
+  drawBalls();
+  drawSling();
+  if (game.balls.length === 0 && !game.drag) {
+    ctx.fillStyle = "rgba(238,240,228,0.55)";
+    ctx.font = '500 20px "Space Grotesk", system-ui, sans-serif';
+    ctx.textAlign = "center";
+    ctx.fillText("Click to drop  ·  drag back and release to sling", CENTER_X, 40);
+  }
+}
+
+// Counter text. Only touches the page when a value actually changed.
+const hud = { count: "count", countMax: "countMax", splits: "splits", bounces: "bounces", status: "status" };
+for (const k in hud) hud[k] = document.getElementById(hud[k]);
+function setText(el, value) { const s = String(value); if (el.textContent !== s) el.textContent = s; }
+function updateHud() {
+  const full = game.balls.length >= cfg.max;
+  setText(hud.count, game.balls.length);
+  setText(hud.countMax, cfg.max);
+  setText(hud.splits, game.splits);
+  setText(hud.bounces, game.bounces);
+  setText(hud.status, game.paused ? "paused" : full ? "limit reached" : cfg.split ? "doubling on" : "doubling off");
+  hud.status.classList.toggle("full", full && !game.paused);
+}
+
+// Main loop: run as many fixed physics steps as real time has passed, then draw.
+let lastTime = performance.now(), owed = 0;
+function frame(now) {
+  owed += Math.min((now - lastTime) / 1000, 0.05);   // cap so a background tab doesn't cause a huge catch-up
+  lastTime = now;
+  while (owed >= STEP) { if (!game.paused) stepPhysics(); owed -= STEP; }
+  draw();
+  updateHud();
+  requestAnimationFrame(frame);
+}
+
+// ---------- 6. Controls ----------
+// Every slider is described once here; the page builds itself from this list.
+const SLIDERS = [
+  { key: "angle",  box: "doublingSliders", label: "Split angle",   min: 2,   max: 30,  step: 1,    fmt: v => v + "°" },
+  { key: "power",  box: "launchSliders",   label: "Sling power",   min: 1,   max: 10,  step: 0.5,  fmt: v => v + "×" },
+  { key: "bounce", box: "launchSliders",   label: "Bounciness",    min: 0.5, max: 1,   step: 0.01, fmt: v => Math.round(v * 100) + "%" },
+  { key: "halfW",  box: "shapeSliders",    label: "Width",         min: 100, max: 420, step: 10,   fmt: v => (2 * v / GRID).toFixed(1) + " sq", shape: true },
+  { key: "depth",  box: "shapeSliders",    label: "Height",        min: 100, max: 560, step: 10,   fmt: v => (v / GRID).toFixed(1) + " sq", shape: true },
+  { key: "exp",    box: "shapeSliders",    label: "Curve power",   min: 1,   max: 6,   step: 0.1,  fmt: v => v === 2 ? "2 (parabola)" : v.toFixed(1), shape: true },
+  { key: "lean",   box: "shapeSliders",    label: "Lean",          min: -1,  max: 1,   step: 0.05, fmt: v => v === 0 ? "even" : (v < 0 ? "left low " : "right low ") + Math.round(Math.abs(v) * 80) + "%", shape: true }
+];
+
+function updateEquation() {
+  // Written in grid squares so the numbers are readable: y = k * |x|^p
+  const k = side => ((cfg.depth * rimScale(side) / GRID) / Math.pow(cfg.halfW / GRID, cfg.exp));
+  const p = Number.isInteger(cfg.exp) ? cfg.exp : cfg.exp.toFixed(1);
+  const fmtK = v => v >= 0.1 ? v.toFixed(3) : v.toExponential(2);
+  const eq = document.getElementById("equation");
+  eq.innerHTML = cfg.lean === 0
+    ? `Wall: <b>y = ${fmtK(k(1))} · |x|<sup>${p}</sup></b> &nbsp;(1 grid square = 1 unit)`
+    : `Wall: <b>y = ${fmtK(k(-1))} · |x|<sup>${p}</sup></b> on the left, <b>${fmtK(k(1))} · |x|<sup>${p}</sup></b> on the right`;
+}
+
+function shapeChanged() { buildWall(); updateEquation(); }
+
+for (const s of SLIDERS) {
+  const row = document.createElement("div");
+  row.className = "row";
+  row.innerHTML = `<label for="s_${s.key}">${s.label} <output id="o_${s.key}"></output></label>
+    <input type="range" id="s_${s.key}" min="${s.min}" max="${s.max}" step="${s.step}">`;
+  document.getElementById(s.box).appendChild(row);
+  const input = row.querySelector("input"), out = row.querySelector("output");
+  s.sync = () => { input.value = cfg[s.key]; out.textContent = s.fmt(cfg[s.key]); };
+  input.addEventListener("input", () => {
+    cfg[s.key] = Number(input.value);
+    out.textContent = s.fmt(cfg[s.key]);
+    if (s.shape) shapeChanged();
+  });
+  s.sync();
+}
+
+const splitBox = document.getElementById("split");
+splitBox.addEventListener("change", () => { cfg.split = splitBox.checked; });
+
+const maxRange = document.getElementById("maxRange"), maxNum = document.getElementById("maxNum");
+function setMax(v) {
+  cfg.max = Math.min(5000, Math.max(1, Math.round(Number(v) || 1)));
+  maxRange.value = cfg.max;
+  if (document.activeElement !== maxNum) maxNum.value = cfg.max;
+}
+maxRange.addEventListener("input", () => setMax(maxRange.value));
+maxNum.addEventListener("input", () => setMax(maxNum.value));
+maxNum.addEventListener("blur", () => { maxNum.value = cfg.max; });
+
+const pauseBtn = document.getElementById("pause");
+function togglePause() { game.paused = !game.paused; pauseBtn.textContent = game.paused ? "Resume" : "Pause"; }
+pauseBtn.addEventListener("click", togglePause);
+document.getElementById("reset").addEventListener("click", resetGame);
+document.getElementById("shapeReset").addEventListener("click", () => {
+  for (const s of SLIDERS) if (s.shape) { cfg[s.key] = DEFAULTS[s.key]; s.sync(); }
+  shapeChanged();
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.target.matches("input, button")) return;      // don't hijack typing or button presses
+  if (e.key === "r" || e.key === "R") resetGame();
+  if (e.key === " ") { e.preventDefault(); togglePause(); }
+});
+
+shapeChanged();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
