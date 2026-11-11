@@ -3,6 +3,14 @@
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 const games = [
   {
+    slug: 'parabola-drop',
+    title: 'Parabola Drop',
+    summary: 'Drop or sling balls into a parabola you can reshape. Turn on doubling and every wall hit splits a ball in two.',
+    tools: ['HTML5 canvas', 'JavaScript', 'built with Claude'],
+    cover: '/parabola-drop/cover.jpg',
+    chip: 'new',
+  },
+  {
     slug: 'rank-and-file',
     title: 'Rank & File',
     summary: 'A chess roguelite. Lead a king and the commoners who stayed through three acts; raise pawns rank by rank. Permadeath, and no dice.',
@@ -28,7 +36,7 @@ const games = [
   },
 ];
 ---
-<BaseLayout title="Games" description="Browser games made by Nika: a chess roguelite, a 3D work in progress and a Flappy Bird clone." twin="nika">
+<BaseLayout title="Games" description="Browser games made by Nika: a ball-doubling parabola toy, a chess roguelite, a 3D work in progress and a Flappy Bird clone." twin="nika">
   <section class="container section">
     <p class="eyebrow">Games</p>
     <h1>The arcade</h1>
